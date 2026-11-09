@@ -1,0 +1,66 @@
+package com.pyoungws.bluewolfplayer.shared.di
+
+import com.pyoungws.bluewolfplayer.shared.auth.InMemorySessionStore
+import com.pyoungws.bluewolfplayer.shared.auth.SessionStore
+import com.pyoungws.bluewolfplayer.shared.model.Library
+import com.pyoungws.bluewolfplayer.shared.model.LibraryType
+import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.HomeViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.LibraryViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.SearchViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.ServerConnectViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.SignInViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.jellyfin.sdk.Jellyfin
+import org.jellyfin.sdk.createJellyfin
+import org.jellyfin.sdk.model.ClientInfo
+import org.jellyfin.sdk.model.DeviceInfo
+import org.koin.core.parameter.parametersOf
+import org.koin.dsl.koinApplication
+import org.koin.dsl.module
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertNotNull
+
+/** Catches wiring mistakes (e.g. Koin trying to inject a constructor default) that fakes in unit tests cannot. */
+@OptIn(ExperimentalCoroutinesApi::class)
+class SharedModuleTest {
+    @BeforeTest
+    fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
+
+    @AfterTest
+    fun tearDown() = Dispatchers.resetMain()
+
+    @Test
+    fun `every view model can be created from the shared module`() {
+        val platform = module {
+            single<Jellyfin> {
+                createJellyfin {
+                    clientInfo = ClientInfo(name = "tests", version = "0")
+                    deviceInfo = DeviceInfo(id = "test-device", name = "JVM")
+                }
+            }
+            single<SessionStore> { InMemorySessionStore() }
+        }
+        val koin = koinApplication { modules(sharedModule, platform) }.koin
+        val library = Library("l1", "Movies", LibraryType.Movies, null)
+
+        assertNotNull(koin.get<AppViewModel>())
+        assertNotNull(koin.get<ServerConnectViewModel>())
+        assertNotNull(koin.get<HomeViewModel>())
+        assertNotNull(koin.get<LibraryHomeViewModel>())
+        assertNotNull(koin.get<SearchViewModel>())
+        assertNotNull(koin.get<SignInViewModel> { parametersOf("https://jellyfin.example.com") })
+        assertNotNull(koin.get<LibraryViewModel> { parametersOf(library) })
+        assertNotNull(koin.get<ItemDetailViewModel> { parametersOf("item-1") })
+        assertNotNull(koin.get<PlayerViewModel> { parametersOf("item-1") })
+    }
+}

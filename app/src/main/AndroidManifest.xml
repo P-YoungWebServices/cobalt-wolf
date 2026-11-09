@@ -24,6 +24,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".player.PlayerActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode"
+            android:resizeableActivity="true"
+            android:screenOrientation="sensorLandscape"
+            android:supportsPictureInPicture="true" />
     </application>
 
 </manifest>

@@ -150,6 +150,12 @@ class AuthRepository(
         }
     }
 
+    /** Called when the server rejects the stored token (e.g. revoked): drops it and returns to sign-in. */
+    suspend fun invalidateSession() {
+        val session = (sessionState.value as? SessionState.SignedIn)?.session ?: return
+        clearSession(session.serverAddress)
+    }
+
     private suspend fun clearSession(serverAddress: String) {
         sessionStore.clear()
         _sessionState.value = SessionState.SignedOut(lastServerAddress = serverAddress)

@@ -92,3 +92,6 @@ coverage/
 # Test results
 **/build/test-results/
 **/build/reports/tests/
+
+# Local test credentials (never commit)
+dev.credentials.properties
