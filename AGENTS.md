@@ -49,6 +49,17 @@ Conventions and rules for contributing to Blue Wolf Player.
   (`local.properties` `sdk.dir=...` or `ANDROID_HOME`). Locally, Android
   Studio's bundled JBR works: `JAVA_HOME=/snap/android-studio/current/jbr`.
 
+## Local test credentials
+
+- `dev.credentials.properties` (repo root, gitignored) holds a test Jellyfin
+  `server`, `username` and `password` for manual testing on a device. The app
+  never reads it; it is only for developers and agents driving the app by hand
+  (e.g. via `adb`) or calling the Jellyfin API.
+- **Never commit it, copy its values into code, tests, docs, logs or PR text, or
+  print the password.** Read values from the file in shell commands only.
+- If the file is missing or still has placeholder values, ask the user to fill it
+  in rather than guessing credentials.
+
 ## Project layout
 
 - `shared/` (Kotlin Multiplatform: `android` + `jvm` targets): models,
