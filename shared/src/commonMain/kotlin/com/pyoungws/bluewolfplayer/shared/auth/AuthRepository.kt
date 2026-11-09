@@ -1,0 +1,169 @@
+package com.pyoungws.bluewolfplayer.shared.auth
+
+import com.pyoungws.bluewolfplayer.shared.model.Session
+import com.pyoungws.bluewolfplayer.shared.model.UserProfile
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withTimeoutOrNull
+import org.jellyfin.sdk.api.client.exception.ApiClientException
+import org.jellyfin.sdk.api.client.exception.InvalidStatusException
+import org.jellyfin.sdk.api.client.exception.SecureConnectionException
+import org.jellyfin.sdk.api.client.exception.TimeoutException
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+
+sealed interface SignInError {
+    data object MissingUsername : SignInError
+    data object InvalidCredentials : SignInError
+    data object SessionExpired : SignInError
+    data object ServerUnreachable : SignInError
+    data object SecureConnectionFailed : SignInError
+    data object QuickConnectDisabled : SignInError
+    data object QuickConnectExpired : SignInError
+    data class Unexpected(val message: String?) : SignInError
+}
+
+sealed interface SignInResult {
+    data class Success(val user: UserProfile) : SignInResult
+    data class Failure(val error: SignInError) : SignInResult
+}
+
+sealed interface QuickConnectState {
+    data object Starting : QuickConnectState
+    data class WaitingForApproval(val code: String) : QuickConnectState
+    data class SignedIn(val user: UserProfile) : QuickConnectState
+    data class Failed(val error: SignInError) : QuickConnectState
+}
+
+sealed interface SessionState {
+    data object Unknown : SessionState
+    /** [lastServerAddress] is the server the user just left, so the app can offer sign-in there again. */
+    data class SignedOut(val lastServerAddress: String? = null) : SessionState
+    data class SignedIn(val session: Session) : SessionState
+}
+
+class AuthRepository(
+    private val dataSource: JellyfinAuthDataSource,
+    private val sessionStore: SessionStore,
+    private val quickConnectPollInterval: Duration = 5.seconds,
+    private val logoutTimeout: Duration = 5.seconds,
+) {
+    private val _sessionState = MutableStateFlow<SessionState>(SessionState.Unknown)
+    val sessionState: StateFlow<SessionState> = _sessionState.asStateFlow()
+
+    suspend fun restoreSession() {
+        _sessionState.value = sessionStore.load()?.let(SessionState::SignedIn) ?: SessionState.SignedOut()
+    }
+
+    /**
+     * Ends the session on the server (revoking the access token) and deletes it from the device.
+     * The server call is best-effort: the local token is always removed, even when offline.
+     */
+    suspend fun signOut() {
+        val session = (sessionState.value as? SessionState.SignedIn)?.session ?: return
+        try {
+            withTimeoutOrNull(logoutTimeout) { dataSource.logout(session.serverAddress, session.accessToken) }
+        } catch (e: ApiClientException) {
+            // Already invalid or unreachable; nothing more to revoke from here.
+        }
+        clearSession(session.serverAddress)
+    }
+
+    suspend fun signIn(serverAddress: String, username: String, password: String): SignInResult {
+        val name = username.trim()
+        if (name.isEmpty()) return SignInResult.Failure(SignInError.MissingUsername)
+        return try {
+            SignInResult.Success(persist(serverAddress, dataSource.authenticateByName(serverAddress, name, password)))
+        } catch (e: ApiClientException) {
+            SignInResult.Failure(e.toSignInError())
+        }
+    }
+
+    /**
+     * Runs a Quick Connect sign-in: shows a code, polls until the user approves it from another
+     * signed-in device, then exchanges the secret for an access token. Cancelling collection stops polling.
+     */
+    fun quickConnect(serverAddress: String): Flow<QuickConnectState> = flow {
+        emit(QuickConnectState.Starting)
+        if (!dataSource.isQuickConnectEnabled(serverAddress)) {
+            emit(QuickConnectState.Failed(SignInError.QuickConnectDisabled))
+            return@flow
+        }
+
+        var ticket = try {
+            dataSource.initiateQuickConnect(serverAddress)
+        } catch (e: InvalidStatusException) {
+            if (e.status != HTTP_UNAUTHORIZED) throw e
+            emit(QuickConnectState.Failed(SignInError.QuickConnectDisabled))
+            return@flow
+        }
+        emit(QuickConnectState.WaitingForApproval(ticket.code))
+
+        while (!ticket.authenticated) {
+            delay(quickConnectPollInterval)
+            ticket = try {
+                dataSource.getQuickConnectState(serverAddress, ticket.secret)
+            } catch (e: InvalidStatusException) {
+                // The server forgets the secret once the request times out.
+                if (e.status != HTTP_NOT_FOUND) throw e
+                emit(QuickConnectState.Failed(SignInError.QuickConnectExpired))
+                return@flow
+            }
+        }
+
+        val user = persist(serverAddress, dataSource.authenticateWithQuickConnect(serverAddress, ticket.secret))
+        emit(QuickConnectState.SignedIn(user))
+    }.catch { e ->
+        if (e !is ApiClientException) throw e
+        emit(QuickConnectState.Failed(e.toSignInError()))
+    }
+
+    /** Fetches the signed-in user's current profile and policy. Signs out if the token was revoked. */
+    suspend fun currentUser(): SignInResult {
+        val session = (sessionState.value as? SessionState.SignedIn)?.session
+            ?: return SignInResult.Failure(SignInError.SessionExpired)
+        return try {
+            SignInResult.Success(dataSource.getCurrentUser(session.serverAddress, session.accessToken))
+        } catch (e: ApiClientException) {
+            if (e is InvalidStatusException && e.status == HTTP_UNAUTHORIZED) {
+                clearSession(session.serverAddress)
+                SignInResult.Failure(SignInError.SessionExpired)
+            } else {
+                SignInResult.Failure(e.toSignInError())
+            }
+        }
+    }
+
+    private suspend fun clearSession(serverAddress: String) {
+        sessionStore.clear()
+        _sessionState.value = SessionState.SignedOut(lastServerAddress = serverAddress)
+    }
+
+    private suspend fun persist(serverAddress: String, auth: AuthenticatedUser): UserProfile {
+        val session = Session(serverAddress = serverAddress, userId = auth.user.id, accessToken = auth.accessToken)
+        sessionStore.save(session)
+        _sessionState.value = SessionState.SignedIn(session)
+        return auth.user
+    }
+
+    private fun ApiClientException.toSignInError(): SignInError = when (this) {
+        is InvalidStatusException -> when (status) {
+            HTTP_UNAUTHORIZED, HTTP_FORBIDDEN -> SignInError.InvalidCredentials
+            else -> SignInError.Unexpected(message)
+        }
+        is TimeoutException -> SignInError.ServerUnreachable
+        is SecureConnectionException -> SignInError.SecureConnectionFailed
+        else -> SignInError.Unexpected(message)
+    }
+
+    private companion object {
+        const val HTTP_UNAUTHORIZED = 401
+        const val HTTP_FORBIDDEN = 403
+        const val HTTP_NOT_FOUND = 404
+    }
+}

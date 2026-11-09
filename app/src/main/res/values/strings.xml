@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Blue Wolf Player</string>
+
+    <!-- Server connection -->
+    <string name="connect_title">Connect to your server</string>
+    <string name="connect_subtitle">Enter the address of your Jellyfin server.</string>
+    <string name="connect_address_label">Server address</string>
+    <string name="connect_address_hint">jellyfin.example.com or 192.168.1.10:8096</string>
+    <string name="connect_button">Connect</string>
+    <string name="error_server_invalid_address">Enter a valid server address.</string>
+    <string name="error_server_unreachable">Could not reach the server. Check the address and your connection.</string>
+    <string name="error_server_secure_connection">Could not establish a secure connection. Check the server\'s HTTPS certificate.</string>
+    <string name="error_server_not_jellyfin">No Jellyfin server was found at this address.</string>
+    <string name="error_server_unsupported_version">This server runs Jellyfin %1$s. Blue Wolf Player requires Jellyfin 12 or newer.</string>
+
+    <!-- Sign in -->
+    <string name="sign_in_title">Sign in to %1$s</string>
+    <string name="sign_in_username">Username</string>
+    <string name="sign_in_password">Password</string>
+    <string name="sign_in_button">Sign in</string>
+    <string name="sign_in_or">or</string>
+    <string name="sign_in_change_server">Change server</string>
+    <string name="quick_connect_button">Use Quick Connect</string>
+    <string name="quick_connect_starting">Requesting a Quick Connect code…</string>
+    <string name="quick_connect_instructions">On a device where you are already signed in, open Quick Connect in your Jellyfin settings and enter this code:</string>
+    <string name="quick_connect_waiting">Waiting for approval…</string>
+    <string name="quick_connect_cancel">Cancel</string>
+    <string name="quick_connect_try_again">Try again</string>
+    <string name="error_sign_in_missing_username">Enter your username.</string>
+    <string name="error_sign_in_invalid_credentials">Incorrect username or password.</string>
+    <string name="error_sign_in_session_expired">Your session has expired. Sign in again.</string>
+    <string name="error_sign_in_unreachable">Could not reach the server. Check your connection.</string>
+    <string name="error_sign_in_secure_connection">Could not establish a secure connection to the server.</string>
+    <string name="error_quick_connect_disabled">Quick Connect is turned off on this server.</string>
+    <string name="error_quick_connect_expired">The Quick Connect code expired. Request a new one.</string>
+    <string name="error_unexpected">Something went wrong: %1$s</string>
+    <string name="error_unknown">unknown error</string>
+
+    <!-- Home -->
+    <string name="home_signed_in_as">Signed in as</string>
+    <string name="home_role_label">Role</string>
+    <string name="home_role_admin">Administrator</string>
+    <string name="home_role_viewer">Viewer (not an administrator)</string>
+    <string name="home_retry">Retry</string>
+    <string name="home_sign_out">Sign out</string>
+    <string name="home_sign_out_title">Sign out or switch user?</string>
+    <string name="home_sign_out_message">You will be signed out on this device and the server will end this session. You can then sign in as another user or change server.</string>
+    <string name="home_sign_out_cancel">Cancel</string>
+</resources>
