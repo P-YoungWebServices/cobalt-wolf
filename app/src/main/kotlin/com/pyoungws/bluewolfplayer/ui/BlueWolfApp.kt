@@ -16,8 +16,8 @@ import com.pyoungws.bluewolfplayer.shared.auth.SessionState
 import com.pyoungws.bluewolfplayer.shared.model.ServerInfo
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
 import com.pyoungws.bluewolfplayer.ui.connect.ServerConnectScreen
-import com.pyoungws.bluewolfplayer.ui.home.HomeScreen
 import com.pyoungws.bluewolfplayer.ui.signin.SignInScreen
+import com.pyoungws.bluewolfplayer.ui.navigation.SignedInNavigation
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -28,7 +28,7 @@ fun BlueWolfApp(appViewModel: AppViewModel = koinViewModel()) {
             CircularProgressIndicator()
         }
         is SessionState.SignedOut -> SignedOutFlow(state.lastServerAddress)
-        is SessionState.SignedIn -> HomeScreen()
+        is SessionState.SignedIn -> SignedInNavigation()
     }
 }
 

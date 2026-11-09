@@ -69,6 +69,8 @@ All checked for GPL v3 compatibility:
 - Kotlin, kotlinx.coroutines, kotlinx.serialization (test only): Apache-2.0
 - AndroidX (Compose, Material 3, Activity, Lifecycle, Core): Apache-2.0
 - Koin: Apache-2.0
+- AndroidX Media3 (ExoPlayer, HLS, UI): Apache-2.0
+- Coil 3 (image loading): Apache-2.0
 
 App icon (`app/src/main/res/drawable/ic_launcher_*.xml`, `mipmap-*`): original
 artwork made for this project (low-poly wolf head), GPL v3 with the code. No

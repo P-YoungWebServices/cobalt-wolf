@@ -41,13 +41,56 @@
     <string name="error_unknown">unknown error</string>
 
     <!-- Home -->
-    <string name="home_signed_in_as">Signed in as</string>
-    <string name="home_role_label">Role</string>
-    <string name="home_role_admin">Administrator</string>
-    <string name="home_role_viewer">Viewer (not an administrator)</string>
     <string name="home_retry">Retry</string>
     <string name="home_sign_out">Sign out</string>
     <string name="home_sign_out_title">Sign out or switch user?</string>
     <string name="home_sign_out_message">You will be signed out on this device and the server will end this session. You can then sign in as another user or change server.</string>
     <string name="home_sign_out_cancel">Cancel</string>
+
+    <!-- Browse -->
+    <string name="home_search">Search</string>
+    <string name="home_continue_watching">Continue Watching</string>
+    <string name="home_libraries">Libraries</string>
+    <string name="home_recently_added">Recently added in %1$s</string>
+    <string name="home_empty">Nothing to show yet. Add media to a movie or series library on your server.</string>
+    <string name="library_unsupported">Not supported yet</string>
+    <string name="library_empty">This library is empty.</string>
+    <string name="nav_back">Back</string>
+    <string name="error_session_expired">Your session has expired. Sign in again.</string>
+    <string name="error_load_unreachable">Could not reach the server. Check your connection.</string>
+    <string name="error_load_secure_connection">Could not establish a secure connection to the server.</string>
+    <string name="error_load_not_found">This item was not found on the server.</string>
+    <string name="item_episode_label">S%1$d:E%2$d</string>
+
+    <!-- Detail -->
+    <string name="detail_play">Play</string>
+    <string name="detail_resume">Resume</string>
+    <string name="detail_play_episode">Play %1$s</string>
+    <string name="detail_view_series">View series</string>
+    <string name="detail_seasons">Seasons</string>
+    <string name="detail_episodes">Episodes</string>
+    <string name="detail_no_episodes">No episodes in this season.</string>
+    <string name="detail_runtime_minutes">%1$d min</string>
+    <string name="detail_season_specials">Specials</string>
+    <string name="detail_watched">Watched</string>
+
+    <!-- Search -->
+    <string name="search_title">Search</string>
+    <string name="search_hint">Movies, series and episodes</string>
+    <string name="search_no_results">No results for this search.</string>
+    <string name="kind_movie">Movie</string>
+    <string name="kind_series">Series</string>
+    <string name="kind_episode">Episode</string>
+    <string name="search_prompt">Type to search your libraries.</string>
+
+    <!-- Player -->
+    <string name="player_audio">Audio</string>
+    <string name="player_subtitles">Subtitles</string>
+    <string name="player_subtitles_off">Off</string>
+    <string name="player_pip">Picture-in-picture</string>
+    <string name="player_close">Close</string>
+    <string name="player_error">Playback failed. The video could not be played on this device.</string>
+    <string name="player_track_unknown">Track %1$d</string>
+    <string name="player_no_tracks">No tracks available.</string>
+    <string name="player_pip_unavailable">Picture-in-picture is not available on this device.</string>
 </resources>

@@ -48,6 +48,12 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
 
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.exoplayer.hls)
+    implementation(libs.media3.ui)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)

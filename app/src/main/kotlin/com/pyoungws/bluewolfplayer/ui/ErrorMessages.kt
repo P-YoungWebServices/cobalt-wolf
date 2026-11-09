@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.shared.auth.SignInError
+import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.server.ServerError
 
 @Composable
@@ -25,4 +26,13 @@ fun SignInError.message(): String = when (this) {
     SignInError.QuickConnectDisabled -> stringResource(R.string.error_quick_connect_disabled)
     SignInError.QuickConnectExpired -> stringResource(R.string.error_quick_connect_expired)
     is SignInError.Unexpected -> stringResource(R.string.error_unexpected, message ?: stringResource(R.string.error_unknown))
+}
+
+@Composable
+fun LoadError.message(): String = when (this) {
+    LoadError.SessionExpired -> stringResource(R.string.error_session_expired)
+    LoadError.ServerUnreachable -> stringResource(R.string.error_load_unreachable)
+    LoadError.SecureConnectionFailed -> stringResource(R.string.error_load_secure_connection)
+    LoadError.NotFound -> stringResource(R.string.error_load_not_found)
+    is LoadError.Unexpected -> stringResource(R.string.error_unexpected, message ?: stringResource(R.string.error_unknown))
 }
