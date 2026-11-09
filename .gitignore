@@ -1,0 +1,94 @@
+# Android / Kotlin
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.keystore
+*.jks
+signing.properties
+app/release/
+*.apk
+*.aab
+*.dex
+*.class
+bin/
+gen/
+out/
+*.hprof
+*.prof
+
+# Kotlin / Gradle
+.kotlin/
+.kotlin_metadata/
+*.kotlin_module
+kotlinProfile/
+
+# Gradle wrapper should be committed; ignore user-level gradle homes only
+.gradle-home/
+
+# Android Studio / JetBrains
+.idea/
+*.ipr
+*.iws
+.idea_modules/
+out/
+
+# Generated
+bin/
+gen/
+
+# ProGuard / R8 output
+mapping.txt
+seeds.txt
+usage.txt
+
+# Lint
+lint/intermediates/
+lint/reports/
+lint/generated/
+
+# Build artifacts
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+
+# Signing
+*.keystore
+*.jks
+*.p12
+*.pem
+signing.properties
+keystore.properties
+
+# Environment / secrets
+.env
+.env.*
+*.env
+secrets.properties
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+*.exec
+*.gcno
+*.gcda
+
+# Test results
+**/build/test-results/
+**/build/reports/tests/
