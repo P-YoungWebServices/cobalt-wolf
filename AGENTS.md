@@ -40,7 +40,37 @@ Conventions and rules for contributing to Blue Wolf Player.
 
 ## Build / verify
 
-- Gradle project is added in the M1 scaffold prompt. Until then, the CI
-  workflow skips cleanly.
-- Once present: `./gradlew test` and `./gradlew assembleDebug` are the
-  standard verification commands.
+- `./gradlew test` and `./gradlew assembleDebug` are the standard
+  verification commands (CI runs `./gradlew test assembleDebug`).
+- `./gradlew test` runs the shared tests on both the JVM target
+  (`:shared:jvmTest`) and the Android host target
+  (`:shared:testAndroidHostTest`), plus `:app:testDebugUnitTest`.
+- Requires JDK 17+ (`JAVA_HOME`) and an Android SDK with platform 37
+  (`local.properties` `sdk.dir=...` or `ANDROID_HOME`). Locally, Android
+  Studio's bundled JBR works: `JAVA_HOME=/snap/android-studio/current/jbr`.
+
+## Project layout
+
+- `shared/` (Kotlin Multiplatform: `android` + `jvm` targets): models,
+  Jellyfin SDK data sources, repositories, ViewModels and the Koin
+  `sharedModule`. `commonTest` holds the unit tests. `androidMain` holds
+  `KeystoreSessionStore` (Android Keystore AES-GCM token storage) and
+  `androidPlatformModule` (creates the `Jellyfin` instance).
+- `app/`: Android app (`com.pyoungws.bluewolfplayer`, minSdk 24), Jetpack
+  Compose + Material 3 UI only; no business logic.
+- Versions live in `gradle/libs.versions.toml`.
+
+## Dependencies and licenses
+
+All checked for GPL v3 compatibility:
+
+- Jellyfin Kotlin SDK (`org.jellyfin.sdk`), LGPL-3.0. Keep attribution.
+  Requires Jellyfin server 12.0+ (see `docs/SPEC.md`).
+- Kotlin, kotlinx.coroutines, kotlinx.serialization (test only): Apache-2.0
+- AndroidX (Compose, Material 3, Activity, Lifecycle, Core): Apache-2.0
+- Koin: Apache-2.0
+
+App icon (`app/src/main/res/drawable/ic_launcher_*.xml`, `mipmap-*`): original
+artwork made for this project (low-poly wolf head), GPL v3 with the code. No
+third-party images. The vector drawables are the source; the `mipmap-*dpi` PNGs
+are rendered from the same shapes for API 24–25 launchers.

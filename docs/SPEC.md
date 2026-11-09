@@ -10,7 +10,7 @@ Blue Wolf Player is a single Jellyfin client that combines two things: a media p
 
 **Platforms:** Android phone, Android tablet, Android TV and Fire TV for v1. iOS later.
 
-**Servers supported:** Jellyfin 10.8 or newer. Emby is not supported.
+**Servers supported:** Jellyfin 12.0 or newer (the minimum supported by the official Jellyfin Kotlin SDK 1.9.x). Emby is not supported.
 
 ## 2. Users and roles
 
