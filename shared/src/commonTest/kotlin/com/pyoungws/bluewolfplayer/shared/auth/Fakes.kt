@@ -1,5 +1,6 @@
 package com.pyoungws.bluewolfplayer.shared.auth
 
+import com.pyoungws.bluewolfplayer.shared.model.PublicUser
 import com.pyoungws.bluewolfplayer.shared.model.Session
 import com.pyoungws.bluewolfplayer.shared.model.UserProfile
 
@@ -25,6 +26,7 @@ class FakeAuthDataSource : JellyfinAuthDataSource {
     var pollCount = 0
         private set
 
+    var onGetPublicUsers: () -> List<PublicUser> = { emptyList() }
     var onAuthenticateByName: (username: String, password: String) -> AuthenticatedUser =
         { _, _ -> AuthenticatedUser("token-password", ADMIN) }
     var onQuickConnectEnabled: () -> Boolean = { true }
@@ -36,6 +38,11 @@ class FakeAuthDataSource : JellyfinAuthDataSource {
         { AuthenticatedUser("token-quick-connect", VIEWER) }
     var onGetCurrentUser: (accessToken: String) -> UserProfile = { ADMIN }
     var onLogout: suspend (accessToken: String) -> Unit = {}
+
+    override suspend fun getPublicUsers(serverAddress: String): List<PublicUser> {
+        calls += "getPublicUsers"
+        return onGetPublicUsers()
+    }
 
     override suspend fun authenticateByName(serverAddress: String, username: String, password: String): AuthenticatedUser {
         calls += "authenticateByName($serverAddress, $username)"

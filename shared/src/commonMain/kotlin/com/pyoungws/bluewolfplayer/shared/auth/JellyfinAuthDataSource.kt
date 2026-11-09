@@ -1,7 +1,13 @@
 package com.pyoungws.bluewolfplayer.shared.auth
 
+import com.pyoungws.bluewolfplayer.shared.model.PublicUser
 import com.pyoungws.bluewolfplayer.shared.model.UserProfile
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.Jellyfin
+import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.exception.InvalidContentException
 import org.jellyfin.sdk.api.client.extensions.authenticateUserByName
 import org.jellyfin.sdk.api.client.extensions.authenticateWithQuickConnect
@@ -21,6 +27,7 @@ data class QuickConnectTicket(val code: String, val secret: String, val authenti
  * [org.jellyfin.sdk.api.client.exception.ApiClientException] subtypes on failure.
  */
 interface JellyfinAuthDataSource {
+    suspend fun getPublicUsers(serverAddress: String): List<PublicUser>
     suspend fun authenticateByName(serverAddress: String, username: String, password: String): AuthenticatedUser
     suspend fun isQuickConnectEnabled(serverAddress: String): Boolean
     suspend fun initiateQuickConnect(serverAddress: String): QuickConnectTicket
@@ -30,31 +37,49 @@ interface JellyfinAuthDataSource {
     suspend fun logout(serverAddress: String, accessToken: String)
 }
 
-class SdkJellyfinAuthDataSource(private val jellyfin: Jellyfin) : JellyfinAuthDataSource {
+/**
+ * The SDK's OkHttp client reads response bodies on the calling thread, so every call is moved to
+ * [ioDispatcher]; calling it from the main thread throws NetworkOnMainThreadException on Android.
+ */
+class SdkJellyfinAuthDataSource(
+    private val jellyfin: Jellyfin,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) : JellyfinAuthDataSource {
 
-    private fun api(serverAddress: String, accessToken: String? = null) =
-        jellyfin.createApi(baseUrl = serverAddress, accessToken = accessToken)
+    private suspend fun <T> call(serverAddress: String, accessToken: String? = null, block: suspend ApiClient.() -> T): T =
+        withContext(ioDispatcher) { jellyfin.createApi(baseUrl = serverAddress, accessToken = accessToken).block() }
 
-    override suspend fun authenticateByName(serverAddress: String, username: String, password: String) =
-        api(serverAddress).authenticationApi.authenticateUserByName(username, password).content.toAuthenticatedUser()
+    override suspend fun getPublicUsers(serverAddress: String) = call(serverAddress) {
+        userApi.getPublicUsers().content.map { it.toPublicUser() }
+    }
 
-    override suspend fun isQuickConnectEnabled(serverAddress: String) =
-        api(serverAddress).authenticationApi.getQuickConnectEnabled().content
+    override suspend fun authenticateByName(serverAddress: String, username: String, password: String) = call(serverAddress) {
+        authenticationApi.authenticateUserByName(username, password).content.toAuthenticatedUser()
+    }
 
-    override suspend fun initiateQuickConnect(serverAddress: String) =
-        api(serverAddress).authenticationApi.initiateQuickConnect().content.toTicket()
+    override suspend fun isQuickConnectEnabled(serverAddress: String) = call(serverAddress) {
+        authenticationApi.getQuickConnectEnabled().content
+    }
 
-    override suspend fun getQuickConnectState(serverAddress: String, secret: String) =
-        api(serverAddress).authenticationApi.getQuickConnectState(secret).content.toTicket()
+    override suspend fun initiateQuickConnect(serverAddress: String) = call(serverAddress) {
+        authenticationApi.initiateQuickConnect().content.toTicket()
+    }
 
-    override suspend fun authenticateWithQuickConnect(serverAddress: String, secret: String) =
-        api(serverAddress).authenticationApi.authenticateWithQuickConnect(secret).content.toAuthenticatedUser()
+    override suspend fun getQuickConnectState(serverAddress: String, secret: String) = call(serverAddress) {
+        authenticationApi.getQuickConnectState(secret).content.toTicket()
+    }
 
-    override suspend fun getCurrentUser(serverAddress: String, accessToken: String) =
-        api(serverAddress, accessToken).userApi.getCurrentUser().content.toUserProfile()
+    override suspend fun authenticateWithQuickConnect(serverAddress: String, secret: String) = call(serverAddress) {
+        authenticationApi.authenticateWithQuickConnect(secret).content.toAuthenticatedUser()
+    }
 
-    override suspend fun logout(serverAddress: String, accessToken: String) {
-        api(serverAddress, accessToken).sessionApi.reportSessionEnded()
+    override suspend fun getCurrentUser(serverAddress: String, accessToken: String) = call(serverAddress, accessToken) {
+        userApi.getCurrentUser().content.toUserProfile()
+    }
+
+    override suspend fun logout(serverAddress: String, accessToken: String) = call(serverAddress, accessToken) {
+        sessionApi.reportSessionEnded()
+        Unit
     }
 }
 
@@ -71,6 +96,18 @@ internal fun UserDto.toUserProfile() = UserProfile(
     id = id.toString(),
     name = name.orEmpty(),
     isAdministrator = policy?.isAdministrator == true,
+)
+
+/**
+ * `HasPassword` is deprecated in the 12.x API but still the only signal for passwordless users.
+ * If it is missing (or removed later) we assume a password, so the prompt is never skipped wrongly;
+ * a passwordless user can still submit an empty password.
+ */
+@Suppress("DEPRECATION")
+internal fun UserDto.toPublicUser() = PublicUser(
+    id = id.toString(),
+    name = name.orEmpty(),
+    hasPassword = hasPassword ?: true,
 )
 
 private fun QuickConnectResult.toTicket() = QuickConnectTicket(code = code, secret = secret, authenticated = authenticated)

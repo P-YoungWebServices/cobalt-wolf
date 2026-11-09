@@ -47,6 +47,11 @@ tasks.register("test") {
     dependsOn("jvmTest", "testAndroidHostTest")
 }
 
+// The SDK logs via kotlin-logging, which defaults to SLF4J (not on the classpath); use java.util.logging.
+tasks.named<Test>("jvmTest") {
+    systemProperty("kotlin-logging-to-jul", "true")
+}
+
 tasks.withType<JavaCompile>().configureEach {
     sourceCompatibility = "17"
     targetCompatibility = "17"

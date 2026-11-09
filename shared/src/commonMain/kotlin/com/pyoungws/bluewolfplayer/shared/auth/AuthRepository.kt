@@ -1,5 +1,6 @@
 package com.pyoungws.bluewolfplayer.shared.auth
 
+import com.pyoungws.bluewolfplayer.shared.model.PublicUser
 import com.pyoungws.bluewolfplayer.shared.model.Session
 import com.pyoungws.bluewolfplayer.shared.model.UserProfile
 import kotlinx.coroutines.delay
@@ -72,6 +73,16 @@ class AuthRepository(
             // Already invalid or unreachable; nothing more to revoke from here.
         }
         clearSession(session.serverAddress)
+    }
+
+    /**
+     * Users the server shows on its login screen. Empty if the server hides all users or the list
+     * can't be loaded; sign-in by typed username still works in both cases.
+     */
+    suspend fun publicUsers(serverAddress: String): List<PublicUser> = try {
+        dataSource.getPublicUsers(serverAddress).filter { it.name.isNotBlank() }
+    } catch (e: ApiClientException) {
+        emptyList()
     }
 
     suspend fun signIn(serverAddress: String, username: String, password: String): SignInResult {

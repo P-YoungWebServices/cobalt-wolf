@@ -20,6 +20,9 @@
     <string name="sign_in_password">Password</string>
     <string name="sign_in_button">Sign in</string>
     <string name="sign_in_or">or</string>
+    <string name="sign_in_pick_user">Who\'s watching?</string>
+    <string name="sign_in_enter_username">Enter a username</string>
+    <string name="sign_in_back_to_users">Back to user list</string>
     <string name="sign_in_change_server">Change server</string>
     <string name="quick_connect_button">Use Quick Connect</string>
     <string name="quick_connect_starting">Requesting a Quick Connect code…</string>

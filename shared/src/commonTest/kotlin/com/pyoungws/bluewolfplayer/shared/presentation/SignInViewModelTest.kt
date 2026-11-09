@@ -1,5 +1,6 @@
 package com.pyoungws.bluewolfplayer.shared.presentation
 
+import com.pyoungws.bluewolfplayer.shared.auth.ADMIN
 import com.pyoungws.bluewolfplayer.shared.auth.AuthRepository
 import com.pyoungws.bluewolfplayer.shared.auth.AuthenticatedUser
 import com.pyoungws.bluewolfplayer.shared.auth.CODE
@@ -13,10 +14,12 @@ import com.pyoungws.bluewolfplayer.shared.auth.SERVER
 import com.pyoungws.bluewolfplayer.shared.auth.SessionState
 import com.pyoungws.bluewolfplayer.shared.auth.SignInError
 import com.pyoungws.bluewolfplayer.shared.auth.VIEWER
+import com.pyoungws.bluewolfplayer.shared.model.PublicUser
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -40,13 +43,11 @@ class SignInViewModelTest {
     private val dataSource = FakeAuthDataSource()
     private val store = InMemorySessionStore()
     private val repository = AuthRepository(dataSource, store, quickConnectPollInterval = 5.seconds)
-    private lateinit var viewModel: SignInViewModel
+    // Created on first use, so each test can configure the fake (e.g. its user list) first.
+    private val viewModel by lazy { SignInViewModel(SERVER, repository) }
 
     @BeforeTest
-    fun setUp() {
-        Dispatchers.setMain(StandardTestDispatcher())
-        viewModel = SignInViewModel(SERVER, repository)
-    }
+    fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
 
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
@@ -64,7 +65,7 @@ class SignInViewModelTest {
         assertFalse(state.isSigningIn)
         assertNull(state.error)
         assertIs<SessionState.SignedIn>(repository.sessionState.value)
-        assertEquals("authenticateByName($SERVER, alice)", dataSource.calls.single())
+        assertEquals(listOf("getPublicUsers", "authenticateByName($SERVER, alice)"), dataSource.calls)
     }
 
     @Test
@@ -75,7 +76,7 @@ class SignInViewModelTest {
         viewModel.signIn()
         advanceUntilIdle()
 
-        assertEquals(SignInUiState(), viewModel.uiState.value)
+        assertEquals(SignInUiState(isLoadingUsers = false), viewModel.uiState.value)
     }
 
     @Test
@@ -84,9 +85,128 @@ class SignInViewModelTest {
         viewModel.startQuickConnect()
         advanceUntilIdle()
 
-        assertEquals(SignInUiState(), viewModel.uiState.value)
+        assertEquals(SignInUiState(isLoadingUsers = false), viewModel.uiState.value)
         assertIs<SessionState.SignedIn>(repository.sessionState.value)
     }
+
+    // region Login-screen user list
+
+    /** Creates the ViewModel (which starts loading the user list) and lets the load finish. */
+    private fun TestScope.startViewModel() {
+        viewModel.uiState
+        advanceUntilIdle()
+    }
+
+    private val withPassword = PublicUser(id = "u1", name = "alice", hasPassword = true)
+    private val noPassword = PublicUser(id = "u2", name = "kids", hasPassword = false)
+
+    @Test
+    fun `server users are loaded and shown as a picker`() = runTest {
+        dataSource.onGetPublicUsers = { listOf(withPassword, noPassword) }
+        assertTrue(viewModel.uiState.value.isLoadingUsers)
+        assertFalse(viewModel.uiState.value.showUserList)
+
+        startViewModel()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isLoadingUsers)
+        assertEquals(listOf(withPassword, noPassword), state.publicUsers)
+        assertTrue(state.showUserList)
+    }
+
+    @Test
+    fun `with no listed users the username form is shown`() = runTest {
+        dataSource.onGetPublicUsers = { emptyList() }
+        startViewModel()
+        assertFalse(viewModel.uiState.value.showUserList)
+    }
+
+    @Test
+    fun `if the user list fails to load the username form is shown`() = runTest {
+        dataSource.onGetPublicUsers = { throw TimeoutException("offline") }
+        startViewModel()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isLoadingUsers)
+        assertFalse(state.showUserList)
+        assertNull(state.error)
+    }
+
+    @Test
+    fun `picking a user with a password asks only for the password`() = runTest {
+        dataSource.onGetPublicUsers = { listOf(withPassword) }
+        var received: Pair<String, String>? = null
+        dataSource.onAuthenticateByName = { user, password ->
+            received = user to password
+            AuthenticatedUser("t", ADMIN)
+        }
+        startViewModel()
+
+        viewModel.selectUser(withPassword)
+        advanceUntilIdle()
+        assertEquals(withPassword, viewModel.uiState.value.selectedUser)
+        assertFalse(viewModel.uiState.value.showUserList)
+        assertNull(received, "must not sign in before the password is entered")
+
+        viewModel.onPasswordChange("hunter2")
+        viewModel.signIn()
+        advanceUntilIdle()
+
+        assertEquals("alice" to "hunter2", received)
+        assertIs<SessionState.SignedIn>(repository.sessionState.value)
+    }
+
+    @Test
+    fun `picking a user without a password signs in straight away`() = runTest {
+        dataSource.onGetPublicUsers = { listOf(noPassword) }
+        var received: Pair<String, String>? = null
+        dataSource.onAuthenticateByName = { user, password ->
+            received = user to password
+            AuthenticatedUser("t", VIEWER)
+        }
+        startViewModel()
+
+        viewModel.selectUser(noPassword)
+        advanceUntilIdle()
+
+        assertEquals("kids" to "", received)
+        assertIs<SessionState.SignedIn>(repository.sessionState.value)
+    }
+
+    @Test
+    fun `typing a username manually and going back to the list`() = runTest {
+        dataSource.onGetPublicUsers = { listOf(withPassword) }
+        startViewModel()
+
+        viewModel.enterUsernameManually()
+        assertTrue(viewModel.uiState.value.manualEntry)
+        assertFalse(viewModel.uiState.value.showUserList)
+        viewModel.onUsernameChange("hidden-admin")
+        viewModel.onPasswordChange("pw")
+
+        viewModel.backToUserList()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.showUserList)
+        assertEquals("", state.username)
+        assertEquals("", state.password)
+    }
+
+    @Test
+    fun `the user list is kept after signing in so the next user can pick from it`() = runTest {
+        dataSource.onGetPublicUsers = { listOf(withPassword, noPassword) }
+        startViewModel()
+
+        viewModel.selectUser(noPassword)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertNull(state.selectedUser)
+        assertEquals(listOf(withPassword, noPassword), state.publicUsers)
+        assertTrue(state.showUserList)
+    }
+
+    // endregion
 
     @Test
     fun `wrong password shows an error and clears the password`() = runTest {

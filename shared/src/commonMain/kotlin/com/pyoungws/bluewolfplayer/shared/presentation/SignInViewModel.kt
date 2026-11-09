@@ -6,6 +6,7 @@ import com.pyoungws.bluewolfplayer.shared.auth.AuthRepository
 import com.pyoungws.bluewolfplayer.shared.auth.QuickConnectState
 import com.pyoungws.bluewolfplayer.shared.auth.SignInError
 import com.pyoungws.bluewolfplayer.shared.auth.SignInResult
+import com.pyoungws.bluewolfplayer.shared.model.PublicUser
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +15,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class SignInUiState(
+    val isLoadingUsers: Boolean = true,
+    /** Users the server lists on its login screen. */
+    val publicUsers: List<PublicUser> = emptyList(),
+    /** The tile the user tapped; only the password is asked for. */
+    val selectedUser: PublicUser? = null,
+    /** The user chose to type a username instead of picking from the list. */
+    val manualEntry: Boolean = false,
     val username: String = "",
     val password: String = "",
     val isSigningIn: Boolean = false,
@@ -22,6 +30,9 @@ data class SignInUiState(
     val quickConnect: QuickConnectState? = null,
 ) {
     val isBusy: Boolean get() = isSigningIn || quickConnect is QuickConnectState.Starting
+
+    /** Show the user picker; otherwise show the credentials form. */
+    val showUserList: Boolean get() = !isLoadingUsers && publicUsers.isNotEmpty() && selectedUser == null && !manualEntry
 }
 
 /**
@@ -37,9 +48,33 @@ class SignInViewModel(
 
     private var quickConnectJob: Job? = null
 
+    init {
+        viewModelScope.launch {
+            val users = authRepository.publicUsers(serverAddress)
+            _uiState.update { it.copy(isLoadingUsers = false, publicUsers = users) }
+        }
+    }
+
     fun onUsernameChange(username: String) = _uiState.update { it.copy(username = username, error = null) }
 
     fun onPasswordChange(password: String) = _uiState.update { it.copy(password = password, error = null) }
+
+    /** Users without a password are signed in straight away, as on the Jellyfin web login screen. */
+    fun selectUser(user: PublicUser) {
+        if (_uiState.value.isBusy) return
+        _uiState.update {
+            it.copy(selectedUser = user, manualEntry = false, username = user.name, password = "", error = null)
+        }
+        if (!user.hasPassword) signIn()
+    }
+
+    fun enterUsernameManually() = _uiState.update {
+        it.copy(selectedUser = null, manualEntry = true, username = "", password = "", error = null)
+    }
+
+    fun backToUserList() = _uiState.update {
+        it.copy(selectedUser = null, manualEntry = false, username = "", password = "", error = null)
+    }
 
     fun signIn() {
         val state = _uiState.value
@@ -47,9 +82,10 @@ class SignInViewModel(
         cancelQuickConnect()
         _uiState.update { it.copy(isSigningIn = true, error = null) }
         viewModelScope.launch {
-            when (val result = authRepository.signIn(serverAddress, state.username, state.password)) {
+            val username = state.selectedUser?.name ?: state.username
+            when (val result = authRepository.signIn(serverAddress, username, state.password)) {
                 // Don't keep credentials in memory; the form starts blank after a sign out.
-                is SignInResult.Success -> _uiState.value = SignInUiState()
+                is SignInResult.Success -> resetForm()
                 is SignInResult.Failure -> _uiState.update {
                     it.copy(
                         isSigningIn = false,
@@ -68,7 +104,7 @@ class SignInViewModel(
         quickConnectJob = viewModelScope.launch {
             authRepository.quickConnect(serverAddress).collect { state ->
                 if (state is QuickConnectState.SignedIn) {
-                    _uiState.value = SignInUiState()
+                    resetForm()
                 } else {
                     _uiState.update { it.copy(quickConnect = state) }
                 }
@@ -80,5 +116,9 @@ class SignInViewModel(
         quickConnectJob?.cancel()
         quickConnectJob = null
         _uiState.update { it.copy(quickConnect = null) }
+    }
+
+    private fun resetForm() = _uiState.update {
+        SignInUiState(isLoadingUsers = it.isLoadingUsers, publicUsers = it.publicUsers)
     }
 }

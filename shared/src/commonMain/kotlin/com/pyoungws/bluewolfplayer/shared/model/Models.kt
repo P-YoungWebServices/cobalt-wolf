@@ -15,6 +15,13 @@ data class UserProfile(
     val isAdministrator: Boolean,
 )
 
+/** A user the server lists on its login screen (`/Users/Public`; hidden users are excluded by the server). */
+data class PublicUser(
+    val id: String,
+    val name: String,
+    val hasPassword: Boolean,
+)
+
 /** Persisted credentials for the signed-in user. */
 data class Session(
     val serverAddress: String,
