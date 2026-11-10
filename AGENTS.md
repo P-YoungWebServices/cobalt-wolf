@@ -114,7 +114,9 @@ All checked for GPL v3 compatibility:
 
 - Jellyfin Kotlin SDK (`org.jellyfin.sdk`), LGPL-3.0. Keep attribution.
   Requires Jellyfin server 12.0+ (see `docs/SPEC.md`).
-- Kotlin, kotlinx.coroutines, kotlinx.serialization (test only): Apache-2.0
+- Kotlin, kotlinx.coroutines, kotlinx.serialization: Apache-2.0
+- Ktor client (core, OkHttp engine, content negotiation, kotlinx-json; mock for
+  tests): Apache-2.0. Used for the Seerr/Jellyseerr REST API in `shared/.../seerr`.
 - AndroidX (Compose, Material 3, Activity, Lifecycle, Core): Apache-2.0
 - Koin: Apache-2.0
 - AndroidX Media3 (ExoPlayer, HLS, UI): Apache-2.0

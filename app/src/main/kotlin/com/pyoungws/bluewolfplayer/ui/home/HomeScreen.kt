@@ -54,6 +54,7 @@ fun HomeScreen(
     onOpenLibrary: (Library) -> Unit,
     onOpenItem: (String) -> Unit,
     onSearch: () -> Unit,
+    onDiscover: () -> Unit,
     onPlaybackSettings: () -> Unit,
     viewModel: LibraryHomeViewModel = koinViewModel(),
     accountViewModel: HomeViewModel = koinViewModel(),
@@ -74,6 +75,7 @@ fun HomeScreen(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
                     TextButton(onClick = onSearch) { Text(stringResource(R.string.home_search)) }
+                    TextButton(onClick = onDiscover) { Text(stringResource(R.string.home_requests)) }
                     TextButton(onClick = onPlaybackSettings) { Text(stringResource(R.string.home_playback_settings)) }
                     if (isSigningOut) {
                         CircularProgressIndicator(modifier = Modifier.padding(horizontal = 16.dp).size(20.dp), strokeWidth = 2.dp)
