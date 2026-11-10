@@ -2,6 +2,10 @@ package com.pyoungws.bluewolfplayer.shared.di
 
 import com.pyoungws.bluewolfplayer.shared.auth.KeystoreSessionStore
 import com.pyoungws.bluewolfplayer.shared.auth.SessionStore
+import com.pyoungws.bluewolfplayer.shared.playback.AndroidCapabilityDetector
+import com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsStore
+import com.pyoungws.bluewolfplayer.shared.playback.SharedPreferencesPlaybackSettingsStore
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.createJellyfin
 import org.jellyfin.sdk.model.ClientInfo
@@ -22,6 +26,8 @@ fun androidPlatformModule(clientName: String, clientVersion: String): Module {
             }
         }
         single<SessionStore> { KeystoreSessionStore(androidContext()) }
+        single<CapabilityDetector> { AndroidCapabilityDetector(androidContext()) }
+        single<PlaybackSettingsStore> { SharedPreferencesPlaybackSettingsStore(androidContext()) }
     }
 }
 

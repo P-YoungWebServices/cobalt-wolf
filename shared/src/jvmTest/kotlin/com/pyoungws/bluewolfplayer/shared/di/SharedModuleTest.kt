@@ -4,7 +4,13 @@ import com.pyoungws.bluewolfplayer.shared.auth.InMemorySessionStore
 import com.pyoungws.bluewolfplayer.shared.auth.SessionStore
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.LibraryType
+import com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector
+import com.pyoungws.bluewolfplayer.shared.playback.InMemoryPlaybackSettingsStore
+import com.pyoungws.bluewolfplayer.shared.playback.PHONE_CAPABILITIES
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsStore
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.HomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
@@ -49,6 +55,8 @@ class SharedModuleTest {
                 }
             }
             single<SessionStore> { InMemorySessionStore() }
+            single<CapabilityDetector> { CapabilityDetector { PHONE_CAPABILITIES } }
+            single<PlaybackSettingsStore> { InMemoryPlaybackSettingsStore() }
         }
         val koin = koinApplication { modules(sharedModule, platform) }.koin
         val library = Library("l1", "Movies", LibraryType.Movies, null)
@@ -61,6 +69,7 @@ class SharedModuleTest {
         assertNotNull(koin.get<SignInViewModel> { parametersOf("https://jellyfin.example.com") })
         assertNotNull(koin.get<LibraryViewModel> { parametersOf(library) })
         assertNotNull(koin.get<ItemDetailViewModel> { parametersOf("item-1") })
-        assertNotNull(koin.get<PlayerViewModel> { parametersOf("item-1") })
+        assertNotNull(koin.get<PlayerViewModel> { parametersOf(PlaybackTarget.Item("item-1")) })
+        assertNotNull(koin.get<PlaybackSettingsViewModel>())
     }
 }

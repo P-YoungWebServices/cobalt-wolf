@@ -17,6 +17,9 @@ import org.jellyfin.sdk.api.client.exception.TimeoutException
 class SessionGuard(private val authRepository: AuthRepository) {
 
     suspend fun <T> run(block: suspend (Session) -> T): Outcome<T> {
+        // A screen recreated after process death (the player is its own activity) can get here
+        // before the app's start-up restore has run.
+        if (authRepository.sessionState.value == SessionState.Unknown) authRepository.restoreSession()
         val session = (authRepository.sessionState.value as? SessionState.SignedIn)?.session
             ?: return Outcome.Failure(LoadError.SessionExpired)
         return try {

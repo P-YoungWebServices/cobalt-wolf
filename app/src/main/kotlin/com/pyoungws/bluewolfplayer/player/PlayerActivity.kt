@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.util.Rational
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -20,15 +21,24 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.pyoungws.bluewolfplayer.BuildConfig
+import com.pyoungws.bluewolfplayer.shared.playback.AudioOutputPreference
+import com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector
+import com.pyoungws.bluewolfplayer.shared.playback.DecodingPreference
+import com.pyoungws.bluewolfplayer.shared.playback.HdrPreference
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
+import org.koin.android.ext.android.get
 import com.pyoungws.bluewolfplayer.ui.theme.BlueWolfTheme
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.parameter.parametersOf
 
 /** Full-screen video player. Lives in its own activity so Picture-in-Picture shrinks only the video. */
 class PlayerActivity : ComponentActivity() {
-    private val itemId by lazy { requireNotNull(intent.getStringExtra(EXTRA_ITEM_ID)) }
-    private val viewModel: PlayerViewModel by viewModel { parametersOf(itemId) }
+    private val target by lazy { playbackTarget(intent) }
+    private val viewModel: PlayerViewModel by viewModel { parametersOf(target) }
+    private val displayModeController by lazy { DisplayModeController(this) }
 
     private var player: ExoPlayer? = null
     private var isInPip by mutableStateOf(false)
@@ -42,12 +52,18 @@ class PlayerActivity : ComponentActivity() {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (BuildConfig.DEBUG) applyDebugOverrides(intent)
 
         setContent {
             BlueWolfTheme {
                 PlayerScreen(
                     viewModel = viewModel,
                     isInPip = isInPip,
+                    displayModeController = displayModeController,
+                    // Debug only: `--es audio_mime audio/vnd.dts` picks a non-default audio track by type.
+                    debugPreferredAudioMimeType = intent.getStringExtra("audio_mime").takeIf { BuildConfig.DEBUG },
+                    // Debug only: `--es subtitle_mime application/pgs` turns on the first subtitle track of that type.
+                    debugSubtitleMimeType = intent.getStringExtra("subtitle_mime").takeIf { BuildConfig.DEBUG },
                     onPlayerChanged = { player = it },
                     onPlayingChanged = ::updatePipParams,
                     onEnterPip = ::enterPip,
@@ -110,6 +126,42 @@ class PlayerActivity : ComponentActivity() {
     override fun onDestroy() {
         viewModel.onStopped(player?.takeIf { it.playbackState != Player.STATE_IDLE }?.currentPosition ?: -1L)
         super.onDestroy()
+    }
+
+    /**
+     * Debug builds can be driven from adb to test devices without a TV layout or a server:
+     * `am start -n <app id>/.player.DebugPlayerActivity -d <file or http uri>` plays the uri, and
+     * `--es item_id <id>` plays a library item of the signed-in user.
+     */
+    private fun playbackTarget(intent: Intent): PlaybackTarget {
+        val uri = intent.data?.takeIf { BuildConfig.DEBUG }
+        return if (uri != null) PlaybackTarget.DirectUri(uri.toString()) else PlaybackTarget.Item(requireNotNull(intent.getStringExtra(EXTRA_ITEM_ID)))
+    }
+
+    /**
+     * Debug only: `--es decoding Auto|PreferLocal|AlwaysTranscode`, `--es audio_output Auto|PcmOnly`,
+     * `--es hdr Auto|SdrOnly`, `--ez dolby_vision`, `--ez styled_subtitles` and `--ez stats` change the
+     * saved Playback settings before playing, and the detected capabilities are logged.
+     */
+    private fun applyDebugOverrides(intent: Intent) {
+        val extras = intent.extras
+        get<PlaybackSettingsRepository>().update { settings ->
+            settings.copy(
+                decoding = extras?.getString("decoding")?.let(DecodingPreference::valueOf) ?: settings.decoding,
+                audioOutput = extras?.getString("audio_output")?.let(AudioOutputPreference::valueOf) ?: settings.audioOutput,
+                hdr = extras?.getString("hdr")?.let(HdrPreference::valueOf) ?: settings.hdr,
+                dolbyVision = if (extras?.containsKey("dolby_vision") == true) extras.getBoolean("dolby_vision") else settings.dolbyVision,
+                styledSubtitles = if (extras?.containsKey("styled_subtitles") == true) extras.getBoolean("styled_subtitles") else settings.styledSubtitles,
+                showStats = if (extras?.containsKey("stats") == true) extras.getBoolean("stats") else settings.showStats,
+            )
+        }
+        // `--ez over_lock_screen true` lets a test run play on a locked, sleeping device.
+        if (extras?.getBoolean("over_lock_screen") == true && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
+        Log.i("BlueWolfPlayback", "settings ${get<PlaybackSettingsRepository>().settings.value}")
+        Log.i("BlueWolfPlayback", "capabilities ${get<CapabilityDetector>().detect()}")
     }
 
     companion object {

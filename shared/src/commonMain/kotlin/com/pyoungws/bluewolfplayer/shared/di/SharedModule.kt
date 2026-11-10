@@ -10,6 +10,9 @@ import com.pyoungws.bluewolfplayer.shared.library.SessionGuard
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.playback.JellyfinPlaybackDataSource
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRepository
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
+import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.playback.SdkJellyfinPlaybackDataSource
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
@@ -31,8 +34,10 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 /**
- * Shared bindings. The platform must also provide an [org.jellyfin.sdk.Jellyfin] instance and a
- * [com.pyoungws.bluewolfplayer.shared.auth.SessionStore].
+ * Shared bindings. The platform must also provide an [org.jellyfin.sdk.Jellyfin] instance, a
+ * [com.pyoungws.bluewolfplayer.shared.auth.SessionStore], a
+ * [com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector] and a
+ * [com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsStore].
  */
 val sharedModule = module {
     single<ServerDiscovery> { SdkServerDiscovery(get()) }
@@ -44,7 +49,8 @@ val sharedModule = module {
     single<JellyfinLibraryDataSource> { SdkJellyfinLibraryDataSource(get()) }
     single<JellyfinPlaybackDataSource> { SdkJellyfinPlaybackDataSource(get()) }
     single { LibraryRepository(get(), get()) }
-    single { PlaybackRepository(get(), get(), get()) }
+    single { PlaybackSettingsRepository(get()) }
+    single { PlaybackRepository(get(), get(), get(), get(), get()) }
     // Outlives screens so the final "playback stopped" report is not cancelled when the player closes.
     single { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
@@ -53,7 +59,8 @@ val sharedModule = module {
     viewModel { SearchViewModel(get()) }
     viewModel { (library: Library) -> LibraryViewModel(library, get()) }
     viewModel { (itemId: String) -> ItemDetailViewModel(itemId, get()) }
-    viewModel { (itemId: String) -> PlayerViewModel(itemId, get(), get()) }
+    viewModel { (target: PlaybackTarget) -> PlayerViewModel(target, get(), get()) }
+    viewModelOf(::PlaybackSettingsViewModel)
     viewModelOf(::ServerConnectViewModel)
     viewModelOf(::HomeViewModel)
     viewModel { (serverAddress: String) -> SignInViewModel(serverAddress, get()) }

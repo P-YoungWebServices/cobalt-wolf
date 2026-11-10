@@ -10,7 +10,9 @@ import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.exception.InvalidContentException
 import org.jellyfin.sdk.api.client.extensions.mediaInfoApi
 import org.jellyfin.sdk.api.client.extensions.sessionApi
+import org.jellyfin.sdk.api.client.extensions.userApi
 import org.jellyfin.sdk.model.UUID
+import org.jellyfin.sdk.model.api.DeviceProfile
 import org.jellyfin.sdk.model.api.MediaSourceInfo
 import org.jellyfin.sdk.model.api.MediaStreamType
 import org.jellyfin.sdk.model.api.PlayMethod
@@ -24,7 +26,10 @@ import org.jellyfin.sdk.model.api.SubtitleDeliveryMethod
 
 /** Jellyfin playback calls. Implementations throw the SDK's `ApiClientException` subtypes on failure. */
 interface JellyfinPlaybackDataSource {
-    suspend fun getPlaybackSource(session: Session, itemId: String, startPositionTicks: Long, forceTranscode: Boolean): PlaybackSource
+    /** [profile] tells the server what the device plays itself; [forceTranscode] skips direct play regardless. */
+    suspend fun getPlaybackSource(session: Session, itemId: String, startPositionTicks: Long, profile: DeviceProfile, forceTranscode: Boolean): PlaybackSource
+    /** Whether the server re-encodes video for this user; false when their policy disables video transcoding. */
+    suspend fun canTranscodeVideo(session: Session): Boolean
     suspend fun reportStart(session: Session, report: PlaybackReport)
     suspend fun reportProgress(session: Session, report: PlaybackReport)
     suspend fun reportStopped(session: Session, report: PlaybackReport)
@@ -44,6 +49,7 @@ class SdkJellyfinPlaybackDataSource(
         session: Session,
         itemId: String,
         startPositionTicks: Long,
+        profile: DeviceProfile,
         forceTranscode: Boolean,
     ) = call(session) {
         val id = UUID.fromString(itemId)
@@ -52,7 +58,7 @@ class SdkJellyfinPlaybackDataSource(
             PlaybackInfoDto(
                 userId = UUID.fromString(session.userId),
                 startTimeTicks = startPositionTicks.takeIf { it > 0 },
-                deviceProfile = DEVICE_PROFILE,
+                deviceProfile = profile,
                 enableDirectPlay = !forceTranscode,
                 enableDirectStream = !forceTranscode,
                 enableTranscoding = true,
@@ -61,6 +67,10 @@ class SdkJellyfinPlaybackDataSource(
         ).content
         val source = response.mediaSources.firstOrNull() ?: throw noPlayableSource()
         source.toPlaybackSource(session, itemId, response.playSessionId)
+    }
+
+    override suspend fun canTranscodeVideo(session: Session): Boolean = call(session) {
+        userApi.getCurrentUser().content.policy?.enableVideoPlaybackTranscoding ?: true
     }
 
     override suspend fun reportStart(session: Session, report: PlaybackReport) = call(session) {
@@ -133,11 +143,12 @@ internal fun MediaSourceInfo.toPlaybackSource(session: Session, itemId: String, 
         transcodingUrl != null -> "$server/${transcodingUrl.trimStart('/')}" to PlaybackMethod.Transcode
         else -> throw noPlayableSource()
     }
-    val subtitles = if (method == PlaybackMethod.Transcode) {
-        emptyList()
-    } else {
-        mediaStreams.orEmpty()
+    // When the original file is played its embedded tracks come from the container (with their
+    // fonts, for ASS), so only sidecar files are side-loaded. A transcode carries no subtitle
+    // tracks, so there every externally deliverable one is side-loaded.
+    val subtitles = mediaStreams.orEmpty()
             .filter { it.type == MediaStreamType.SUBTITLE && it.deliveryMethod == SubtitleDeliveryMethod.EXTERNAL && it.deliveryUrl != null }
+            .filter { method == PlaybackMethod.Transcode || it.isExternal }
             .map {
                 ExternalSubtitle(
                     url = if (it.isExternalUrl == true) it.deliveryUrl!! else "$server/${it.deliveryUrl!!.trimStart('/')}",
@@ -148,8 +159,33 @@ internal fun MediaSourceInfo.toPlaybackSource(session: Session, itemId: String, 
                     isForced = it.isForced,
                 )
             }
+    return PlaybackSource(mediaSourceId, playSessionId, url, method, subtitles, authorizationHeaders(session.accessToken), toSourceMediaInfo())
+}
+
+internal fun MediaSourceInfo.toSourceMediaInfo(): SourceMediaInfo {
+    val streams = mediaStreams.orEmpty()
+    val video = streams.firstOrNull { it.type == MediaStreamType.VIDEO }
+    val audio = streams.filter { it.type == MediaStreamType.AUDIO }.let { tracks ->
+        tracks.firstOrNull { it.index == defaultAudioStreamIndex } ?: tracks.firstOrNull { it.isDefault } ?: tracks.firstOrNull()
     }
-    return PlaybackSource(mediaSourceId, playSessionId, url, method, subtitles, authorizationHeaders(session.accessToken))
+    return SourceMediaInfo(
+        container = container,
+        bitrate = bitrate,
+        video = video?.let {
+            VideoStreamInfo(
+                codec = it.codec,
+                profile = it.profile,
+                width = it.width,
+                height = it.height,
+                frameRate = it.realFrameRate ?: it.averageFrameRate,
+                bitDepth = it.bitDepth,
+                bitrate = it.bitRate,
+                range = it.videoRangeType?.toVideoRange(),
+                dolbyVisionProfile = it.dvProfile,
+            )
+        },
+        audio = audio?.let { AudioStreamInfo(codec = it.codec, profile = it.profile, channels = it.channels, sampleRate = it.sampleRate, bitrate = it.bitRate) },
+    )
 }
 
 internal fun subtitleMimeType(codec: String?) = when (codec?.lowercase()) {

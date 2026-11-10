@@ -2,6 +2,8 @@ package com.pyoungws.bluewolfplayer.shared.playback
 
 import com.pyoungws.bluewolfplayer.shared.library.JellyfinLibraryDataSource
 import com.pyoungws.bluewolfplayer.shared.library.SessionGuard
+import com.pyoungws.bluewolfplayer.shared.model.MediaItem
+import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
 import com.pyoungws.bluewolfplayer.shared.model.Session
 
@@ -9,16 +11,43 @@ class PlaybackRepository(
     private val libraryDataSource: JellyfinLibraryDataSource,
     private val playbackDataSource: JellyfinPlaybackDataSource,
     private val guard: SessionGuard,
+    private val capabilityDetector: CapabilityDetector,
+    private val settingsRepository: PlaybackSettingsRepository,
 ) {
     /**
-     * Resolves what to play and where to resume. [forceTranscode] skips direct play, used as a
-     * fallback after the player failed to decode the original streams.
+     * Resolves what to play and where to resume. The device is probed each time, because the
+     * connected display and receiver decide what can be played directly. [forceTranscode] skips
+     * direct play, used as the last fallback after the player failed to decode the original streams.
      */
-    suspend fun prepare(itemId: String, forceTranscode: Boolean = false): Outcome<PlaybackRequest> = guard.run { session ->
-        val item = libraryDataSource.getItem(session, itemId)
-        val startTicks = if (item.hasProgress) item.positionTicks else 0L
-        val source = playbackDataSource.getPlaybackSource(session, itemId, startTicks, forceTranscode)
-        PlaybackRequest(item, source, startTicks / TICKS_PER_MILLISECOND)
+    suspend fun prepare(target: PlaybackTarget, forceTranscode: Boolean = false): Outcome<PlaybackRequest> {
+        val settings = settingsRepository.settings.value
+        val capabilities = capabilityDetector.detect()
+        return when (target) {
+            is PlaybackTarget.DirectUri -> Outcome.Success(
+                PlaybackRequest(
+                    item = MediaItem(id = "", name = target.title, kind = MediaKind.Other),
+                    source = PlaybackSource("", null, target.uri, PlaybackMethod.DirectPlay, emptyList(), emptyMap()),
+                    startPositionMs = 0,
+                    plan = initialDecodePlan(settings),
+                    settings = settings,
+                    capabilities = capabilities,
+                    isServerItem = false,
+                ),
+            )
+            is PlaybackTarget.Item -> guard.run { session ->
+                val item = libraryDataSource.getItem(session, target.itemId)
+                val startTicks = if (item.hasProgress) item.positionTicks else 0L
+                val serverTranscodesVideo = playbackDataSource.canTranscodeVideo(session)
+                val source = playbackDataSource.getPlaybackSource(
+                    session, target.itemId, startTicks, buildDeviceProfile(capabilities, settings, serverTranscodesVideo),
+                    forceTranscode = forceTranscode || settings.decoding == DecodingPreference.AlwaysTranscode,
+                )
+                PlaybackRequest(
+                    item, source, startTicks / TICKS_PER_MILLISECOND, initialDecodePlan(settings), settings, capabilities,
+                    serverTranscodesVideo = serverTranscodesVideo,
+                )
+            }
+        }
     }
 
     suspend fun reportStart(report: PlaybackReport) = send { session -> playbackDataSource.reportStart(session, report) }

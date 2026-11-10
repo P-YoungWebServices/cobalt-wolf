@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
-import com.pyoungws.bluewolfplayer.shared.playback.PlaybackMethod
+import com.pyoungws.bluewolfplayer.shared.playback.FallbackStep
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
+import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
+import com.pyoungws.bluewolfplayer.shared.playback.nextFallback
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackReport
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRepository
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRequest
@@ -20,19 +23,20 @@ import kotlinx.coroutines.withContext
 sealed interface PlayerUiState {
     data object Loading : PlayerUiState
     data class Error(val error: LoadError) : PlayerUiState
-    /** The player failed even after the transcode fallback. */
+    /** The player failed and no fallback is left. */
     data object PlaybackFailed : PlayerUiState
-    /** [generation] increases when the source changes (transcode fallback) so the UI rebuilds the player. */
+    /** [generation] increases when the source or decode plan changes (a fallback) so the UI rebuilds the player. */
     data class Ready(val request: PlaybackRequest, val generation: Int) : PlayerUiState
 }
 
 /**
  * Prepares playback and reports it to Jellyfin: one start report, progress reports whenever the
  * UI calls [onProgress] (it should do so periodically and on pause/seek), and one stopped report.
+ * Player errors walk the fallback order: direct play, local FFmpeg decode, server transcode.
  * [reportScope] must outlive the screen so the stopped report is not cancelled by closing it.
  */
 class PlayerViewModel(
-    private val itemId: String,
+    private val target: PlaybackTarget,
     private val repository: PlaybackRepository,
     private val reportScope: CoroutineScope,
 ) : ViewModel() {
@@ -54,18 +58,37 @@ class PlayerViewModel(
         prepare(forceTranscode = triedTranscode)
     }
 
-    /** The player could not play the stream. Retries once with a server transcode; returns false if that was already tried. */
-    fun onPlayerError(positionMs: Long): Boolean {
+    /**
+     * The player could not play the stream. Moves to the next fallback (FFmpeg for the decoder that
+     * failed, then a server transcode) and resumes at [positionMs]; returns false when none is left.
+     */
+    fun onPlayerError(positionMs: Long, kind: PlayerErrorKind = PlayerErrorKind.Other): Boolean {
         val ready = _uiState.value as? PlayerUiState.Ready ?: return false
+        val request = ready.request
         endCurrentReporting(positionMs)
-        if (triedTranscode || ready.request.source.method == PlaybackMethod.Transcode) {
-            _uiState.value = PlayerUiState.PlaybackFailed
-            return false
+        val step = nextFallback(
+            request.source.method, request.plan, kind, request.source.info, request.capabilities,
+            canTranscode = request.isServerItem && !triedTranscode,
+            serverTranscodesVideo = request.serverTranscodesVideo,
+        )
+        return when (step) {
+            is FallbackStep.LocalDecode -> {
+                started = false
+                stopped = false
+                _uiState.value = PlayerUiState.Ready(request.copy(plan = step.plan, startPositionMs = positionMs), ++generation)
+                true
+            }
+            FallbackStep.Transcode -> {
+                triedTranscode = true
+                _uiState.value = PlayerUiState.Loading
+                prepare(forceTranscode = true, resumeAtMs = positionMs)
+                true
+            }
+            FallbackStep.Fail -> {
+                _uiState.value = PlayerUiState.PlaybackFailed
+                false
+            }
         }
-        triedTranscode = true
-        _uiState.value = PlayerUiState.Loading
-        prepare(forceTranscode = true, resumeAtMs = positionMs)
-        return true
     }
 
     /** Called once the player is actually playing or ready, to send the start report. */
@@ -73,6 +96,7 @@ class PlayerViewModel(
         val ready = _uiState.value as? PlayerUiState.Ready ?: return
         if (started || stopped) return
         started = true
+        if (!ready.request.isServerItem) return
         lastPositionMs = positionMs
         reportScope.launch { repository.reportStart(ready.request.report(positionMs, isPaused)) }
     }
@@ -81,6 +105,7 @@ class PlayerViewModel(
         val ready = _uiState.value as? PlayerUiState.Ready ?: return
         if (!started || stopped) return
         lastPositionMs = positionMs
+        if (!ready.request.isServerItem) return
         viewModelScope.launch { repository.reportProgress(ready.request.report(positionMs, isPaused)) }
     }
 
@@ -101,13 +126,14 @@ class PlayerViewModel(
         }
         stopped = true
         started = false
+        if (!ready.request.isServerItem) return
         val report = ready.request.report(positionMs, isPaused = false)
         reportScope.launch { withContext(NonCancellable) { repository.reportStopped(report) } }
     }
 
     private fun prepare(forceTranscode: Boolean, resumeAtMs: Long? = null) {
         viewModelScope.launch {
-            when (val result = repository.prepare(itemId, forceTranscode)) {
+            when (val result = repository.prepare(target, forceTranscode)) {
                 is Outcome.Success -> {
                     started = false
                     stopped = false
