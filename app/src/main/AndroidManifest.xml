@@ -32,6 +32,11 @@
             android:resizeableActivity="true"
             android:screenOrientation="sensorLandscape"
             android:supportsPictureInPicture="true" />
+
+        <activity
+            android:name=".ui.settings.PlaybackSettingsActivity"
+            android:exported="false"
+            android:label="@string/playback_settings_title" />
     </application>
 
 </manifest>

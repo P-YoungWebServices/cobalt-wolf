@@ -31,6 +31,8 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.koin.android)
+            implementation(libs.media3.exoplayer)
+            implementation(libs.nextlib.media3ext)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

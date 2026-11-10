@@ -14,6 +14,42 @@ data class ExternalSubtitle(
     val isForced: Boolean,
 )
 
+/** The video stream of a source, as probed by the server. */
+data class VideoStreamInfo(
+    val codec: String? = null,
+    val profile: String? = null,
+    val width: Int? = null,
+    val height: Int? = null,
+    val frameRate: Float? = null,
+    val bitDepth: Int? = null,
+    val bitrate: Int? = null,
+    val range: VideoRange? = null,
+    val dolbyVisionProfile: Int? = null,
+)
+
+/** The default audio stream of a source, as probed by the server. */
+data class AudioStreamInfo(
+    val codec: String? = null,
+    val profile: String? = null,
+    val channels: Int? = null,
+    val sampleRate: Int? = null,
+    val bitrate: Int? = null,
+)
+
+/** What the server knows about the original file. Used for fallback decisions and the stats overlay. */
+data class SourceMediaInfo(
+    val container: String? = null,
+    val bitrate: Int? = null,
+    val video: VideoStreamInfo? = null,
+    val audio: AudioStreamInfo? = null,
+)
+
+/** What to play: a library item, or (debug builds) a file or URL played without the server. */
+sealed interface PlaybackTarget {
+    data class Item(val itemId: String) : PlaybackTarget
+    data class DirectUri(val uri: String, val title: String = uri.substringAfterLast('/')) : PlaybackTarget
+}
+
 /** Where and how to stream one media source, as decided by the server's playback info. */
 data class PlaybackSource(
     val mediaSourceId: String,
@@ -23,6 +59,7 @@ data class PlaybackSource(
     val subtitles: List<ExternalSubtitle>,
     /** Request headers (authorization) for [url] and [subtitles]. */
     val headers: Map<String, String>,
+    val info: SourceMediaInfo? = null,
 )
 
 /** Everything the player needs to start: the item, its source and where to resume. */
@@ -30,7 +67,25 @@ data class PlaybackRequest(
     val item: MediaItem,
     val source: PlaybackSource,
     val startPositionMs: Long,
-)
+    /** Which decoders to use for the streams; moves to FFmpeg after a decoder failure. */
+    val plan: DecodePlan = DecodePlan(),
+    val settings: PlaybackSettings = PlaybackSettings(),
+    val capabilities: DeviceCapabilities = DeviceCapabilities(),
+    /** False for streams the server does not know about, which are not reported or transcoded. */
+    val isServerItem: Boolean = true,
+    /** False when the user's server policy forbids video transcoding: a "transcode" then keeps the original video. */
+    val serverTranscodesVideo: Boolean = true,
+) {
+    val level: PlaybackLevel
+        get() = when {
+            source.method == PlaybackMethod.Transcode -> PlaybackLevel.Transcode
+            plan.isLocal -> PlaybackLevel.LocalDecode
+            else -> PlaybackLevel.DirectPlay
+        }
+}
+
+/** The three fallback levels, best first. */
+enum class PlaybackLevel { DirectPlay, LocalDecode, Transcode }
 
 /** A snapshot of the player sent to Jellyfin as a start, progress or stopped report. */
 data class PlaybackReport(

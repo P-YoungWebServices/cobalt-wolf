@@ -14,6 +14,7 @@ import com.pyoungws.bluewolfplayer.ui.detail.DetailScreen
 import com.pyoungws.bluewolfplayer.ui.home.HomeScreen
 import com.pyoungws.bluewolfplayer.ui.library.LibraryScreen
 import com.pyoungws.bluewolfplayer.ui.search.SearchScreen
+import com.pyoungws.bluewolfplayer.ui.settings.PlaybackSettingsActivity
 
 /** Screens above the home screen. Encoded as strings so the back stack survives process death. */
 internal sealed interface Route {
@@ -58,6 +59,7 @@ fun SignedInNavigation() {
             onOpenLibrary = { push(Route.LibraryRoute(it)) },
             onOpenItem = { push(Route.Detail(it)) },
             onSearch = { push(Route.Search) },
+            onPlaybackSettings = { context.startActivity(PlaybackSettingsActivity.intent(context)) },
         )
         Route.Search -> SearchScreen(onBack = pop, onOpenItem = { push(Route.Detail(it)) })
         is Route.LibraryRoute -> LibraryScreen(route.library, onBack = pop, onOpenItem = { push(Route.Detail(it)) })

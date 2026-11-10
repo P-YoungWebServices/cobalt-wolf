@@ -1,6 +1,11 @@
+@file:OptIn(UnstableApi::class)
+
 package com.pyoungws.bluewolfplayer.player
 
 import android.net.Uri
+import android.util.Log
+import android.widget.Toast
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,13 +46,15 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
-import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
+import com.pyoungws.bluewolfplayer.BuildConfig
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackLevel
+import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
+import com.pyoungws.bluewolfplayer.shared.playback.summary
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
 import com.pyoungws.bluewolfplayer.ui.common.ErrorBox
@@ -55,11 +63,16 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 
 private const val PROGRESS_INTERVAL_MS = 10_000L
+private const val STATS_INTERVAL_MS = 1_000L
+private const val TAG = "BlueWolfPlayback"
 
 @Composable
-fun PlayerScreen(
+internal fun PlayerScreen(
     viewModel: PlayerViewModel,
     isInPip: Boolean,
+    displayModeController: DisplayModeController,
+    debugPreferredAudioMimeType: String?,
+    debugSubtitleMimeType: String?,
     onPlayerChanged: (ExoPlayer?) -> Unit,
     onPlayingChanged: (Boolean) -> Unit,
     onEnterPip: () -> Unit,
@@ -77,7 +90,7 @@ fun PlayerScreen(
                 Text(stringResource(R.string.player_error), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                 TextButton(onClick = onClose) { Text(stringResource(R.string.player_close)) }
             }
-            is PlayerUiState.Ready -> PlayerContent(current, viewModel, isInPip, onPlayerChanged, onPlayingChanged, onEnterPip, onClose)
+            is PlayerUiState.Ready -> PlayerContent(current, viewModel, isInPip, displayModeController, debugPreferredAudioMimeType, debugSubtitleMimeType, onPlayerChanged, onPlayingChanged, onEnterPip, onClose)
         }
     }
 }
@@ -91,6 +104,9 @@ private fun PlayerContent(
     ready: PlayerUiState.Ready,
     viewModel: PlayerViewModel,
     isInPip: Boolean,
+    displayModeController: DisplayModeController,
+    debugPreferredAudioMimeType: String?,
+    debugSubtitleMimeType: String?,
     onPlayerChanged: (ExoPlayer?) -> Unit,
     onPlayingChanged: (Boolean) -> Unit,
     onEnterPip: () -> Unit,
@@ -98,16 +114,30 @@ private fun PlayerContent(
 ) {
     val context = LocalContext.current
     val request = ready.request
-    val player = remember(ready.generation) {
-        val http = DefaultHttpDataSource.Factory().setDefaultRequestProperties(request.source.headers)
-        ExoPlayer.Builder(context, DefaultRenderersFactory(context))
-            .setMediaSourceFactory(DefaultMediaSourceFactory(http))
-            .setHandleAudioBecomingNoisy(true)
-            .build()
-    }
+    // The view comes first: libass draws styled subtitles into its subtitle layer.
+    val playerView = remember(ready.generation) { PlayerView(context) }
+    val engine = remember(ready.generation) { buildPlayerEngine(context, request, playerView) }
+    val player = engine.player
+    val stats by engine.stats.stats.collectAsStateWithLifecycle()
     var tracks by remember(player) { mutableStateOf(Tracks.EMPTY) }
     var controlsVisible by remember(player) { mutableStateOf(true) }
     var dialog by remember(player) { mutableStateOf<TrackDialog?>(null) }
+    var showStats by remember { mutableStateOf(request.settings.showStats) }
+    var displayMatched by remember(player) { mutableStateOf(false) }
+
+    // Tell the user when a fallback replaced the first attempt.
+    LaunchedEffect(ready.generation) {
+        if (BuildConfig.DEBUG) {
+            val url = request.source.url.replace(Regex("(?i)(api_?key)=[^&]+"), "$1=<redacted>")
+            Log.i(TAG, "source generation=${ready.generation} method=${request.source.method} plan=${request.plan} url=$url")
+        }
+        val message = when (request.level) {
+            PlaybackLevel.DirectPlay -> null
+            PlaybackLevel.LocalDecode -> R.string.player_fallback_local
+            PlaybackLevel.Transcode -> R.string.player_fallback_transcode
+        }
+        if (ready.generation > 1 && message != null) Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+    }
 
     DisposableEffect(player) {
         val title = request.item.let { if (it.episodeLabel() != null) "${it.seriesName} ${it.episodeLabel()}: ${it.name}" else it.name }
@@ -128,6 +158,7 @@ private fun PlayerContent(
                 .build(),
             request.startPositionMs,
         )
+        val debugSelections = mutableMapOf(C.TRACK_TYPE_AUDIO to debugPreferredAudioMimeType, C.TRACK_TYPE_TEXT to debugSubtitleMimeType)
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 onPlayingChanged(isPlaying)
@@ -148,14 +179,36 @@ private fun PlayerContent(
 
             override fun onTracksChanged(newTracks: Tracks) {
                 tracks = newTracks
+                if (BuildConfig.DEBUG) {
+                    newTracks.groups.forEach { Log.i(TAG, "track selected=${it.isSelected} supported=${it.isSupported} ${it.getTrackFormat(0)}") }
+                }
+                // Debug only: switch to the first audio/subtitle track of the type asked for on the intent.
+                debugSelections.entries.filter { it.value != null }.forEach { (type, mimeType) ->
+                    val group = newTracks.groups.firstOrNull { group ->
+                        group.type == type && group.getTrackFormat(0).let { it.sampleMimeType == mimeType || it.codecs == mimeType }
+                    } ?: return@forEach
+                    debugSelections[type] = null
+                    Log.i(TAG, "debug track selected: ${group.getTrackFormat(0)}")
+                    selectTrack(player, type, TrackOption("", group, 0, false))
+                }
+                // A stream no renderer accepts would be silently skipped; treat it as a decoder
+                // failure so the fallback order applies instead of playing without picture or sound.
+                val unplayable = listOf(C.TRACK_TYPE_VIDEO to PlayerErrorKind.VideoDecoder, C.TRACK_TYPE_AUDIO to PlayerErrorKind.AudioDecoder)
+                    .firstOrNull { (type, _) -> newTracks.containsType(type) && !newTracks.isTypeSupported(type, /* allowExceedsCapabilities = */ true) }
+                if (unplayable != null) {
+                    Log.w(TAG, "No decoder for the ${if (unplayable.first == C.TRACK_TYPE_VIDEO) "video" else "audio"} track at level ${request.level}")
+                    player.stop()
+                    viewModel.onPlayerError(player.currentPosition, unplayable.second)
+                }
             }
 
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) = onPlayingChanged(player.isPlaying)
 
             override fun onPlayerError(error: PlaybackException) {
-                // First failure falls back to a server transcode; a second one shows the error screen.
-                android.util.Log.w("PlayerScreen", "Playback error: ${error.errorCodeName}", error)
-                viewModel.onPlayerError(player.currentPosition)
+                // Walks the fallback order: FFmpeg for the decoder that failed, then a server transcode.
+                val kind = error.toErrorKind()
+                Log.w(TAG, "Playback error at level ${request.level}: ${error.errorCodeName} ($kind)", error)
+                viewModel.onPlayerError(player.currentPosition, kind)
             }
         }
         player.addListener(listener)
@@ -165,7 +218,39 @@ private fun PlayerContent(
         onDispose {
             onPlayerChanged(null)
             player.removeListener(listener)
-            player.release()
+            playerView.player = null
+            engine.release()
+            displayModeController.reset()
+        }
+    }
+
+    // Once the stream's frame rate and range are known, match the display. A mode switch blanks
+    // the screen while HDMI re-syncs, so playback waits for it.
+    LaunchedEffect(player, stats.hdr, stats.videoDecoderKind) {
+        displayModeController.setHdr(engine.stats.isHdrOutput)
+    }
+    LaunchedEffect(player, stats.frameRate) {
+        val frameRate = stats.frameRate
+        if (frameRate == null || displayMatched) return@LaunchedEffect
+        displayMatched = true
+        val wasPlaying = player.playWhenReady
+        player.playWhenReady = false
+        try {
+            displayModeController.matchFrameRate(frameRate, request)
+        } finally {
+            player.playWhenReady = wasPlaying
+        }
+    }
+
+    LaunchedEffect(player) {
+        var logged = 0
+        while (true) {
+            delay(STATS_INTERVAL_MS)
+            engine.stats.refreshDisplay()
+            // Debug builds log the stats shortly after start and then periodically, for device test runs.
+            if (BuildConfig.DEBUG && player.isPlaying && (++logged == 5 || logged % 15 == 0)) {
+                Log.i(TAG, "stats position=${player.currentPosition / 1000}s ${engine.stats.stats.value.summary()}")
+            }
         }
     }
 
@@ -177,17 +262,20 @@ private fun PlayerContent(
     }
 
     Box(Modifier.fillMaxSize()) {
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    this.player = player
-                    setShowSubtitleButton(false)
-                    setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { controlsVisible = it == android.view.View.VISIBLE })
-                }
-            },
-            update = { it.useController = !isInPip },
-            modifier = Modifier.fillMaxSize(),
-        )
+        key(ready.generation) {
+            AndroidView(
+                factory = {
+                    playerView.apply {
+                        this.player = player
+                        setShowSubtitleButton(false)
+                        setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { controlsVisible = it == android.view.View.VISIBLE })
+                    }
+                },
+                update = { it.useController = !isInPip },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        if (showStats && !isInPip) StatsOverlay(stats, Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp))
         if (controlsVisible && !isInPip) {
             Row(
                 Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp),
@@ -195,6 +283,7 @@ private fun PlayerContent(
             ) {
                 TextButton(onClick = { dialog = TrackDialog.Audio }) { Text(stringResource(R.string.player_audio), color = Color.White) }
                 TextButton(onClick = { dialog = TrackDialog.Subtitles }) { Text(stringResource(R.string.player_subtitles), color = Color.White) }
+                TextButton(onClick = { showStats = !showStats }) { Text(stringResource(R.string.player_stats), color = Color.White) }
                 TextButton(onClick = onEnterPip) { Text(stringResource(R.string.player_pip), color = Color.White) }
                 TextButton(onClick = onClose) { Text(stringResource(R.string.player_close), color = Color.White) }
             }

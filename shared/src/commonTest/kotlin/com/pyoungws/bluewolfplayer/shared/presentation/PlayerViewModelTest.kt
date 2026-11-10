@@ -8,7 +8,18 @@ import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.playback.DIRECT_SOURCE
 import com.pyoungws.bluewolfplayer.shared.playback.FakePlaybackDataSource
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackMethod
-import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRepository
+import com.pyoungws.bluewolfplayer.shared.playback.AudioStreamInfo
+import com.pyoungws.bluewolfplayer.shared.playback.DecodePlan
+import com.pyoungws.bluewolfplayer.shared.playback.DecoderChoice
+import com.pyoungws.bluewolfplayer.shared.playback.DeviceCapabilities
+import com.pyoungws.bluewolfplayer.shared.playback.PHONE_CAPABILITIES
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackLevel
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
+import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
+import com.pyoungws.bluewolfplayer.shared.playback.SourceMediaInfo
+import com.pyoungws.bluewolfplayer.shared.playback.VideoRange
+import com.pyoungws.bluewolfplayer.shared.playback.VideoStreamInfo
+import com.pyoungws.bluewolfplayer.shared.playback.playbackRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -37,11 +48,17 @@ class PlayerViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private suspend fun TestScope.viewModel() = PlayerViewModel(
-        "m1",
-        PlaybackRepository(library, playback, SessionGuard(signedInAuthRepository())),
+    private suspend fun TestScope.viewModel(
+        target: PlaybackTarget = PlaybackTarget.Item("m1"),
+        capabilities: DeviceCapabilities = PHONE_CAPABILITIES,
+    ) = PlayerViewModel(
+        target,
+        playbackRepository(library, playback, SessionGuard(signedInAuthRepository()), capabilities),
         reportScope = this,
     )
+
+    private fun sourceWith(video: VideoStreamInfo? = null, audio: AudioStreamInfo? = null) =
+        DIRECT_SOURCE.copy(info = SourceMediaInfo(container = "mkv", video = video, audio = audio))
 
     @Test
     fun `becomes ready with the resume position`() = runTest {
@@ -157,5 +174,84 @@ class PlayerViewModelTest {
         assertEquals(PlayerUiState.PlaybackFailed, viewModel.uiState.value)
         assertEquals(1, playback.sourceRequests.size)
         assertEquals(listOf("start", "stopped"), playback.reports)
+    }
+
+    @Test
+    fun `a video decoder error replays the same stream with ffmpeg, then transcodes, then fails`() = runTest {
+        playback.source = { force ->
+            if (force) DIRECT_SOURCE.copy(method = PlaybackMethod.Transcode) else sourceWith(video = VideoStreamInfo(codec = "h264", width = 1920, height = 1080, range = VideoRange.Sdr))
+        }
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.onPlaybackStarted(0, isPaused = false)
+
+        assertTrue(viewModel.onPlayerError(7_000, PlayerErrorKind.VideoDecoder))
+
+        val local = viewModel.uiState.value as PlayerUiState.Ready
+        assertEquals(PlaybackLevel.LocalDecode, local.request.level)
+        assertEquals(DecodePlan(video = DecoderChoice.Local), local.request.plan)
+        assertEquals(PlaybackMethod.DirectPlay, local.request.source.method)
+        assertEquals(7_000L, local.request.startPositionMs)
+        assertEquals(2, local.generation)
+        assertEquals(1, playback.sourceRequests.size)
+
+        viewModel.onPlaybackStarted(7_000, isPaused = false)
+        assertTrue(viewModel.onPlayerError(8_000, PlayerErrorKind.VideoDecoder))
+        advanceUntilIdle()
+
+        val transcode = viewModel.uiState.value as PlayerUiState.Ready
+        assertEquals(PlaybackLevel.Transcode, transcode.request.level)
+        assertEquals(8_000L, transcode.request.startPositionMs)
+        assertEquals(3, transcode.generation)
+        assertEquals(listOf("start", "stopped", "start", "stopped"), playback.reports)
+
+        // The transcoded stream gets one more chance on FFmpeg before giving up.
+        assertTrue(viewModel.onPlayerError(9_000, PlayerErrorKind.VideoDecoder))
+        assertEquals(PlaybackMethod.Transcode, (viewModel.uiState.value as PlayerUiState.Ready).request.source.method)
+        assertFalse(viewModel.onPlayerError(9_000, PlayerErrorKind.VideoDecoder))
+        assertEquals(PlayerUiState.PlaybackFailed, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `an audio error keeps the video decoder and moves only audio to ffmpeg`() = runTest {
+        playback.source = { sourceWith(audio = AudioStreamInfo(codec = "truehd", channels = 8)) }
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.onPlayerError(0, PlayerErrorKind.AudioDecoder))
+
+        assertEquals(DecodePlan(audio = DecoderChoice.Local), (viewModel.uiState.value as PlayerUiState.Ready).request.plan)
+    }
+
+    @Test
+    fun `hdr video that fails to decode goes straight to the server, which can tone-map it`() = runTest {
+        playback.source = { force ->
+            if (force) DIRECT_SOURCE.copy(method = PlaybackMethod.Transcode) else sourceWith(video = VideoStreamInfo(codec = "hevc", width = 3840, height = 2160, range = VideoRange.Hdr10))
+        }
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.onPlayerError(0, PlayerErrorKind.VideoDecoder))
+        advanceUntilIdle()
+
+        assertEquals(PlaybackLevel.Transcode, (viewModel.uiState.value as PlayerUiState.Ready).request.level)
+    }
+
+    @Test
+    fun `a direct uri is not reported and falls back to ffmpeg only`() = runTest {
+        val viewModel = viewModel(PlaybackTarget.DirectUri("file:///sdcard/sample.mkv"))
+        advanceUntilIdle()
+        viewModel.onPlaybackStarted(0, isPaused = false)
+        viewModel.onProgress(1_000, isPaused = false)
+
+        assertTrue(viewModel.onPlayerError(2_000, PlayerErrorKind.VideoDecoder))
+        assertEquals(PlaybackLevel.LocalDecode, (viewModel.uiState.value as PlayerUiState.Ready).request.level)
+
+        assertFalse(viewModel.onPlayerError(2_000, PlayerErrorKind.VideoDecoder))
+        viewModel.onStopped(2_000)
+        advanceUntilIdle()
+
+        assertEquals(PlayerUiState.PlaybackFailed, viewModel.uiState.value)
+        assertTrue(playback.reports.isEmpty())
     }
 }
