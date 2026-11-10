@@ -15,11 +15,20 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.playback.SdkJellyfinPlaybackDataSource
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.DiscoverViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.MyRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SearchViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.SeerrDetailViewModel
+import com.pyoungws.bluewolfplayer.shared.seerr.KtorSeerrDataSource
+import com.pyoungws.bluewolfplayer.shared.seerr.SeerrDataSource
+import com.pyoungws.bluewolfplayer.shared.seerr.SeerrMediaType
+import com.pyoungws.bluewolfplayer.shared.seerr.SeerrRepository
+import com.pyoungws.bluewolfplayer.shared.seerr.SeerrSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.seerr.seerrHttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,8 +45,10 @@ import org.koin.dsl.module
 /**
  * Shared bindings. The platform must also provide an [org.jellyfin.sdk.Jellyfin] instance, a
  * [com.pyoungws.bluewolfplayer.shared.auth.SessionStore], a
- * [com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector] and a
- * [com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsStore].
+ * [com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector], a
+ * [com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsStore], a
+ * [com.pyoungws.bluewolfplayer.shared.seerr.SeerrSettingsStore] and a
+ * [com.pyoungws.bluewolfplayer.shared.seerr.SeerrSessionStore].
  */
 val sharedModule = module {
     single<ServerDiscovery> { SdkServerDiscovery(get()) }
@@ -54,6 +65,11 @@ val sharedModule = module {
     // Outlives screens so the final "playback stopped" report is not cancelled when the player closes.
     single { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
+    single { seerrHttpClient(get()) }
+    single<SeerrDataSource> { KtorSeerrDataSource(get()) }
+    single { SeerrSettingsRepository(get()) }
+    single { SeerrRepository(get(), get(), get(), get(), get()) }
+
     viewModelOf(::AppViewModel)
     viewModelOf(::LibraryHomeViewModel)
     viewModel { SearchViewModel(get()) }
@@ -64,4 +80,7 @@ val sharedModule = module {
     viewModelOf(::ServerConnectViewModel)
     viewModelOf(::HomeViewModel)
     viewModel { (serverAddress: String) -> SignInViewModel(serverAddress, get()) }
+    viewModel { DiscoverViewModel(get(), get()) }
+    viewModelOf(::MyRequestsViewModel)
+    viewModel { (type: SeerrMediaType, tmdbId: Int) -> SeerrDetailViewModel(type, tmdbId, get()) }
 }

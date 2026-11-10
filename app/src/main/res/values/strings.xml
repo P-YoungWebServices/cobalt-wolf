@@ -83,6 +83,53 @@
     <string name="kind_episode">Episode</string>
     <string name="search_prompt">Type to search your libraries.</string>
 
+    <!-- Seerr: discover, request, my requests -->
+    <string name="home_requests">Requests</string>
+    <string name="discover_title">Discover</string>
+    <string name="discover_my_requests">My requests</string>
+    <string name="seerr_setup_title">Connect to Seerr</string>
+    <string name="seerr_setup_subtitle">Enter the address of your Seerr (Jellyseerr or Overseerr) server to browse and request movies and series.</string>
+    <string name="seerr_url_label">Seerr server address</string>
+    <string name="seerr_url_hint">seerr.example.com or 192.168.1.10:5055</string>
+    <string name="seerr_url_invalid">Enter a valid server address.</string>
+    <string name="seerr_url_unreachable">No Seerr server answered at this address. Check it and try again.</string>
+    <string name="seerr_connect">Connect</string>
+    <string name="seerr_signin_title">Sign in to Seerr</string>
+    <string name="seerr_signin_subtitle">Seerr uses your Jellyfin account. Enter the Jellyfin password for %1$s to continue.</string>
+    <string name="seerr_signin_button">Sign in</string>
+    <string name="seerr_change_server">Use a different server</string>
+    <string name="seerr_section_trending">Trending</string>
+    <string name="seerr_section_movies">Movies</string>
+    <string name="seerr_section_series">Series</string>
+    <string name="seerr_search_hint">Search movies and series to request</string>
+    <string name="seerr_search_empty">Nothing found. Try a different search.</string>
+    <string name="seerr_badge_in_library">In library</string>
+    <string name="seerr_badge_partial">Partially in library</string>
+    <string name="seerr_badge_requested">Requested</string>
+    <string name="seerr_badge_declined">Declined</string>
+    <string name="request_movie">Request movie</string>
+    <string name="request_series_count">Request %1$d season(s)</string>
+    <string name="request_select_all">Select all</string>
+    <string name="request_season_specials">Specials</string>
+    <string name="request_season_label">Season %1$d</string>
+    <string name="request_episodes_count">%1$d episodes</string>
+    <string name="request_sent">Request sent — waiting for approval.</string>
+    <string name="request_sending">Sending request…</string>
+    <string name="request_none_selected">Select at least one season.</string>
+    <string name="request_already">Already requested</string>
+    <string name="request_available">Already in your library</string>
+    <string name="my_requests_title">My requests</string>
+    <string name="my_requests_empty">You have not requested anything yet.</string>
+    <string name="request_status_pending">Pending approval</string>
+    <string name="request_status_approved">Approved</string>
+    <string name="request_status_available">Available</string>
+    <string name="request_status_declined">Declined</string>
+    <string name="request_status_failed">Failed</string>
+    <string name="request_seasons">Seasons: %1$s</string>
+    <string name="request_seasons_all">All seasons</string>
+    <string name="request_kind_movie">Movie</string>
+    <string name="request_kind_series">Series</string>
+
     <!-- Player -->
     <string name="player_audio">Audio</string>
     <string name="player_subtitles">Subtitles</string>

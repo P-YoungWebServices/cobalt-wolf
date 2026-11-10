@@ -10,6 +10,8 @@ import com.pyoungws.bluewolfplayer.shared.playback.PHONE_CAPABILITIES
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsStore
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.DiscoverViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.MyRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.HomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
@@ -17,8 +19,14 @@ import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SearchViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.SeerrDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ServerConnectViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SignInViewModel
+import com.pyoungws.bluewolfplayer.shared.seerr.InMemorySeerrSessionStore
+import com.pyoungws.bluewolfplayer.shared.seerr.InMemorySeerrSettingsStore
+import com.pyoungws.bluewolfplayer.shared.seerr.SeerrMediaType
+import com.pyoungws.bluewolfplayer.shared.seerr.SeerrSessionStore
+import com.pyoungws.bluewolfplayer.shared.seerr.SeerrSettingsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -57,6 +65,8 @@ class SharedModuleTest {
             single<SessionStore> { InMemorySessionStore() }
             single<CapabilityDetector> { CapabilityDetector { PHONE_CAPABILITIES } }
             single<PlaybackSettingsStore> { InMemoryPlaybackSettingsStore() }
+            single<SeerrSettingsStore> { InMemorySeerrSettingsStore() }
+            single<SeerrSessionStore> { InMemorySeerrSessionStore() }
         }
         val koin = koinApplication { modules(sharedModule, platform) }.koin
         val library = Library("l1", "Movies", LibraryType.Movies, null)
@@ -71,5 +81,8 @@ class SharedModuleTest {
         assertNotNull(koin.get<ItemDetailViewModel> { parametersOf("item-1") })
         assertNotNull(koin.get<PlayerViewModel> { parametersOf(PlaybackTarget.Item("item-1")) })
         assertNotNull(koin.get<PlaybackSettingsViewModel>())
+        assertNotNull(koin.get<DiscoverViewModel>())
+        assertNotNull(koin.get<MyRequestsViewModel>())
+        assertNotNull(koin.get<SeerrDetailViewModel> { parametersOf(SeerrMediaType.Movie, 1) })
     }
 }
