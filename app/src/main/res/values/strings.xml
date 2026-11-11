@@ -285,6 +285,27 @@
     <string name="admin_system_storage">Storage</string>
     <string name="admin_system_storage_free">%1$s free of %2$s</string>
 
+    <!-- Watch together (SyncPlay) -->
+    <string name="home_watch_together">Watch together</string>
+    <string name="syncplay_title">Watch together</string>
+    <string name="syncplay_empty">No groups on this server. Create one and others can join it.</string>
+    <string name="syncplay_create_label">New group name</string>
+    <string name="syncplay_create">Create group</string>
+    <string name="syncplay_join">Join</string>
+    <string name="syncplay_leave">Leave group</string>
+    <string name="syncplay_member_count">%1$d watching</string>
+    <string name="syncplay_state_idle">Idle</string>
+    <string name="syncplay_state_waiting">Waiting</string>
+    <string name="syncplay_state_paused">Paused</string>
+    <string name="syncplay_state_playing">Playing</string>
+    <string name="syncplay_watch">Watch</string>
+    <string name="syncplay_nothing_playing">Nothing is playing in this group yet. Pick something from the library — it plays for everyone.</string>
+    <string name="syncplay_notice_group_closed">The group was closed.</string>
+    <string name="syncplay_notice_group_gone">The group no longer exists.</string>
+    <string name="syncplay_notice_access_denied">You do not have access to the group\'s library.</string>
+    <string name="syncplay_notice_events_lost">Lost contact with the group.</string>
+    <string name="syncplay_badge">SyncPlay · %1$s</string>
+
     <!-- Player -->
     <string name="player_audio">Audio</string>
     <string name="player_subtitles">Subtitles</string>

@@ -41,6 +41,10 @@ import com.pyoungws.bluewolfplayer.shared.seerr.SeerrMediaType
 import com.pyoungws.bluewolfplayer.shared.seerr.SeerrRepository
 import com.pyoungws.bluewolfplayer.shared.seerr.SeerrSettingsRepository
 import com.pyoungws.bluewolfplayer.shared.seerr.seerrHttpClient
+import com.pyoungws.bluewolfplayer.shared.syncplay.SdkSyncPlayDataSource
+import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayDataSource
+import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayRepository
+import com.pyoungws.bluewolfplayer.shared.presentation.SyncPlayViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -85,12 +89,16 @@ val sharedModule = module {
     single { SeerrRepository(get(), get(), get(), get(), get()) }
     single { RequestWatcher(get(), get()) }
 
+    single<SyncPlayDataSource> { SdkSyncPlayDataSource(get()) }
+    single { SyncPlayRepository(get(), get(), get(), get()) }
+
     viewModelOf(::AppViewModel)
     viewModelOf(::LibraryHomeViewModel)
     viewModel { SearchViewModel(get()) }
     viewModel { (library: Library) -> LibraryViewModel(library, get()) }
     viewModel { (itemId: String) -> ItemDetailViewModel(itemId, get()) }
-    viewModel { (target: PlaybackTarget) -> PlayerViewModel(target, get(), get()) }
+    viewModel { (target: PlaybackTarget) -> PlayerViewModel(target, get(), get(), get()) }
+    viewModelOf(::SyncPlayViewModel)
     viewModelOf(::PlaybackSettingsViewModel)
     viewModelOf(::ServerConnectViewModel)
     viewModelOf(::HomeViewModel)

@@ -86,7 +86,7 @@ private fun TvSignedOutFlow(lastServerAddress: String?) {
     }
 }
 
-private enum class TvSection { Home, Search, Requests, MyRequests }
+private enum class TvSection { Home, Search, Requests, MyRequests, WatchTogether }
 
 /** Routes that can be pushed over the current section. */
 private fun decodeTvRoute(value: String): Route? = when (val route = decodeRoute(value)) {
@@ -162,6 +162,7 @@ private fun TvSignedInNavigation(
                     TvSection.Search -> TvSearchScreen(onOpenItem = { push(Route.Detail(it)) })
                     TvSection.Requests -> TvDiscoverScreen(onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) })
                     TvSection.MyRequests -> TvMyRequestsScreen(onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) })
+                    TvSection.WatchTogether -> TvWatchTogetherScreen(onWatch = play)
                 }
                 else -> Unit
             }
@@ -211,6 +212,7 @@ private fun TvTopBar(
         TvNavButton(stringResource(R.string.home_search), selected = section == TvSection.Search) { onSelect(TvSection.Search) }
         TvNavButton(stringResource(R.string.home_requests), selected = section == TvSection.Requests) { onSelect(TvSection.Requests) }
         TvNavButton(stringResource(R.string.discover_my_requests), selected = section == TvSection.MyRequests) { onSelect(TvSection.MyRequests) }
+        TvNavButton(stringResource(R.string.home_watch_together), selected = section == TvSection.WatchTogether) { onSelect(TvSection.WatchTogether) }
         Box(Modifier.weight(1f))
         if (userName != null) {
             Text(userName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

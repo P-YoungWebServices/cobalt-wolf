@@ -12,13 +12,22 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlaybackReport
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRepository
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRequest
 import com.pyoungws.bluewolfplayer.shared.playback.TICKS_PER_MILLISECOND
+import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayEchoGate
+import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayMembership
+import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayPlayerCommand
+import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 sealed interface PlayerUiState {
     data object Loading : PlayerUiState
@@ -29,29 +38,57 @@ sealed interface PlayerUiState {
     data class Ready(val request: PlaybackRequest, val generation: Int) : PlayerUiState
 }
 
+/** Something the SyncPlay group wants the player to do; the UI applies these to the player. */
+sealed interface SyncPlayUiCommand {
+    data class SeekTo(val positionMs: Long) : SyncPlayUiCommand
+    data object Pause : SyncPlayUiCommand
+    data class Resume(val positionMs: Long?) : SyncPlayUiCommand
+    /** Leave the player: the group went idle or stopped. */
+    data object Close : SyncPlayUiCommand
+}
+
 /**
  * Prepares playback and reports it to Jellyfin: one start report, progress reports whenever the
  * UI calls [onProgress] (it should do so periodically and on pause/seek), and one stopped report.
  * Player errors walk the fallback order: direct play, local FFmpeg decode, server transcode.
  * [reportScope] must outlive the screen so the stopped report is not cancelled by closing it.
+ *
+ * While a SyncPlay group membership is active, [syncPlay] drives the player: group commands are
+ * re-emitted on [commands] (a different item switches the target entirely), and the local
+ * transport events the UI reports through `onUser*` are relayed to the group after filtering out
+ * echoes of commands it just applied.
  */
 class PlayerViewModel(
-    private val target: PlaybackTarget,
+    private var target: PlaybackTarget,
     private val repository: PlaybackRepository,
     private val reportScope: CoroutineScope,
+    private val syncPlay: SyncPlayRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PlayerUiState>(PlayerUiState.Loading)
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
+    /** Group commands for the UI to apply to the player. */
+    private val _commands = MutableSharedFlow<SyncPlayUiCommand>(extraBufferCapacity = 8)
+    val commands: SharedFlow<SyncPlayUiCommand> = _commands.asSharedFlow()
+
+    /** Current SyncPlay membership (the UI shows a badge); null when not in a group. */
+    val membership: StateFlow<SyncPlayMembership?> = syncPlay.membership
+
+    private val echoGate = SyncPlayEchoGate()
     private var generation = 0
     private var started = false
     private var stopped = false
     private var triedTranscode = false
     private var audioOutputRetries = 0
     private var lastPositionMs = 0L
+    private var pendingStartPaused = false
+    private var lastPingAt: TimeSource.Monotonic.ValueTimeMark? = null
 
     init {
         prepare(forceTranscode = false)
+        viewModelScope.launch { syncPlay.playerCommands.collect { onGroupCommand(it) } }
+        // A fresh player gets the group's current item and position, if any.
+        syncPlay.attachPlayer()
     }
 
     fun retry() {
@@ -128,6 +165,98 @@ class PlayerViewModel(
         endCurrentReporting(lastPositionMs)
     }
 
+    // ---- SyncPlay ----------------------------------------------------------
+
+    private suspend fun onGroupCommand(command: SyncPlayPlayerCommand) {
+        when (command) {
+            is SyncPlayPlayerCommand.LoadItem -> onGroupLoadItem(command)
+            SyncPlayPlayerCommand.Pause -> {
+                echoGate.remoteApplied(SyncPlayEchoGate.Kind.Pause, lastPositionMs.toTicks())
+                _commands.emit(SyncPlayUiCommand.Pause)
+            }
+            is SyncPlayPlayerCommand.Resume -> {
+                echoGate.remoteApplied(SyncPlayEchoGate.Kind.Resume, command.positionTicks ?: lastPositionMs.toTicks())
+                _commands.emit(SyncPlayUiCommand.Resume(command.positionTicks?.ticksToMs()))
+            }
+            is SyncPlayPlayerCommand.Seek -> {
+                echoGate.remoteApplied(SyncPlayEchoGate.Kind.Seek, command.positionTicks)
+                _commands.emit(SyncPlayUiCommand.SeekTo(command.positionTicks.ticksToMs()))
+            }
+            SyncPlayPlayerCommand.Stop -> _commands.emit(SyncPlayUiCommand.Close)
+        }
+    }
+
+    private suspend fun onGroupLoadItem(command: SyncPlayPlayerCommand.LoadItem) {
+        val currentItemId = (_uiState.value as? PlayerUiState.Ready)?.request?.item?.id
+        if (currentItemId == command.itemId) {
+            // Already on the group's item: align the position and the play state.
+            echoGate.remoteApplied(SyncPlayEchoGate.Kind.Seek, command.positionTicks)
+            _commands.emit(SyncPlayUiCommand.SeekTo(command.positionTicks.ticksToMs()))
+            val playGate = if (command.playWhenReady) SyncPlayEchoGate.Kind.Resume else SyncPlayEchoGate.Kind.Pause
+            echoGate.remoteApplied(playGate, command.positionTicks)
+            _commands.emit(if (command.playWhenReady) SyncPlayUiCommand.Resume(null) else SyncPlayUiCommand.Pause)
+            return
+        }
+        pendingStartPaused = !command.playWhenReady
+        triedTranscode = false
+        audioOutputRetries = 0
+        target = PlaybackTarget.Item(command.itemId, startPositionMs = command.positionTicks.ticksToMs())
+        _uiState.value = PlayerUiState.Loading
+        prepare(forceTranscode = false)
+    }
+
+    /**
+     * True while the player shows the item the group is playing. Local transport events are only
+     * relayed then — pausing a different video must not pause the group's movie.
+     */
+    private fun groupControlsCurrentItem(): Boolean {
+        val member = membership.value ?: return false
+        val current = (_uiState.value as? PlayerUiState.Ready)?.request?.item?.id ?: return false
+        return member.playingItem?.itemId == current
+    }
+
+    /** The user paused locally: tell the group (unless it is the echo of a group Pause). */
+    fun onUserPause(positionMs: Long) {
+        if (!groupControlsCurrentItem()) return
+        if (echoGate.suppressLocalEcho(SyncPlayEchoGate.Kind.Pause, positionMs.toTicks())) return
+        viewModelScope.launch { syncPlay.localPause() }
+    }
+
+    fun onUserResume(positionMs: Long) {
+        if (!groupControlsCurrentItem()) return
+        if (echoGate.suppressLocalEcho(SyncPlayEchoGate.Kind.Resume, positionMs.toTicks())) return
+        viewModelScope.launch { syncPlay.localResume() }
+    }
+
+    fun onUserSeek(positionMs: Long) {
+        if (!groupControlsCurrentItem()) return
+        if (echoGate.suppressLocalEcho(SyncPlayEchoGate.Kind.Seek, positionMs.toTicks())) return
+        viewModelScope.launch { syncPlay.localSeek(positionMs.toTicks()) }
+    }
+
+    /** Buffering started: the group waits for this client before resuming. */
+    fun onBuffering(positionMs: Long, isPlaying: Boolean) {
+        if (!groupControlsCurrentItem()) return
+        viewModelScope.launch { syncPlay.localBuffering(positionMs.toTicks(), isPlaying) }
+    }
+
+    /** The player is ready again after buffering: releases the group's wait. */
+    fun onReady(positionMs: Long, isPlaying: Boolean) {
+        if (!groupControlsCurrentItem()) return
+        viewModelScope.launch { syncPlay.localReady(positionMs.toTicks(), isPlaying) }
+    }
+
+    /** Periodic position report (every ~[PING_INTERVAL]); the server sends drift corrections. */
+    fun onSyncTick(positionMs: Long) {
+        if (!groupControlsCurrentItem()) return
+        val last = lastPingAt
+        if (last != null && last.elapsedNow() < PING_INTERVAL) return
+        lastPingAt = TimeSource.Monotonic.markNow()
+        viewModelScope.launch { syncPlay.localPing(positionMs.toTicks()) }
+    }
+
+    // ------------------------------------------------------------------------
+
     private fun endCurrentReporting(positionMs: Long) {
         val ready = _uiState.value as? PlayerUiState.Ready
         if (!started || stopped || ready == null) {
@@ -139,6 +268,7 @@ class PlayerViewModel(
         if (!ready.request.isServerItem) return
         val report = ready.request.report(positionMs, isPaused = false)
         reportScope.launch { withContext(NonCancellable) { repository.reportStopped(report) } }
+        if (groupControlsCurrentItem()) reportScope.launch { syncPlay.localStop() }
     }
 
     private fun prepare(forceTranscode: Boolean, resumeAtMs: Long? = null) {
@@ -147,7 +277,14 @@ class PlayerViewModel(
                 is Outcome.Success -> {
                     started = false
                     stopped = false
-                    val request = result.value.let { if (resumeAtMs != null) it.copy(startPositionMs = resumeAtMs) else it }
+                    val startPaused = pendingStartPaused
+                    pendingStartPaused = false
+                    val request = result.value.let {
+                        it.copy(
+                            startPositionMs = resumeAtMs ?: it.startPositionMs,
+                            startPaused = startPaused,
+                        )
+                    }
                     _uiState.value = PlayerUiState.Ready(request, ++generation)
                 }
                 is Outcome.Failure -> _uiState.value = PlayerUiState.Error(result.error)
@@ -163,4 +300,11 @@ class PlayerViewModel(
         isPaused = isPaused,
         method = source.method,
     )
+
+    private fun Long.toTicks() = this * TICKS_PER_MILLISECOND
+    private fun Long.ticksToMs() = this / TICKS_PER_MILLISECOND
+
+    private companion object {
+        val PING_INTERVAL = 5.seconds
+    }
 }

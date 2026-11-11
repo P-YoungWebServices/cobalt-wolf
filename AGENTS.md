@@ -133,6 +133,17 @@ Conventions and rules for contributing to Cobalt Wolf.
   `AdminRequestsScreen` + `AdminRequestsViewModel`. Local notifications for
   request events come from `RequestWatcher` (shared, polls while signed in)
   feeding `RequestNotifier` (app module, posts via NotificationCompat).
+- SyncPlay ("watch together") lives in `shared/.../syncplay`
+  (`SyncPlayDataSource` over the SDK's `syncPlayApi` + `apiClient.webSocket`,
+  `SyncPlayRepository`, models, `SyncPlayEchoGate`) with
+  `SyncPlayViewModel` in `presentation`. The repository is a singleton that
+  outlives screens: `membership` tracks the group, `playerCommands` drives any
+  attached player, and the `local*` functions report this device's transport
+  back to the group. `PlayerScreen` applies `viewModel.commands` and reports
+  local pause/seek/buffering; group screens are `ui/syncplay` (phone) and
+  `TvWatchTogetherScreen` (TV). In unit tests inject a `backgroundScope` into
+  the repository and pump with `runCurrent()` — `advanceUntilIdle()` does not
+  reach background-scope resumptions.
 - Versions live in `gradle/libs.versions.toml`.
 
 ## Dependencies and licenses

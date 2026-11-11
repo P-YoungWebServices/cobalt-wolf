@@ -36,14 +36,16 @@ class PlaybackRepository(
             )
             is PlaybackTarget.Item -> guard.run { session ->
                 val item = libraryDataSource.getItem(session, target.itemId)
-                val startTicks = if (item.hasProgress) item.positionTicks else 0L
+                val startTicks = target.startPositionMs?.let { it * TICKS_PER_MILLISECOND }
+                    ?: if (item.hasProgress) item.positionTicks else 0L
                 val serverTranscodesVideo = playbackDataSource.canTranscodeVideo(session)
                 val source = playbackDataSource.getPlaybackSource(
                     session, target.itemId, startTicks, buildDeviceProfile(capabilities, settings, serverTranscodesVideo),
                     forceTranscode = forceTranscode || settings.decoding == DecodingPreference.AlwaysTranscode,
                 )
                 PlaybackRequest(
-                    item, source, startTicks / TICKS_PER_MILLISECOND, initialDecodePlan(settings), settings, capabilities,
+                    item, source, startTicks / TICKS_PER_MILLISECOND, target.startPaused, initialDecodePlan(settings),
+                    settings, capabilities,
                     serverTranscodesVideo = serverTranscodesVideo,
                 )
             }
