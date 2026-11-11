@@ -10,6 +10,9 @@ class AdminRepository(
     private val dataSource: JellyfinAdminDataSource,
     private val guard: SessionGuard,
 ) {
+    /** The server's active sessions, for the dashboard and the home-screen widget. */
+    suspend fun sessions(): Outcome<List<ActiveSession>> = guard.run { dataSource.getSessions(it) }
+
     suspend fun dashboard(): Outcome<AdminDashboard> = guard.run { session ->
         coroutineScope {
             val sessions = async { dataSource.getSessions(session) }

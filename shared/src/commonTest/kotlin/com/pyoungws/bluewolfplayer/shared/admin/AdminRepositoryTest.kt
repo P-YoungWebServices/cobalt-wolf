@@ -35,6 +35,18 @@ class AdminRepositoryTest {
     }
 
     @Test
+    fun `sessions returns the active sessions without fetching the rest of the dashboard`() = runTest {
+        val dataSource = FakeAdminDataSource().apply {
+            sessions = { listOf(playingSession("s1"), playingSession("s2", item = null)) }
+        }
+
+        val result = repository(dataSource, signedIn()).sessions()
+
+        assertEquals(listOf("s1", "s2"), (result as Outcome.Success).value.map { it.id })
+        assertEquals(listOf("sessions"), dataSource.calls)
+    }
+
+    @Test
     fun `a revoked token signs the user out instead of showing data`() = runTest {
         val dataSource = FakeAdminDataSource().apply { sessions = { throw InvalidStatusException(401) } }
         val auth = signedIn()

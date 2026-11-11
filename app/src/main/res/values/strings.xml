@@ -414,4 +414,14 @@
     <string name="playback_show_stats">Show stats overlay</string>
     <string name="playback_show_stats_summary">Codec, bitrate, HDR type, audio output and dropped frames while playing</string>
     <string name="playback_reset">Reset to automatic</string>
+
+    <!-- Home-screen sessions widget -->
+    <string name="widget_sessions_name">Cobalt Wolf sessions</string>
+    <string name="widget_sessions_description">See who is watching on your Jellyfin server</string>
+    <string name="widget_sessions_refresh">Refresh</string>
+    <string name="widget_sessions_empty">No active sessions</string>
+    <string name="widget_sessions_signed_out">Sign in to Cobalt Wolf to see sessions</string>
+    <string name="widget_sessions_error">Couldn’t load sessions</string>
+    <string name="widget_sessions_idle">Idle</string>
+    <string name="widget_sessions_paused">Paused</string>
 </resources>
