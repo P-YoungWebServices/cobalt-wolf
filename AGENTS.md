@@ -152,7 +152,15 @@ Conventions and rules for contributing to Cobalt Wolf.
   `SharedPreferencesArrSettingsStore` via `KeystoreCipher`. `CalendarViewModel`
   and `ArrSettingsViewModel` drive `app/.../ui/calendar/` (phone) and
   `ui/tv/TvCalendarScreen.kt`. `shared/.../net/` holds helpers shared by the
-  REST integrations (`normalizeServerUrl`, `Throwable.toLoadError`).
+  REST integrations (`normalizeServerUrl`, `Throwable.toLoadError`). The
+  admin-only media manager builds on the same connection: `ArrMediaDataSource` /
+  `KtorArrMediaDataSource` (edits fetch-and-PUT the raw resource so unmodelled
+  fields survive, `POST /api/v3/command` for searches/renames/imports, release
+  search + grab, manual import), `ArrMediaRepository`, `MediaManagerViewModel`
+  (browse movies/series) and `MediaDetailViewModel` (edit form, season/episode
+  monitoring, rename preview, interactive search + grab, manual import, delete
+  with a deleteFiles choice). The UI is `app/.../ui/arrmedia/` behind
+  `NavDestination.MediaManager` — viewers never reach it (`AdminAccessTest`).
 - `shared/.../qbittorrent/` is the qBittorrent monitor: URL + username +
   password settings (password encrypted via `KeystoreCipher`), SID-cookie auth
   (`QBittorrentCookieStorage` + `KeystoreQBittorrentSessionStore`), automatic

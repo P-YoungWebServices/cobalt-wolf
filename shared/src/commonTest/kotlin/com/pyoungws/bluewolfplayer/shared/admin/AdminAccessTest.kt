@@ -35,6 +35,14 @@ class AdminAccessTest {
     }
 
     @Test
+    fun `the media manager is hidden from viewers and reachable by admins`() {
+        assertFalse(VIEWER.canNavigateTo(NavDestination.MediaManager))
+        assertFalse(NavDestination.MediaManager in VIEWER.navDestinations())
+        assertTrue(ADMIN.canNavigateTo(NavDestination.MediaManager))
+        assertTrue(NavDestination.MediaManager in ADMIN.navDestinations())
+    }
+
+    @Test
     fun `non-admin users keep all viewer entries`() {
         assertTrue(VIEWER.canNavigateTo(NavDestination.Search))
         assertTrue(VIEWER.canNavigateTo(NavDestination.Requests))

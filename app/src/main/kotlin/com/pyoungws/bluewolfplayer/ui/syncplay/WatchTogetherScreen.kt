@@ -44,12 +44,17 @@ import com.pyoungws.bluewolfplayer.ui.common.LoadingBox
 import com.pyoungws.bluewolfplayer.ui.message
 import org.koin.compose.viewmodel.koinViewModel
 
-/** "Watch together": browse the server's SyncPlay groups, create and join them, leave. */
+/**
+ * "Watch together": browse the server's SyncPlay groups, create and join them, leave.
+ * When opened from a media detail page, [queueItemId] is that item: joining or creating
+ * a group queues it so it starts playing for everyone.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchTogetherScreen(
     onBack: () -> Unit,
     onWatch: (String) -> Unit,
+    queueItemId: String? = null,
     viewModel: SyncPlayViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -83,15 +88,17 @@ fun WatchTogetherScreen(
                 is SyncPlayUiState.Error -> ErrorBox(current.error, onRetry = viewModel::refresh)
                 is SyncPlayUiState.Ready -> SyncPlayContent(
                     state = current,
+                    queueItemId = queueItemId,
                     newGroupName = newGroupName,
                     onNewGroupName = { newGroupName = it },
                     onCreate = {
-                        viewModel.createAndJoin(newGroupName)
+                        viewModel.createAndJoin(newGroupName, queueItemId)
                         newGroupName = ""
                     },
-                    onJoin = viewModel::join,
+                    onJoin = { viewModel.join(it, queueItemId) },
                     onLeave = viewModel::leave,
                     onWatch = onWatch,
+                    onQueueItem = viewModel::queueItem,
                 )
             }
         }
@@ -101,12 +108,14 @@ fun WatchTogetherScreen(
 @Composable
 private fun SyncPlayContent(
     state: SyncPlayUiState.Ready,
+    queueItemId: String?,
     newGroupName: String,
     onNewGroupName: (String) -> Unit,
     onCreate: () -> Unit,
     onJoin: (SyncPlayGroup) -> Unit,
     onLeave: () -> Unit,
     onWatch: (String) -> Unit,
+    onQueueItem: (String) -> Unit,
 ) {
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -120,7 +129,7 @@ private fun SyncPlayContent(
         state.membership?.let { member ->
             // One group at a time: inside a group the browser is replaced by the membership card.
             item(key = "membership") {
-                MembershipCard(member, busy = state.busy, onWatch = onWatch, onLeave = onLeave)
+                MembershipCard(member, busy = state.busy, queueItemId = queueItemId, onWatch = onWatch, onLeave = onLeave, onQueueItem = onQueueItem)
             }
             return@LazyColumn
         }
@@ -157,7 +166,14 @@ private fun SyncPlayContent(
 }
 
 @Composable
-private fun MembershipCard(member: SyncPlayMembership, busy: Boolean, onWatch: (String) -> Unit, onLeave: () -> Unit) {
+private fun MembershipCard(
+    member: SyncPlayMembership,
+    busy: Boolean,
+    queueItemId: String?,
+    onWatch: (String) -> Unit,
+    onLeave: () -> Unit,
+    onQueueItem: (String) -> Unit,
+) {
     Column(
         Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -175,6 +191,9 @@ private fun MembershipCard(member: SyncPlayMembership, busy: Boolean, onWatch: (
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             member.playingItem?.let { item ->
                 Button(onClick = { onWatch(item.itemId) }) { Text(stringResource(R.string.syncplay_watch)) }
+            }
+            queueItemId?.takeIf { member.playingItem?.itemId != it }?.let { itemId ->
+                TextButton(onClick = { onQueueItem(itemId) }, enabled = !busy) { Text(stringResource(R.string.syncplay_queue_item)) }
             }
             TextButton(onClick = onLeave, enabled = !busy) { Text(stringResource(R.string.syncplay_leave)) }
             if (busy) CircularProgressIndicator(Modifier.padding(8.dp).align(Alignment.CenterVertically), strokeWidth = 2.dp)

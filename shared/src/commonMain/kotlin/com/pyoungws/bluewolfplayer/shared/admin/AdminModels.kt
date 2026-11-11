@@ -50,17 +50,20 @@ data class AdminDashboard(
  * Entries in the signed-in top navigation. [Dashboard] and the management screens behind it
  * exist for administrators only.
  */
-enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard, RequestQueue, Users, Devices, Libraries, Tasks, Logs, SystemInfo }
+enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard, RequestQueue, Users, Devices, Libraries, Tasks, Logs, SystemInfo, MediaManager, Downloads, Services }
 
 /** The admin management screens reachable from the dashboard. */
 val MANAGEMENT_DESTINATIONS = listOf(
     NavDestination.RequestQueue,
+    NavDestination.MediaManager,
+    NavDestination.Downloads,
     NavDestination.Users,
     NavDestination.Devices,
     NavDestination.Libraries,
     NavDestination.Tasks,
     NavDestination.Logs,
     NavDestination.SystemInfo,
+    NavDestination.Services,
 )
 
 /** What this user may see and reach. Admin destinations are hidden for everyone else. */
