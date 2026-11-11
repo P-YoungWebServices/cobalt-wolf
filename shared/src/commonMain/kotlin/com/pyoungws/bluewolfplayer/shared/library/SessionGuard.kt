@@ -35,7 +35,11 @@ class SessionGuard(private val authRepository: AuthRepository) {
     }
 
     private fun ApiClientException.toLoadError(): LoadError = when (this) {
-        is InvalidStatusException -> if (status == HTTP_NOT_FOUND) LoadError.NotFound else LoadError.Unexpected(message)
+        is InvalidStatusException -> when (status) {
+            HTTP_FORBIDDEN -> LoadError.Forbidden
+            HTTP_NOT_FOUND -> LoadError.NotFound
+            else -> LoadError.Unexpected(message)
+        }
         is TimeoutException -> LoadError.ServerUnreachable
         is SecureConnectionException -> LoadError.SecureConnectionFailed
         else -> LoadError.Unexpected(message)
@@ -43,6 +47,7 @@ class SessionGuard(private val authRepository: AuthRepository) {
 
     private companion object {
         const val HTTP_UNAUTHORIZED = 401
+        const val HTTP_FORBIDDEN = 403
         const val HTTP_NOT_FOUND = 404
     }
 }

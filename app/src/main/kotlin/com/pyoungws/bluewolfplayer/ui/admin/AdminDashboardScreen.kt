@@ -1,5 +1,6 @@
 package com.pyoungws.bluewolfplayer.ui.admin
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,12 +34,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.shared.admin.ActiveSession
+import com.pyoungws.bluewolfplayer.shared.admin.MANAGEMENT_DESTINATIONS
+import com.pyoungws.bluewolfplayer.shared.admin.NavDestination
 import com.pyoungws.bluewolfplayer.shared.admin.SessionPlayMethod
 import com.pyoungws.bluewolfplayer.shared.admin.TranscodeDetails
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminDashboardUiState
@@ -60,6 +64,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun AdminDashboardScreen(
     onBack: () -> Unit,
     onOpenItem: (String) -> Unit,
+    onOpenManage: (NavDestination) -> Unit,
     viewModel: AdminDashboardViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -108,7 +113,7 @@ fun AdminDashboardScreen(
                 state.isLoading -> LoadingBox()
                 state.error != null && state.sessions.isEmpty() && state.recentlyAdded.isEmpty() ->
                     ErrorBox(state.error!!, onRetry = viewModel::refresh)
-                else -> DashboardContent(state, onMessage = { messageTarget = it }, onOpenItem = onOpenItem)
+                else -> DashboardContent(state, onMessage = { messageTarget = it }, onOpenItem = onOpenItem, onOpenManage = onOpenManage)
             }
         }
     }
@@ -136,6 +141,7 @@ private fun DashboardContent(
     state: AdminDashboardUiState,
     onMessage: (ActiveSession) -> Unit,
     onOpenItem: (String) -> Unit,
+    onOpenManage: (NavDestination) -> Unit,
 ) {
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item(key = "sessions-title") { SectionTitle(stringResource(R.string.admin_active_sessions)) }
@@ -159,7 +165,45 @@ private fun DashboardContent(
                 CardRow(state.recentlyAdded, key = { it.id }) { PosterCard(it, onClick = { onOpenItem(it.id) }) }
             }
         }
+        item(key = "manage-title") { SectionTitle(stringResource(R.string.admin_manage_title)) }
+        items(MANAGEMENT_DESTINATIONS, key = { "manage-${it.name}" }) { destination ->
+            Card(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(8.dp)).clickable { onOpenManage(destination) },
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(manageTitle(destination), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        manageSubtitle(destination),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun manageTitle(destination: NavDestination): String = when (destination) {
+    NavDestination.Users -> stringResource(R.string.admin_manage_users)
+    NavDestination.Devices -> stringResource(R.string.admin_manage_devices)
+    NavDestination.Libraries -> stringResource(R.string.admin_manage_libraries)
+    NavDestination.Tasks -> stringResource(R.string.admin_manage_tasks)
+    NavDestination.Logs -> stringResource(R.string.admin_manage_logs)
+    NavDestination.SystemInfo -> stringResource(R.string.admin_manage_system)
+    else -> ""
+}
+
+@Composable
+private fun manageSubtitle(destination: NavDestination): String = when (destination) {
+    NavDestination.Users -> stringResource(R.string.admin_manage_users_subtitle)
+    NavDestination.Devices -> stringResource(R.string.admin_manage_devices_subtitle)
+    NavDestination.Libraries -> stringResource(R.string.admin_manage_libraries_subtitle)
+    NavDestination.Tasks -> stringResource(R.string.admin_manage_tasks_subtitle)
+    NavDestination.Logs -> stringResource(R.string.admin_manage_logs_subtitle)
+    NavDestination.SystemInfo -> stringResource(R.string.admin_manage_system_subtitle)
+    else -> ""
 }
 
 @Composable

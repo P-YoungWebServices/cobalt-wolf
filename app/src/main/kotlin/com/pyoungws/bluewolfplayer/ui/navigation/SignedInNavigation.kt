@@ -18,6 +18,12 @@ import com.pyoungws.bluewolfplayer.shared.presentation.HomeUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.HomeViewModel
 import com.pyoungws.bluewolfplayer.shared.seerr.SeerrMediaType
 import com.pyoungws.bluewolfplayer.ui.admin.AdminDashboardScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminDevicesScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminLibrariesScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminLogsScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminSystemInfoScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminTasksScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminUsersScreen
 import com.pyoungws.bluewolfplayer.ui.detail.DetailScreen
 import com.pyoungws.bluewolfplayer.ui.discover.DiscoverScreen
 import com.pyoungws.bluewolfplayer.ui.discover.MyRequestsScreen
@@ -34,6 +40,12 @@ internal sealed interface Route {
     data object Discover : Route
     data object MyRequests : Route
     data object Dashboard : Route
+    data object AdminUsers : Route
+    data object AdminDevices : Route
+    data object AdminLibraries : Route
+    data object AdminTasks : Route
+    data object AdminLogs : Route
+    data object AdminSystem : Route
     data class SeerrDetail(val type: SeerrMediaType, val tmdbId: Int) : Route
     data class LibraryRoute(val library: Library) : Route
     data class Detail(val itemId: String) : Route
@@ -44,6 +56,12 @@ internal fun Route.encode(): String = when (this) {
     Route.Discover -> "discover"
     Route.MyRequests -> "myrequests"
     Route.Dashboard -> "dashboard"
+    Route.AdminUsers -> "adminusers"
+    Route.AdminDevices -> "admindevices"
+    Route.AdminLibraries -> "adminlibraries"
+    Route.AdminTasks -> "admintasks"
+    Route.AdminLogs -> "adminlogs"
+    Route.AdminSystem -> "adminsystem"
     is Route.SeerrDetail -> listOf("seerr", type.name, tmdbId).joinToString(SEPARATOR)
     is Route.LibraryRoute -> listOf("library", library.id, library.type.name, library.name).joinToString(SEPARATOR)
     is Route.Detail -> "detail$SEPARATOR$itemId"
@@ -56,6 +74,12 @@ internal fun decodeRoute(value: String): Route? {
         "discover" -> Route.Discover
         "myrequests" -> Route.MyRequests
         "dashboard" -> Route.Dashboard
+        "adminusers" -> Route.AdminUsers
+        "admindevices" -> Route.AdminDevices
+        "adminlibraries" -> Route.AdminLibraries
+        "admintasks" -> Route.AdminTasks
+        "adminlogs" -> Route.AdminLogs
+        "adminsystem" -> Route.AdminSystem
         "seerr" -> parts.getOrNull(2)?.toIntOrNull()?.let { Route.SeerrDetail(SeerrMediaType.valueOf(parts[1]), it) }
         "library" -> parts.getOrNull(3)?.let { name ->
             Route.LibraryRoute(Library(parts[1], name, LibraryType.valueOf(parts[2]), imageUrl = null))
@@ -67,12 +91,34 @@ internal fun decodeRoute(value: String): Route? {
 
 private const val SEPARATOR = "\u001F"
 
+/** The [NavDestination] an admin-only route is gated by, or null for routes everyone may see. */
+private fun Route.adminDestination(): NavDestination? = when (this) {
+    Route.Dashboard -> NavDestination.Dashboard
+    Route.AdminUsers -> NavDestination.Users
+    Route.AdminDevices -> NavDestination.Devices
+    Route.AdminLibraries -> NavDestination.Libraries
+    Route.AdminTasks -> NavDestination.Tasks
+    Route.AdminLogs -> NavDestination.Logs
+    Route.AdminSystem -> NavDestination.SystemInfo
+    else -> null
+}
+
 /**
- * Admin-only routes stay off the stack for viewers: even if a "dashboard" entry survived in the
+ * Admin-only routes stay off the stack for viewers: even if an admin entry survived in the
  * saved back stack (e.g. an admin signed out and a viewer signed in), it is never rendered.
  */
 private fun Route.isAllowedFor(user: UserProfile?): Boolean =
-    this != Route.Dashboard || user?.canNavigateTo(NavDestination.Dashboard) == true
+    adminDestination()?.let { user?.canNavigateTo(it) == true } ?: true
+
+private fun managementRoute(destination: NavDestination): Route? = when (destination) {
+    NavDestination.Users -> Route.AdminUsers
+    NavDestination.Devices -> Route.AdminDevices
+    NavDestination.Libraries -> Route.AdminLibraries
+    NavDestination.Tasks -> Route.AdminTasks
+    NavDestination.Logs -> Route.AdminLogs
+    NavDestination.SystemInfo -> Route.AdminSystem
+    else -> null
+}
 
 @Composable
 fun SignedInNavigation() {
@@ -105,7 +151,17 @@ fun SignedInNavigation() {
             onMyRequests = { push(Route.MyRequests) },
         )
         Route.MyRequests -> MyRequestsScreen(onBack = pop)
-        Route.Dashboard -> AdminDashboardScreen(onBack = pop, onOpenItem = { push(Route.Detail(it)) })
+        Route.Dashboard -> AdminDashboardScreen(
+            onBack = pop,
+            onOpenItem = { push(Route.Detail(it)) },
+            onOpenManage = { destination -> managementRoute(destination)?.let(push) },
+        )
+        Route.AdminUsers -> AdminUsersScreen(onBack = pop)
+        Route.AdminDevices -> AdminDevicesScreen(onBack = pop)
+        Route.AdminLibraries -> AdminLibrariesScreen(onBack = pop)
+        Route.AdminTasks -> AdminTasksScreen(onBack = pop)
+        Route.AdminLogs -> AdminLogsScreen(onBack = pop)
+        Route.AdminSystem -> AdminSystemInfoScreen(onBack = pop)
         is Route.SeerrDetail -> SeerrDetailScreen(route.type, route.tmdbId, onBack = pop)
         is Route.LibraryRoute -> LibraryScreen(route.library, onBack = pop, onOpenItem = { push(Route.Detail(it)) })
         is Route.Detail -> DetailScreen(route.itemId, onBack = pop, onPlay = play, onOpenItem = { push(Route.Detail(it)) })

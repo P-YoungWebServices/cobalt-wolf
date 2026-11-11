@@ -8,25 +8,30 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * The admin dashboard is only reachable through [NavDestination.Dashboard], so these
+ * Admin screens are only reachable through the admin destinations, so these
  * destinations are the single source of truth for what the UI may show and navigate to.
  */
 class AdminAccessTest {
 
+    private val viewerDestinations = listOf(NavDestination.Search, NavDestination.Requests, NavDestination.PlaybackSettings)
+    private val adminDestinations = listOf(NavDestination.Dashboard) + MANAGEMENT_DESTINATIONS
+
     @Test
     fun `non-admin users get no admin navigation entry`() {
-        assertEquals(
-            listOf(NavDestination.Search, NavDestination.Requests, NavDestination.PlaybackSettings),
-            VIEWER.navDestinations(),
-        )
-        assertFalse(NavDestination.Dashboard in VIEWER.navDestinations())
-        assertFalse(VIEWER.canNavigateTo(NavDestination.Dashboard))
+        assertEquals(viewerDestinations, VIEWER.navDestinations())
+        adminDestinations.forEach { destination ->
+            assertFalse(destination in VIEWER.navDestinations(), "$destination must be hidden for viewers")
+            assertFalse(VIEWER.canNavigateTo(destination), "$destination must be unreachable for viewers")
+        }
     }
 
     @Test
-    fun `administrators get the dashboard navigation entry`() {
-        assertTrue(NavDestination.Dashboard in ADMIN.navDestinations())
-        assertTrue(ADMIN.canNavigateTo(NavDestination.Dashboard))
+    fun `administrators get the dashboard and every management destination`() {
+        adminDestinations.forEach { destination ->
+            assertTrue(destination in ADMIN.navDestinations(), "$destination must be listed for admins")
+            assertTrue(ADMIN.canNavigateTo(destination), "$destination must be reachable for admins")
+        }
+        assertEquals(viewerDestinations + adminDestinations, ADMIN.navDestinations())
     }
 
     @Test

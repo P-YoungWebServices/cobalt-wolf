@@ -10,6 +10,12 @@ import com.pyoungws.bluewolfplayer.shared.playback.PHONE_CAPABILITIES
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsStore
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminDashboardViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminDevicesViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminLibrariesViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminLogsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminSystemInfoViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminTasksViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminUsersViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.DiscoverViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MyRequestsViewModel
@@ -86,5 +92,11 @@ class SharedModuleTest {
         assertNotNull(koin.get<MyRequestsViewModel>())
         assertNotNull(koin.get<SeerrDetailViewModel> { parametersOf(SeerrMediaType.Movie, 1) })
         assertNotNull(koin.get<AdminDashboardViewModel>())
+        assertNotNull(koin.get<AdminUsersViewModel>())
+        assertNotNull(koin.get<AdminDevicesViewModel>())
+        assertNotNull(koin.get<AdminLibrariesViewModel>())
+        assertNotNull(koin.get<AdminTasksViewModel>())
+        assertNotNull(koin.get<AdminLogsViewModel>())
+        assertNotNull(koin.get<AdminSystemInfoViewModel>())
     }
 }

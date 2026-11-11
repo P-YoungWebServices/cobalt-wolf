@@ -154,6 +154,102 @@
     <string name="admin_message_title">Message %1$s on %2$s</string>
     <string name="admin_message_hint">Message text</string>
     <string name="admin_message_send">Send</string>
+    <string name="error_load_forbidden">You do not have permission to do that.</string>
+
+    <!-- Admin management -->
+    <string name="admin_refresh">Refresh</string>
+    <string name="admin_edit">Edit</string>
+    <string name="admin_save">Save</string>
+    <string name="admin_create">Create</string>
+    <string name="admin_delete">Delete</string>
+    <string name="admin_last_login">Last sign-in %1$s</string>
+    <string name="admin_last_activity">Last active %1$s</string>
+    <string name="admin_manage_title">Manage server</string>
+    <string name="admin_manage_users">Users</string>
+    <string name="admin_manage_users_subtitle">Create, edit and remove accounts</string>
+    <string name="admin_manage_devices">Devices</string>
+    <string name="admin_manage_devices_subtitle">Rename or remove connected devices</string>
+    <string name="admin_manage_libraries">Libraries</string>
+    <string name="admin_manage_libraries_subtitle">Folders and scan state</string>
+    <string name="admin_manage_tasks">Scheduled tasks</string>
+    <string name="admin_manage_tasks_subtitle">Start, stop and monitor</string>
+    <string name="admin_manage_logs">Logs</string>
+    <string name="admin_manage_logs_subtitle">Live server logs with filters</string>
+    <string name="admin_manage_system">System</string>
+    <string name="admin_manage_system_subtitle">Server info and updates</string>
+
+    <!-- Admin: users -->
+    <string name="admin_users_title">Users</string>
+    <string name="admin_users_new">New user</string>
+    <string name="admin_user_create_title">Create user</string>
+    <string name="admin_user_edit_title">Edit %1$s</string>
+    <string name="admin_user_delete_title">Delete %1$s?</string>
+    <string name="admin_user_delete_message">The account and its settings will be removed from the server.</string>
+    <string name="admin_user_name">Username</string>
+    <string name="admin_user_password">Password</string>
+    <string name="admin_user_new_password">New password (leave empty to keep)</string>
+    <string name="admin_user_clear_password">Clear password</string>
+    <string name="admin_user_admin">Administrator</string>
+    <string name="admin_user_disabled">Disabled</string>
+    <string name="admin_user_hidden">Hidden from sign-in screen</string>
+    <string name="admin_user_no_password">no password</string>
+    <string name="admin_user_no_flags">Standard user</string>
+
+    <!-- Admin: devices -->
+    <string name="admin_devices_title">Devices</string>
+    <string name="admin_devices_empty">No devices have connected yet.</string>
+    <string name="admin_device_last_user">Last used by %1$s</string>
+    <string name="admin_device_rename">Rename</string>
+    <string name="admin_device_rename_title">Rename %1$s</string>
+    <string name="admin_device_name_hint">Device name</string>
+    <string name="admin_device_delete_title">Remove %1$s?</string>
+    <string name="admin_device_delete_message">The device will be forgotten. It reappears if it connects again.</string>
+
+    <!-- Admin: libraries -->
+    <string name="admin_libraries_title">Libraries</string>
+    <string name="admin_libraries_empty">No libraries are configured on the server.</string>
+
+    <!-- Admin: scheduled tasks -->
+    <string name="admin_tasks_title">Scheduled tasks</string>
+    <string name="admin_tasks_empty">The server has no scheduled tasks.</string>
+    <string name="admin_task_running">Running · %1$d%%</string>
+    <string name="admin_task_cancelling">Stopping…</string>
+    <string name="admin_task_idle">Idle</string>
+    <string name="admin_task_last_run">Last run %1$s — %2$s</string>
+    <string name="admin_task_never_run">Never run</string>
+    <string name="admin_task_start">Start</string>
+    <string name="admin_task_stop">Stop</string>
+
+    <!-- Admin: logs -->
+    <string name="admin_logs_title">Logs</string>
+    <string name="admin_logs_empty">The server has no log files.</string>
+    <string name="admin_logs_no_match">No log lines match the filters.</string>
+    <string name="admin_logs_search_hint">Filter text</string>
+    <string name="admin_logs_all">All</string>
+    <string name="admin_logs_debug">Debug</string>
+    <string name="admin_logs_info">Info</string>
+    <string name="admin_logs_warning">Warn</string>
+    <string name="admin_logs_error">Error</string>
+    <string name="admin_logs_fatal">Fatal</string>
+
+    <!-- Admin: system information -->
+    <string name="admin_system_title">System information</string>
+    <string name="admin_system_server">Server</string>
+    <string name="admin_system_field">%1$s: %2$s</string>
+    <string name="admin_system_name">Name</string>
+    <string name="admin_system_version">Version</string>
+    <string name="admin_system_product">Product</string>
+    <string name="admin_system_os">Operating system</string>
+    <string name="admin_system_arch">Architecture</string>
+    <string name="admin_system_address">Local address</string>
+    <string name="admin_system_package">Package</string>
+    <string name="admin_system_websocket_port">WebSocket port</string>
+    <string name="admin_system_updates">Updates</string>
+    <string name="admin_system_update_available">An update is available for the server.</string>
+    <string name="admin_system_up_to_date">The server is up to date.</string>
+    <string name="admin_system_restart_pending">A restart is pending.</string>
+    <string name="admin_system_storage">Storage</string>
+    <string name="admin_system_storage_free">%1$s free of %2$s</string>
 
     <!-- Player -->
     <string name="player_audio">Audio</string>

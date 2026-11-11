@@ -94,6 +94,7 @@ sealed interface LoadError {
     data object SessionExpired : LoadError
     data object ServerUnreachable : LoadError
     data object SecureConnectionFailed : LoadError
+    data object Forbidden : LoadError
     data object NotFound : LoadError
     data class Unexpected(val message: String?) : LoadError
 }
