@@ -21,6 +21,7 @@ class InMemorySessionStore(var stored: Session? = null) : SessionStore {
     }
 }
 
+
 class FakeAuthDataSource : JellyfinAuthDataSource {
     val calls = mutableListOf<String>()
     var pollCount = 0
@@ -37,6 +38,7 @@ class FakeAuthDataSource : JellyfinAuthDataSource {
     var onAuthenticateWithQuickConnect: (secret: String) -> AuthenticatedUser =
         { AuthenticatedUser("token-quick-connect", VIEWER) }
     var onGetCurrentUser: (accessToken: String) -> UserProfile = { ADMIN }
+    var onGetServerName: () -> String? = { "Test Server" }
     var onLogout: suspend (accessToken: String) -> Unit = {}
 
     override suspend fun getPublicUsers(serverAddress: String): List<PublicUser> {
@@ -72,6 +74,11 @@ class FakeAuthDataSource : JellyfinAuthDataSource {
     override suspend fun getCurrentUser(serverAddress: String, accessToken: String): UserProfile {
         calls += "getCurrentUser($accessToken)"
         return onGetCurrentUser(accessToken)
+    }
+
+    override suspend fun getServerName(serverAddress: String): String? {
+        calls += "getServerName($serverAddress)"
+        return onGetServerName()
     }
 
     override suspend fun logout(serverAddress: String, accessToken: String) {

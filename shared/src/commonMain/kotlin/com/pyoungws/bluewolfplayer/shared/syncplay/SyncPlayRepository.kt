@@ -57,10 +57,15 @@ class SyncPlayRepository(
     private var echoedSeekTicks: Long? = null
     private var echoedSeekAtMs: Long = 0
 
+    /** The session the group was joined under; the membership is dropped the moment it changes. */
+    private var membershipSession: Session? = null
+
     init {
         scope.launch {
             authRepository.sessionState.collect { state ->
-                if (state is SessionState.SignedOut) leaveLocally()
+                val session = (state as? SessionState.SignedIn)?.session
+                // Signing out — or switching to another server/account while signed in — leaves the group.
+                if (_membership.value != null && membershipSession != session) leaveLocally()
             }
         }
     }
@@ -100,6 +105,7 @@ class SyncPlayRepository(
             }
             throw e
         }
+        membershipSession = session
         enterMembership(group)
     }
 
@@ -326,6 +332,7 @@ class SyncPlayRepository(
     private fun leaveLocally() {
         eventsJob?.cancel()
         eventsJob = null
+        membershipSession = null
         _membership.value = null
         echoedSeekTicks = null
     }

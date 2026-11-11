@@ -132,7 +132,10 @@ class AuthRepositoryTest {
         )
         assertEquals(2, dataSource.pollCount)
         assertEquals(10_000, currentTime, "polls are spaced by the poll interval")
-        assertEquals("authenticateWithQuickConnect($SECRET)", dataSource.calls.last())
+        assertEquals(
+            listOf("authenticateWithQuickConnect($SECRET)", "getServerName($SERVER)"),
+            dataSource.calls.takeLast(2),
+        )
         val expected = Session(SERVER, VIEWER.id, "token-quick-connect")
         assertEquals(expected, store.stored)
         assertEquals(SessionState.SignedIn(expected), repository.sessionState.value)
@@ -300,6 +303,141 @@ class AuthRepositoryTest {
 
         assertEquals(SignInResult.Failure(SignInError.ServerUnreachable), repository.currentUser())
         assertEquals(session, store.stored)
+    }
+
+    // endregion
+
+    // region Server profiles
+
+    private fun profileRepo(profilesStore: InMemoryServerProfilesStore = InMemoryServerProfilesStore()) =
+        AuthRepository(dataSource, store, profilesStore)
+
+    @Test
+    fun `signing in saves a switchable profile`() = runTest {
+        val profilesStore = InMemoryServerProfilesStore()
+        val repo = profileRepo(profilesStore)
+
+        repo.signIn(SERVER, "alice", "hunter2")
+
+        val profile = repo.profiles.value.single()
+        assertEquals(ServerProfile.idFor(SERVER, ADMIN.id), profile.id)
+        assertEquals(SERVER, profile.serverAddress)
+        assertEquals("Test Server", profile.serverName)
+        assertEquals("alice", profile.userName)
+        assertEquals("token-password", profile.accessToken)
+        assertEquals(listOf(profile), profilesStore.load())
+    }
+
+    @Test
+    fun `signing in again refreshes the stored token without duplicating the profile`() = runTest {
+        val repo = profileRepo()
+        repo.signIn(SERVER, "alice", "hunter2")
+        dataSource.onAuthenticateByName = { _, _ -> AuthenticatedUser("token-new", ADMIN) }
+
+        repo.signIn(SERVER, "alice", "hunter3")
+
+        val profile = repo.profiles.value.single()
+        assertEquals("token-new", profile.accessToken)
+        assertEquals("token-new", store.stored?.accessToken)
+    }
+
+    @Test
+    fun `switching changes the active session and keeps both profiles`() = runTest {
+        val repo = profileRepo()
+        repo.signIn(SERVER, "alice", "hunter2")
+        dataSource.onAuthenticateByName = { _, _ -> AuthenticatedUser("token-b", VIEWER) }
+        repo.signIn("https://other.example.com", "bob", "hunter3")
+
+        assertEquals(VIEWER.id, (repo.sessionState.value as SessionState.SignedIn).session.userId)
+        assertEquals(2, repo.profiles.value.size)
+
+        val aliceProfile = repo.profiles.value.first { it.userName == "alice" }
+        assertEquals(true, repo.switchTo(aliceProfile.id))
+
+        val session = (repo.sessionState.value as SessionState.SignedIn).session
+        assertEquals(SERVER, session.serverAddress)
+        assertEquals(ADMIN.id, session.userId)
+        assertEquals("token-password", session.accessToken)
+        assertEquals(session, store.stored)
+        assertEquals(2, repo.profiles.value.size)
+    }
+
+    @Test
+    fun `switching to the current profile is a no-op`() = runTest {
+        val repo = profileRepo()
+        repo.signIn(SERVER, "alice", "hunter2")
+        val id = repo.profiles.value.single().id
+
+        assertEquals(true, repo.switchTo(id))
+        assertEquals(false, repo.switchTo("missing"))
+    }
+
+    @Test
+    fun `signing out removes the active profile`() = runTest {
+        val repo = profileRepo()
+        repo.signIn(SERVER, "alice", "hunter2")
+
+        repo.signOut()
+
+        assertEquals(emptyList(), repo.profiles.value)
+        assertEquals(SessionState.SignedOut(lastServerAddress = SERVER), repo.sessionState.value)
+    }
+
+    @Test
+    fun `removing an inactive profile keeps the session`() = runTest {
+        val profilesStore = InMemoryServerProfilesStore()
+        val repo = profileRepo(profilesStore)
+        repo.signIn(SERVER, "alice", "hunter2")
+        dataSource.onAuthenticateByName = { _, _ -> AuthenticatedUser("token-b", VIEWER) }
+        repo.signIn("https://other.example.com", "bob", "hunter3")
+        val aliceId = repo.profiles.value.first { it.userName == "alice" }.id
+
+        repo.removeProfile(aliceId)
+
+        assertEquals(listOf("bob"), repo.profiles.value.map { it.userName })
+        assertEquals(VIEWER.id, (repo.sessionState.value as SessionState.SignedIn).session.userId)
+        assertEquals(1, profilesStore.load().size)
+    }
+
+    @Test
+    fun `removing the active profile signs out`() = runTest {
+        val repo = profileRepo()
+        repo.signIn(SERVER, "alice", "hunter2")
+        val id = repo.profiles.value.single().id
+
+        repo.removeProfile(id)
+
+        assertIs<SessionState.SignedOut>(repo.sessionState.value)
+        assertEquals(emptyList(), repo.profiles.value)
+        assertEquals(listOf("logout($SERVER, token-password)"), dataSource.calls.filter { it.startsWith("logout") })
+    }
+
+    @Test
+    fun `a revoked session removes its profile`() = runTest {
+        val repo = profileRepo()
+        repo.signIn(SERVER, "alice", "hunter2")
+
+        repo.invalidateSession()
+
+        assertEquals(emptyList(), repo.profiles.value)
+        assertIs<SessionState.SignedOut>(repo.sessionState.value)
+    }
+
+    @Test
+    fun `restoreSession loads the saved profiles`() = runTest {
+        val profile = ServerProfile(
+            id = ServerProfile.idFor(SERVER, ADMIN.id),
+            serverAddress = SERVER,
+            serverName = "Test Server",
+            userId = ADMIN.id,
+            userName = "alice",
+            accessToken = "stored-token",
+        )
+        val repo = profileRepo(InMemoryServerProfilesStore(listOf(profile)))
+
+        repo.restoreSession()
+
+        assertEquals(listOf(profile), repo.profiles.value)
     }
 
     // endregion

@@ -284,4 +284,18 @@ class SyncPlayRepositoryTest {
 
         assertNull(repository.membership.value)
     }
+
+    @Test
+    fun `switching to another server drops the membership`() = runTest {
+        val auth = signedInAuthRepository()
+        val repository = repository(auth)
+        repository.join(group("g1"))
+        runCurrent()
+
+        // Signing straight into another server swaps the session with no sign-out in between.
+        auth.signIn("https://other.example.com", "bob", "pw")
+        runCurrent()
+
+        assertNull(repository.membership.value)
+    }
 }

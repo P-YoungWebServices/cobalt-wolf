@@ -44,6 +44,7 @@ import com.pyoungws.bluewolfplayer.shared.seerr.seerrHttpClient
 import com.pyoungws.bluewolfplayer.shared.syncplay.SdkSyncPlayDataSource
 import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayDataSource
 import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayRepository
+import com.pyoungws.bluewolfplayer.shared.presentation.ServersViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SyncPlayViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -70,7 +71,7 @@ val sharedModule = module {
     single<ServerDiscovery> { SdkServerDiscovery(get()) }
     single<JellyfinAuthDataSource> { SdkJellyfinAuthDataSource(get()) }
     single { ServerRepository(get()) }
-    single { AuthRepository(get(), get()) }
+    single { AuthRepository(get(), get(), get()) }
 
     single { SessionGuard(get()) }
     single<JellyfinLibraryDataSource> { SdkJellyfinLibraryDataSource(get()) }
@@ -99,6 +100,7 @@ val sharedModule = module {
     viewModel { (itemId: String) -> ItemDetailViewModel(itemId, get()) }
     viewModel { (target: PlaybackTarget) -> PlayerViewModel(target, get(), get(), get()) }
     viewModelOf(::SyncPlayViewModel)
+    viewModelOf(::ServersViewModel)
     viewModelOf(::PlaybackSettingsViewModel)
     viewModelOf(::ServerConnectViewModel)
     viewModelOf(::HomeViewModel)

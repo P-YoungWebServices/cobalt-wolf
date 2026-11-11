@@ -51,14 +51,49 @@ sealed interface SessionState {
 class AuthRepository(
     private val dataSource: JellyfinAuthDataSource,
     private val sessionStore: SessionStore,
+    private val profilesStore: ServerProfilesStore = InMemoryServerProfilesStore(),
     private val quickConnectPollInterval: Duration = 5.seconds,
     private val logoutTimeout: Duration = 5.seconds,
 ) {
     private val _sessionState = MutableStateFlow<SessionState>(SessionState.Unknown)
     val sessionState: StateFlow<SessionState> = _sessionState.asStateFlow()
 
+    /** Every account the user has signed in to, most recently added last. */
+    private val _profiles = MutableStateFlow<List<ServerProfile>>(emptyList())
+    val profiles: StateFlow<List<ServerProfile>> = _profiles.asStateFlow()
+
     suspend fun restoreSession() {
+        _profiles.value = profilesStore.load()
         _sessionState.value = sessionStore.load()?.let(SessionState::SignedIn) ?: SessionState.SignedOut()
+    }
+
+    /**
+     * Moves the app to [profile]'s server and account. The current session's profile stays saved,
+     * so switching back later needs no sign-in. Returns false for an unknown profile.
+     */
+    suspend fun switchTo(profileId: String): Boolean {
+        val profile = _profiles.value.find { it.id == profileId } ?: return false
+        val current = (sessionState.value as? SessionState.SignedIn)?.session
+        if (current != null && current.serverAddress == profile.serverAddress && current.userId == profile.userId) {
+            return true
+        }
+        sessionStore.save(profile.toSession())
+        _sessionState.value = SessionState.SignedIn(profile.toSession())
+        return true
+    }
+
+    /**
+     * Forgets [profileId]'s account. Removing the profile in use also ends that session on the
+     * server and returns the app to the sign-in flow.
+     */
+    suspend fun removeProfile(profileId: String) {
+        val profile = _profiles.value.find { it.id == profileId } ?: return
+        val current = (sessionState.value as? SessionState.SignedIn)?.session
+        if (current != null && current.serverAddress == profile.serverAddress && current.userId == profile.userId) {
+            signOut()
+        } else {
+            saveProfiles(_profiles.value - profile)
+        }
     }
 
     /**
@@ -157,15 +192,48 @@ class AuthRepository(
     }
 
     private suspend fun clearSession(serverAddress: String) {
+        val userId = (sessionState.value as? SessionState.SignedIn)?.session?.userId
         sessionStore.clear()
+        if (userId != null) removeStoredProfile(serverAddress, userId)
         _sessionState.value = SessionState.SignedOut(lastServerAddress = serverAddress)
     }
 
     private suspend fun persist(serverAddress: String, auth: AuthenticatedUser): UserProfile {
         val session = Session(serverAddress = serverAddress, userId = auth.user.id, accessToken = auth.accessToken)
         sessionStore.save(session)
+        upsertProfile(serverAddress, auth)
         _sessionState.value = SessionState.SignedIn(session)
         return auth.user
+    }
+
+    /** Adds or refreshes the switchable profile for a sign-in. A server-name lookup is best-effort. */
+    private suspend fun upsertProfile(serverAddress: String, auth: AuthenticatedUser) {
+        val id = ServerProfile.idFor(serverAddress, auth.user.id)
+        val existing = _profiles.value.find { it.id == id }
+        val serverName = try {
+            dataSource.getServerName(serverAddress)
+        } catch (e: ApiClientException) {
+            existing?.serverName
+        } ?: existing?.serverName
+        val profile = ServerProfile(
+            id = id,
+            serverAddress = serverAddress,
+            serverName = serverName,
+            userId = auth.user.id,
+            userName = auth.user.name,
+            accessToken = auth.accessToken,
+        )
+        saveProfiles(_profiles.value.filterNot { it.id == id } + profile)
+    }
+
+    private suspend fun removeStoredProfile(serverAddress: String, userId: String) {
+        val id = ServerProfile.idFor(serverAddress, userId)
+        saveProfiles(_profiles.value.filterNot { it.id == id })
+    }
+
+    private suspend fun saveProfiles(profiles: List<ServerProfile>) {
+        _profiles.value = profiles
+        profilesStore.saveAll(profiles)
     }
 
     private fun ApiClientException.toSignInError(): SignInError = when (this) {

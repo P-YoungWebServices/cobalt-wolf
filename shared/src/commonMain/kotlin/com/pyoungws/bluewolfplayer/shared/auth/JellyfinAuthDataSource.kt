@@ -13,6 +13,7 @@ import org.jellyfin.sdk.api.client.extensions.authenticateUserByName
 import org.jellyfin.sdk.api.client.extensions.authenticateWithQuickConnect
 import org.jellyfin.sdk.api.client.extensions.authenticationApi
 import org.jellyfin.sdk.api.client.extensions.sessionApi
+import org.jellyfin.sdk.api.client.extensions.systemApi
 import org.jellyfin.sdk.api.client.extensions.userApi
 import org.jellyfin.sdk.model.api.AuthenticationResult
 import org.jellyfin.sdk.model.api.QuickConnectResult
@@ -34,6 +35,8 @@ interface JellyfinAuthDataSource {
     suspend fun getQuickConnectState(serverAddress: String, secret: String): QuickConnectTicket
     suspend fun authenticateWithQuickConnect(serverAddress: String, secret: String): AuthenticatedUser
     suspend fun getCurrentUser(serverAddress: String, accessToken: String): UserProfile
+    /** The server's display name from its public system info, or null when it cannot be fetched. */
+    suspend fun getServerName(serverAddress: String): String?
     suspend fun logout(serverAddress: String, accessToken: String)
 }
 
@@ -75,6 +78,10 @@ class SdkJellyfinAuthDataSource(
 
     override suspend fun getCurrentUser(serverAddress: String, accessToken: String) = call(serverAddress, accessToken) {
         userApi.getCurrentUser().content.toUserProfile()
+    }
+
+    override suspend fun getServerName(serverAddress: String): String? = call(serverAddress) {
+        systemApi.getPublicSystemInfo().content.serverName
     }
 
     override suspend fun logout(serverAddress: String, accessToken: String) = call(serverAddress, accessToken) {

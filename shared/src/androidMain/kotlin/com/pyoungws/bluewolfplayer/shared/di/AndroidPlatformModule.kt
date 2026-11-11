@@ -1,6 +1,8 @@
 package com.pyoungws.bluewolfplayer.shared.di
 
+import com.pyoungws.bluewolfplayer.shared.auth.KeystoreServerProfilesStore
 import com.pyoungws.bluewolfplayer.shared.auth.KeystoreSessionStore
+import com.pyoungws.bluewolfplayer.shared.auth.ServerProfilesStore
 import com.pyoungws.bluewolfplayer.shared.auth.SessionStore
 import com.pyoungws.bluewolfplayer.shared.playback.AndroidCapabilityDetector
 import com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector
@@ -30,6 +32,7 @@ fun androidPlatformModule(clientName: String, clientVersion: String): Module {
             }
         }
         single<SessionStore> { KeystoreSessionStore(androidContext()) }
+        single<ServerProfilesStore> { KeystoreServerProfilesStore(androidContext()) }
         single<CapabilityDetector> { AndroidCapabilityDetector(androidContext()) }
         single<PlaybackSettingsStore> { SharedPreferencesPlaybackSettingsStore(androidContext()) }
         single<SeerrSettingsStore> { SharedPreferencesSeerrSettingsStore(androidContext()) }

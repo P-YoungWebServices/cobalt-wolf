@@ -95,8 +95,15 @@ Conventions and rules for contributing to Cobalt Wolf.
 - `shared/` (Kotlin Multiplatform: `android` + `jvm` targets): models,
   Jellyfin SDK data sources, repositories, ViewModels and the Koin
   `sharedModule`. `commonTest` holds the unit tests. `androidMain` holds
-  `KeystoreSessionStore` (Android Keystore AES-GCM token storage) and
-  `androidPlatformModule` (creates the `Jellyfin` instance).
+  `KeystoreSessionStore` (Android Keystore AES-GCM token storage),
+  `KeystoreServerProfilesStore` (the saved server/account profiles behind the
+  multi-server switcher; same Keystore AES-GCM scheme via `KeystoreCipher`,
+  `server_profiles` prefs, excluded from backups) and `androidPlatformModule`
+  (creates the `Jellyfin` instance). `AuthRepository.profiles` exposes the
+  profiles; `switchTo` swaps the active session without a sign-out and
+  `removeProfile`/`signOut`/`invalidateSession` drop profiles — the
+  `ServersViewModel`-backed switcher is `ui/servers` (phone) and the Servers
+  top-bar section (TV).
 - `app/`: Android app (`com.pyoungws.bluewolfplayer`, minSdk 24), Jetpack
   Compose + Material 3 UI only; no business logic. `player/` holds the Media3
   glue (`PlayerEngine`, stats collector, display mode controller).

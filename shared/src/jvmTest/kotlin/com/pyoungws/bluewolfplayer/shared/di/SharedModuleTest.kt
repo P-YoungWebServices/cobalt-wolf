@@ -1,6 +1,8 @@
 package com.pyoungws.bluewolfplayer.shared.di
 
+import com.pyoungws.bluewolfplayer.shared.auth.InMemoryServerProfilesStore
 import com.pyoungws.bluewolfplayer.shared.auth.InMemorySessionStore
+import com.pyoungws.bluewolfplayer.shared.auth.ServerProfilesStore
 import com.pyoungws.bluewolfplayer.shared.auth.SessionStore
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.LibraryType
@@ -29,6 +31,8 @@ import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SearchViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SeerrDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ServerConnectViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.ServersViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.SyncPlayViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SignInViewModel
 import com.pyoungws.bluewolfplayer.shared.seerr.InMemorySeerrSessionStore
 import com.pyoungws.bluewolfplayer.shared.seerr.InMemorySeerrSettingsStore
@@ -71,6 +75,7 @@ class SharedModuleTest {
                 }
             }
             single<SessionStore> { InMemorySessionStore() }
+            single<ServerProfilesStore> { InMemoryServerProfilesStore() }
             single<CapabilityDetector> { CapabilityDetector { PHONE_CAPABILITIES } }
             single<PlaybackSettingsStore> { InMemoryPlaybackSettingsStore() }
             single<SeerrSettingsStore> { InMemorySeerrSettingsStore() }
@@ -100,5 +105,7 @@ class SharedModuleTest {
         assertNotNull(koin.get<AdminLogsViewModel>())
         assertNotNull(koin.get<AdminSystemInfoViewModel>())
         assertNotNull(koin.get<AdminRequestsViewModel>())
+        assertNotNull(koin.get<SyncPlayViewModel>())
+        assertNotNull(koin.get<ServersViewModel>())
     }
 }
