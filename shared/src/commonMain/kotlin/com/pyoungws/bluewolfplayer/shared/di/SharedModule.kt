@@ -1,5 +1,8 @@
 package com.pyoungws.bluewolfplayer.shared.di
 
+import com.pyoungws.bluewolfplayer.shared.admin.AdminRepository
+import com.pyoungws.bluewolfplayer.shared.admin.JellyfinAdminDataSource
+import com.pyoungws.bluewolfplayer.shared.admin.SdkJellyfinAdminDataSource
 import com.pyoungws.bluewolfplayer.shared.auth.AuthRepository
 import com.pyoungws.bluewolfplayer.shared.auth.JellyfinAuthDataSource
 import com.pyoungws.bluewolfplayer.shared.auth.SdkJellyfinAuthDataSource
@@ -14,6 +17,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.playback.SdkJellyfinPlaybackDataSource
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminDashboardViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.DiscoverViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
@@ -59,7 +63,9 @@ val sharedModule = module {
     single { SessionGuard(get()) }
     single<JellyfinLibraryDataSource> { SdkJellyfinLibraryDataSource(get()) }
     single<JellyfinPlaybackDataSource> { SdkJellyfinPlaybackDataSource(get()) }
+    single<JellyfinAdminDataSource> { SdkJellyfinAdminDataSource(get()) }
     single { LibraryRepository(get(), get()) }
+    single { AdminRepository(get(), get()) }
     single { PlaybackSettingsRepository(get()) }
     single { PlaybackRepository(get(), get(), get(), get(), get()) }
     // Outlives screens so the final "playback stopped" report is not cancelled when the player closes.
@@ -82,5 +88,6 @@ val sharedModule = module {
     viewModel { (serverAddress: String) -> SignInViewModel(serverAddress, get()) }
     viewModel { DiscoverViewModel(get(), get()) }
     viewModelOf(::MyRequestsViewModel)
+    viewModelOf(::AdminDashboardViewModel)
     viewModel { (type: SeerrMediaType, tmdbId: Int) -> SeerrDetailViewModel(type, tmdbId, get()) }
 }

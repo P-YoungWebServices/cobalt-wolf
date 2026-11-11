@@ -130,6 +130,31 @@
     <string name="request_kind_movie">Movie</string>
     <string name="request_kind_series">Series</string>
 
+    <!-- Admin dashboard -->
+    <string name="home_dashboard">Dashboard</string>
+    <string name="admin_dashboard_title">Server dashboard</string>
+    <string name="admin_refresh_every">Every %1$d s</string>
+    <string name="admin_refresh_seconds">%1$d seconds</string>
+    <string name="admin_active_sessions">Active sessions</string>
+    <string name="admin_no_sessions">Nobody is connected right now.</string>
+    <string name="admin_recently_added">Recently added</string>
+    <string name="admin_session_user_device">%1$s on %2$s</string>
+    <string name="admin_session_idle">Nothing playing</string>
+    <string name="admin_progress_percent">%1$d%%</string>
+    <string name="admin_method_direct_play">Direct play</string>
+    <string name="admin_method_direct_stream">Direct stream</string>
+    <string name="admin_method_transcode">Transcoding</string>
+    <string name="admin_method_unknown">Playback</string>
+    <string name="admin_paused_suffix"> · paused</string>
+    <string name="admin_transcoding_to">Transcoding to %1$s</string>
+    <string name="admin_transcode_reasons">Reasons: %1$s</string>
+    <string name="admin_bitrate_mbps">%1$.1f Mbps</string>
+    <string name="admin_channels">%1$d ch</string>
+    <string name="admin_message">Message</string>
+    <string name="admin_message_title">Message %1$s on %2$s</string>
+    <string name="admin_message_hint">Message text</string>
+    <string name="admin_message_send">Send</string>
+
     <!-- Player -->
     <string name="player_audio">Audio</string>
     <string name="player_subtitles">Subtitles</string>

@@ -106,6 +106,12 @@ Conventions and rules for contributing to Blue Wolf Player.
   fallback order), `DeviceProfiles.kt` (what the server is told),
   `DisplayModeMatcher.kt`. `androidMain` holds `AndroidCapabilityDetector` and
   the settings store.
+- Admin features live in `shared/.../admin` (data source, `AdminRepository`,
+  dashboard/session models) with `AdminDashboardViewModel` in `presentation`
+  and the screen in `app/.../ui/admin`. `navDestinations()`/`canNavigateTo()`
+  in `AdminModels.kt` are the single source of truth for admin visibility:
+  the role comes from `UserProfile.isAdministrator` (the Jellyfin user policy),
+  and admin routes stay hidden and unreachable for everyone else.
 - Versions live in `gradle/libs.versions.toml`.
 
 ## Dependencies and licenses
