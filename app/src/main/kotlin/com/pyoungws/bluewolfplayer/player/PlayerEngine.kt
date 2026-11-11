@@ -13,6 +13,7 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.audio.AudioRendererEventListener
@@ -22,7 +23,9 @@ import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.ui.PlayerView
 import com.pyoungws.bluewolfplayer.shared.playback.AudioOutputPreference
@@ -62,13 +65,14 @@ internal class PlayerEngine(
  * ASS/SSA subtitles are drawn by libass into [playerView]'s subtitle layer; PGS and SRT use
  * Media3's own decoders.
  */
-internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playerView: PlayerView): PlayerEngine {
+internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playerView: PlayerView, pcmChannelCap: Int? = null): PlayerEngine {
     val settings = request.settings
     val baseRenderers = BlueWolfRenderersFactory(
         context,
         pcmOnly = settings.audioOutput == AudioOutputPreference.PcmOnly,
         localVideoFirst = request.plan.video == DecoderChoice.Local,
         localAudioFirst = request.plan.audio == DecoderChoice.Local,
+        pcmChannelCap = pcmChannelCap,
     )
     baseRenderers.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
     baseRenderers.setMediaCodecSelector(dolbyVisionSelector(settings.dolbyVision))
@@ -78,7 +82,10 @@ internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playe
 
     val http = DefaultHttpDataSource.Factory().setDefaultRequestProperties(request.source.headers)
     val dataSource = DefaultDataSource.Factory(context, http)
+    // Progressive HTTP streams must not seek: Matroska cues live at the end of the file and
+    // seeking to them on a plain stream stalls playback repeatedly.
     val extractors = DefaultExtractorsFactory()
+        .setMatroskaExtractorFlags(MatroskaExtractor.FLAG_DISABLE_SEEK_FOR_CUES)
     fun ExtractorsFactory.finished() = withDolbyVisionBaseLayerFallback(request.capabilities, settings)
 
     val assHandler = if (settings.styledSubtitles) AssHandler(AssRenderType.OVERLAY_OPEN_GL) else null
@@ -89,9 +96,28 @@ internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playe
         DefaultMediaSourceFactory(dataSource, extractors.finished())
     }
 
+    // High-bitrate direct plays (4K remuxes at ~70 Mbps) need a bigger buffer runway than the
+    // default 50 s max: a short network dip should not stall playback. A deeper rebuffer
+    // threshold means each recovery starts with enough cushion to ride out the next dip.
+    val loadControl = DefaultLoadControl.Builder()
+        .setBufferDurationsMs(120_000, 240_000, 4_000, 30_000)
+        .setPrioritizeTimeOverSizeThresholds(true)
+        .build()
+
+    // Prefer an English 5.1 track when one exists: English otherwise, then the container default.
+    // Both are soft preferences, so a file with only 8-channel audio still gets sound.
+    val trackSelector = DefaultTrackSelector(context).apply {
+        parameters = parameters.buildUpon()
+            .setPreferredAudioLanguage("en")
+            .setMaxAudioChannelCount(6)
+            .build()
+    }
+
     val player = ExoPlayer.Builder(context)
         .setRenderersFactory(if (assHandler != null) baseRenderers.withAssSupport(assHandler) else baseRenderers)
         .setMediaSourceFactory(mediaSourceFactory)
+        .setLoadControl(loadControl)
+        .setTrackSelector(trackSelector)
         .setAudioAttributes(MOVIE_AUDIO_ATTRIBUTES, /* handleAudioFocus = */ true)
         .setHandleAudioBecomingNoisy(true)
         .setVideoChangeFrameRateStrategy(
@@ -119,6 +145,7 @@ private class BlueWolfRenderersFactory(
     private val pcmOnly: Boolean,
     private val localVideoFirst: Boolean,
     private val localAudioFirst: Boolean,
+    private val pcmChannelCap: Int?,
 ) : NextRenderersFactory(context) {
     override fun buildVideoRenderers(
         context: Context,
@@ -152,10 +179,11 @@ private class BlueWolfRenderersFactory(
 
     @Suppress("DEPRECATION") // The context-less builder is the one that honours explicit capabilities.
     override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
-        val builder = if (pcmOnly) {
-            DefaultAudioSink.Builder().setAudioCapabilities(AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES)
-        } else {
-            DefaultAudioSink.Builder(context)
+        val builder = when {
+            // Debug only: caps PCM output for devices that mishandle wide PCM output.
+            pcmChannelCap != null -> DefaultAudioSink.Builder().setAudioCapabilities(AudioCapabilities(IntArray(0), pcmChannelCap))
+            pcmOnly -> DefaultAudioSink.Builder().setAudioCapabilities(AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES)
+            else -> DefaultAudioSink.Builder(context)
         }
         return builder.setEnableFloatOutput(enableFloatOutput).setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams).build()
     }
@@ -178,7 +206,7 @@ internal fun PlaybackException.toErrorKind(): PlayerErrorKind {
     val exo = this as? ExoPlaybackException
     if (exo?.type == ExoPlaybackException.TYPE_RENDERER) {
         return when {
-            exo.rendererException.isAudioOutputError() -> PlayerErrorKind.AudioDecoder
+            exo.rendererException.isAudioOutputError() -> PlayerErrorKind.AudioOutput
             else -> when (MimeTypes.getTrackType(exo.rendererFormat?.sampleMimeType)) {
                 C.TRACK_TYPE_VIDEO -> PlayerErrorKind.VideoDecoder
                 C.TRACK_TYPE_AUDIO -> PlayerErrorKind.AudioDecoder

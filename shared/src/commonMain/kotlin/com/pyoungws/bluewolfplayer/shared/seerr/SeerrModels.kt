@@ -62,6 +62,9 @@ data class SeerrTitleDetails(
     val seasons: List<SeerrSeason> = emptyList(),
 )
 
+/** Status filter for the request list (`filter` query parameter on `GET /request`). */
+enum class SeerrRequestFilter(val apiValue: String) { All("all"), Pending("pending") }
+
 /** One of the user's requests on the Seerr server. */
 data class SeerrRequest(
     val id: Int,
@@ -70,7 +73,12 @@ data class SeerrRequest(
     val type: SeerrMediaType,
     val tmdbId: Int,
     val seasons: List<Int> = emptyList(),
+    val is4k: Boolean = false,
     val createdAt: String? = null,
+    val updatedAt: String? = null,
+    /** The requester, present for accounts with manage permission; null for the user's own list. */
+    val requestedById: Int? = null,
+    val requestedByName: String? = null,
     /** Filled in lazily from the title details; Seerr does not embed them in the request list. */
     val title: String? = null,
     val posterUrl: String? = null,

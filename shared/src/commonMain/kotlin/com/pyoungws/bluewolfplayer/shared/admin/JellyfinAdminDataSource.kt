@@ -197,7 +197,7 @@ class SdkJellyfinAdminDataSource(
     }
 
     private companion object {
-        const val MESSAGE_HEADER = "Blue Wolf Player"
+        const val MESSAGE_HEADER = "Cobalt Wolf"
         const val MESSAGE_TIMEOUT_MS = 15_000L
         val ITEM_FIELDS = listOf(ItemFields.OVERVIEW, ItemFields.GENRES)
     }

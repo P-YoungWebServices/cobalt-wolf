@@ -47,6 +47,7 @@ class PlayerViewModel(
     private var started = false
     private var stopped = false
     private var triedTranscode = false
+    private var audioOutputRetries = 0
     private var lastPositionMs = 0L
 
     init {
@@ -65,6 +66,15 @@ class PlayerViewModel(
     fun onPlayerError(positionMs: Long, kind: PlayerErrorKind = PlayerErrorKind.Other): Boolean {
         val ready = _uiState.value as? PlayerUiState.Ready ?: return false
         val request = ready.request
+        // A display-mode switch or HDMI renegotiation can kill the passthrough AudioTrack after a
+        // few frames. That is transient: retry the exact same plan once before falling back.
+        if (kind == PlayerErrorKind.AudioOutput && audioOutputRetries++ == 0) {
+            endCurrentReporting(positionMs)
+            started = false
+            stopped = false
+            _uiState.value = PlayerUiState.Ready(request.copy(startPositionMs = positionMs), ++generation)
+            return true
+        }
         endCurrentReporting(positionMs)
         val step = nextFallback(
             request.source.method, request.plan, kind, request.source.info, request.capabilities,

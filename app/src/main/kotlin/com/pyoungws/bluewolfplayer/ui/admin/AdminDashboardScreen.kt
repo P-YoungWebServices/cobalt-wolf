@@ -186,6 +186,7 @@ private fun DashboardContent(
 
 @Composable
 private fun manageTitle(destination: NavDestination): String = when (destination) {
+    NavDestination.RequestQueue -> stringResource(R.string.admin_manage_requests)
     NavDestination.Users -> stringResource(R.string.admin_manage_users)
     NavDestination.Devices -> stringResource(R.string.admin_manage_devices)
     NavDestination.Libraries -> stringResource(R.string.admin_manage_libraries)
@@ -197,6 +198,7 @@ private fun manageTitle(destination: NavDestination): String = when (destination
 
 @Composable
 private fun manageSubtitle(destination: NavDestination): String = when (destination) {
+    NavDestination.RequestQueue -> stringResource(R.string.admin_manage_requests_subtitle)
     NavDestination.Users -> stringResource(R.string.admin_manage_users_subtitle)
     NavDestination.Devices -> stringResource(R.string.admin_manage_devices_subtitle)
     NavDestination.Libraries -> stringResource(R.string.admin_manage_libraries_subtitle)

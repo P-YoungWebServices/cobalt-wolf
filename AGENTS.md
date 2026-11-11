@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Conventions and rules for contributing to Blue Wolf Player.
+Conventions and rules for contributing to Cobalt Wolf.
 
 ## Language and architecture
 
@@ -34,8 +34,7 @@ Conventions and rules for contributing to Blue Wolf Player.
   the relevant module's README.
 - Do not reproduce JellyWatch's code, branding, icons or artwork. Reproduce
   capabilities only.
-- Keep the Jellyfin disclaimer in README/distribution materials: Blue Wolf
-  Player is a third-party app, not affiliated with or endorsed by the
+- Keep the Jellyfin disclaimer in README/distribution materials: Cobalt Wolf is a third-party app, not affiliated with or endorsed by the
   Jellyfin project.
 
 ## Build / verify
@@ -80,7 +79,7 @@ Conventions and rules for contributing to Blue Wolf Player.
 - Debug builds export `.player.DebugPlayerActivity` (plays `-d <uri>` or
   `--es item_id <id>`) and `.ui.settings.DebugPlaybackSettingsActivity`; see
   README "Testing playback from adb" for the extras. Everything of interest is
-  logged under the `BlueWolfPlayback` tag: detected capabilities, fallbacks and
+  logged under the `CobaltWolfPlayback` tag: detected capabilities, fallbacks and
   a `stats` line (codec, decoder, HDR, audio output, dropped frames) 5 s into
   playback and every 15 s after.
 - Files pushed with adb into the app's storage are not readable by the app on
@@ -101,6 +100,23 @@ Conventions and rules for contributing to Blue Wolf Player.
 - `app/`: Android app (`com.pyoungws.bluewolfplayer`, minSdk 24), Jetpack
   Compose + Material 3 UI only; no business logic. `player/` holds the Media3
   glue (`PlayerEngine`, stats collector, display mode controller).
+- `app/ui/tv/`: the Android TV / Fire TV experience (Compose for TV, always
+  dark). `MainActivity` picks it at runtime via `UiModeManager` when
+  `isTelevision()` (`DeviceInfo.kt`) is true; the phone/tablet UI is untouched.
+  A persistent top bar carries section navigation (Home, Search, Requests,
+  My Requests, Settings, sign out); pushed routes reuse `Route`/`decodeRoute`
+  from `ui/navigation`. TV screens reuse the shared ViewModels; lazy lists are
+  the standard `LazyColumn`/`LazyRow`/`LazyVerticalGrid` (the `TvLazy*`
+  components were removed in tv-foundation 1.0.0). `ui/tv/channels/` publishes
+  Android TV home screen channels (Continue Watching, Recently Added) via
+  androidx.tvprovider when `supportsHomeScreenChannels()` — skipped where the
+  TV provider does not exist (Fire TV). Programs deep-link `bluewolf://item/<id>`
+  into the item detail screen. The TV banner is `res/drawable-xhdpi/tv_banner.png`
+  (320x180, original wolf artwork + wordmark).
+- Player on TV: `PlayerScreen` gives the D-pad a focus target and focuses
+  play/pause when controls show; `PlayerActivity.onKeyDown` maps remote
+  transport keys (play/pause, fast-forward, rewind, stop). Frame rate matching
+  (`DisplayModeController`) already applies on TV via `capabilities.isTv`.
 - Playback decisions live in `shared/.../playback`: `Capabilities.kt` (what was
   detected), `PlaybackSelection.kt` (best path per codec/HDR format and the
   fallback order), `DeviceProfiles.kt` (what the server is told),
@@ -111,7 +127,12 @@ Conventions and rules for contributing to Blue Wolf Player.
   and the screen in `app/.../ui/admin`. `navDestinations()`/`canNavigateTo()`
   in `AdminModels.kt` are the single source of truth for admin visibility:
   the role comes from `UserProfile.isAdministrator` (the Jellyfin user policy),
-  and admin routes stay hidden and unreachable for everyone else.
+  and admin routes stay hidden and unreachable for everyone else. The Seerr
+  request approval queue (`NavDestination.RequestQueue`) is the exception:
+  its data goes through `SeerrRepository`, its screen is
+  `AdminRequestsScreen` + `AdminRequestsViewModel`. Local notifications for
+  request events come from `RequestWatcher` (shared, polls while signed in)
+  feeding `RequestNotifier` (app module, posts via NotificationCompat).
 - Versions live in `gradle/libs.versions.toml`.
 
 ## Dependencies and licenses
@@ -127,6 +148,10 @@ All checked for GPL v3 compatibility:
 - Koin: Apache-2.0
 - AndroidX Media3 (ExoPlayer, HLS, UI): Apache-2.0
 - Coil 3 (image loading): Apache-2.0
+- AndroidX TV (`androidx.tv:tv-material`, `androidx.tv:tv-foundation`): Apache-2.0
+- AndroidX TV Provider (`androidx.tvprovider:tvprovider`): Apache-2.0. Used for
+  the Android TV home screen channels only; never invoked on devices without
+  the TV provider (Fire TV).
 - NextLib `nextlib-media3ext` (FFmpeg audio/video renderers for Media3):
   GPL-3.0. Bundles FFmpeg as shared libraries built **LGPL v3+** (no
   `--enable-gpl`/`--enable-nonfree`), with dav1d (BSD-2-Clause) and Mbed TLS

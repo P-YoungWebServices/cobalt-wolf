@@ -21,7 +21,7 @@ class SdkJellyfinAuthDataSourceTest {
     private val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0).apply { start() }
     private val baseUrl = "http://127.0.0.1:${server.address.port}"
     private val jellyfin = createJellyfin {
-        clientInfo = ClientInfo(name = "Blue Wolf Player tests", version = "0")
+        clientInfo = ClientInfo(name = "Cobalt Wolf tests", version = "0")
         deviceInfo = DeviceInfo(id = "test-device", name = "JVM")
     }
     private val mainThread = Executors.newSingleThreadExecutor { Thread(it, "fake-main") }

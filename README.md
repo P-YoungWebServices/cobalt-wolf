@@ -1,6 +1,6 @@
-# Blue Wolf Player
+# Cobalt Wolf
 
-Blue Wolf Player is an open-source Android Jellyfin client that combines a
+Cobalt Wolf is an open-source Android Jellyfin client that combines a
 media player with a server admin dashboard, plus Seerr/Jellyseerr request
 support for all users. See `docs/SPEC.md` for the full product spec.
 
@@ -16,7 +16,7 @@ support for all users. See `docs/SPEC.md` for the full product spec.
   approval queue
 - Android phone, tablet, Android TV and Fire TV layouts (one codebase)
 
-**Blue Wolf Player is a third-party app and is not affiliated with or
+**Cobalt Wolf is a third-party app and is not affiliated with or
 endorsed by the Jellyfin project.**
 
 ## Stack
@@ -55,6 +55,27 @@ each time playback starts, and picks the best path they support:
   player shows codec, bitrate, HDR type, audio output (passthrough or PCM),
   sample rate, channels and dropped frames.
 
+## Android TV and Fire TV
+
+The same app carries a 10-foot TV UI built with Compose for TV. On a device
+whose UI mode is a television (Android TV, Google TV, Fire TV) `MainActivity`
+shows the TV experience; phones and tablets keep the touch UI.
+
+- **D-pad everything:** a persistent top bar navigates Home, Search, Requests,
+  My Requests, Settings and sign out; cards, buttons and forms have visible
+  focus states. The on-screen keyboard is used for search and sign-in, and
+  Quick Connect sign-in avoids typing passwords.
+- **Player:** the remote's transport keys (play/pause, fast-forward, rewind,
+  stop) and the D-pad drive the player; audio, subtitle and stats overlays are
+  focusable. Frame rate matching and HDR output switching work as on the touch
+  build (see "Display matching" above).
+- **Home screen channels:** on devices with the Google TV provider, Continue
+  Watching and Recently Added are published as Android TV home screen channels
+  and deep-link into the item details. Devices without the provider (such as
+  Fire TV) skip them automatically.
+- The leanback launcher entry and TV banner are in the same `MainActivity`/
+  application manifest entries.
+
 ### Testing playback from adb
 
 Debug builds add two exported entry points, so devices without a TV layout yet
@@ -69,7 +90,7 @@ adb shell am start -n $APP/.player.DebugPlayerActivity -d http://192.168.1.10:80
 adb shell am start -n $APP/.player.DebugPlayerActivity --es item_id <jellyfin item id>
 # Open the Playback settings screen
 adb shell am start -n $APP/.ui.settings.DebugPlaybackSettingsActivity
-adb logcat -s BlueWolfPlayback   # detected capabilities, fallbacks, periodic stats
+adb logcat -s CobaltWolfPlayback   # detected capabilities, fallbacks, periodic stats
 ```
 
 Optional extras override the saved Playback settings first: `--es decoding
@@ -82,7 +103,7 @@ device.
 
 ## Licensing
 
-Blue Wolf Player is licensed under [GPL v3](LICENSE).
+Cobalt Wolf is licensed under [GPL v3](LICENSE).
 
 ### FFmpeg
 

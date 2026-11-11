@@ -41,7 +41,7 @@ fun buildDeviceProfile(capabilities: DeviceCapabilities, settings: PlaybackSetti
     val audioCodecs = audio.joinToString(",") { if (it == AudioCodec.Pcm) PCM_CODECS else it.jellyfinName }
     val ac3Passthrough = audioPath(AudioCodec.Ac3, capabilities, settings) == DecodePath.Passthrough
     return DeviceProfile(
-        name = "Blue Wolf Player (Android)",
+        name = "Cobalt Wolf (Android)",
         directPlayProfiles = if (video.isEmpty()) {
             emptyList()
         } else {

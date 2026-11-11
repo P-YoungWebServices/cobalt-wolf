@@ -21,6 +21,7 @@ import com.pyoungws.bluewolfplayer.ui.admin.AdminDashboardScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminDevicesScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminLibrariesScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminLogsScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminRequestsScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminSystemInfoScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminTasksScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminUsersScreen
@@ -40,6 +41,7 @@ internal sealed interface Route {
     data object Discover : Route
     data object MyRequests : Route
     data object Dashboard : Route
+    data object AdminRequests : Route
     data object AdminUsers : Route
     data object AdminDevices : Route
     data object AdminLibraries : Route
@@ -56,6 +58,7 @@ internal fun Route.encode(): String = when (this) {
     Route.Discover -> "discover"
     Route.MyRequests -> "myrequests"
     Route.Dashboard -> "dashboard"
+    Route.AdminRequests -> "adminrequests"
     Route.AdminUsers -> "adminusers"
     Route.AdminDevices -> "admindevices"
     Route.AdminLibraries -> "adminlibraries"
@@ -74,6 +77,7 @@ internal fun decodeRoute(value: String): Route? {
         "discover" -> Route.Discover
         "myrequests" -> Route.MyRequests
         "dashboard" -> Route.Dashboard
+        "adminrequests" -> Route.AdminRequests
         "adminusers" -> Route.AdminUsers
         "admindevices" -> Route.AdminDevices
         "adminlibraries" -> Route.AdminLibraries
@@ -94,6 +98,7 @@ private const val SEPARATOR = "\u001F"
 /** The [NavDestination] an admin-only route is gated by, or null for routes everyone may see. */
 private fun Route.adminDestination(): NavDestination? = when (this) {
     Route.Dashboard -> NavDestination.Dashboard
+    Route.AdminRequests -> NavDestination.RequestQueue
     Route.AdminUsers -> NavDestination.Users
     Route.AdminDevices -> NavDestination.Devices
     Route.AdminLibraries -> NavDestination.Libraries
@@ -111,6 +116,7 @@ private fun Route.isAllowedFor(user: UserProfile?): Boolean =
     adminDestination()?.let { user?.canNavigateTo(it) == true } ?: true
 
 private fun managementRoute(destination: NavDestination): Route? = when (destination) {
+    NavDestination.RequestQueue -> Route.AdminRequests
     NavDestination.Users -> Route.AdminUsers
     NavDestination.Devices -> Route.AdminDevices
     NavDestination.Libraries -> Route.AdminLibraries
@@ -156,6 +162,7 @@ fun SignedInNavigation() {
             onOpenItem = { push(Route.Detail(it)) },
             onOpenManage = { destination -> managementRoute(destination)?.let(push) },
         )
+        Route.AdminRequests -> AdminRequestsScreen(onBack = pop)
         Route.AdminUsers -> AdminUsersScreen(onBack = pop)
         Route.AdminDevices -> AdminDevicesScreen(onBack = pop)
         Route.AdminLibraries -> AdminLibrariesScreen(onBack = pop)

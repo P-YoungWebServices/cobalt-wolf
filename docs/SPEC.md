@@ -1,10 +1,10 @@
-# Blue Wolf Player: Product Spec
+# Cobalt Wolf: Product Spec
 
-The product spec for Blue Wolf Player. Save it in the repo as docs/SPEC.md; the Devin prompts are in a separate document.
+The product spec for Cobalt Wolf. Save it in the repo as docs/SPEC.md; the Devin prompts are in a separate document.
 
 ## 1. Product summary
 
-Blue Wolf Player is a single Jellyfin client that combines two things: a media player (watching your library on phone, tablet and TV) and a server admin dashboard (monitoring and managing the server). It also lets every user browse and request movies and series through Seerr/Jellyseerr directly inside the app, while admins approve or decline those requests.
+Cobalt Wolf is a single Jellyfin client that combines two things: a media player (watching your library on phone, tablet and TV) and a server admin dashboard (monitoring and managing the server). It also lets every user browse and request movies and series through Seerr/Jellyseerr directly inside the app, while admins approve or decline those requests.
 
 **Goal:** match the capabilities of JellyWatch Player (TV) and JellyWatch Admin, with all features free and no paywalls.
 
@@ -85,10 +85,10 @@ The app detects the role at sign-in from the Jellyfin user policy and shows or h
 ## 5. Legal and licensing notes
 
 - Reproduce capabilities, not JellyWatch's code, branding, icons or artwork. Use an original name, logo and visual design.
-- The official Jellyfin Android TV client is GPL. If you reuse any of its code, Blue Wolf Player must also be open source under a compatible license. If you only use the Jellyfin SDK and write your own UI, check the SDK license (it is open source) and keep attribution.
-- Include the standard disclaimer: Blue Wolf Player is a third-party app and is not affiliated with or endorsed by the Jellyfin project.
+- The official Jellyfin Android TV client is GPL. If you reuse any of its code, Cobalt Wolf must also be open source under a compatible license. If you only use the Jellyfin SDK and write your own UI, check the SDK license (it is open source) and keep attribution.
+- Include the standard disclaimer: Cobalt Wolf is a third-party app and is not affiliated with or endorsed by the Jellyfin project.
 
-* Blue Wolf Player will be released as open source. FFmpeg is LGPL (or GPL, depending on build options): use an LGPL build, keep attribution, and follow its linking rules. The project license is GPL v3, with all code written fresh: read other clients to learn how they handle playback, but do not copy their code unless its license is confirmed compatible (GPL v2-only code is not)
+* Cobalt Wolf will be released as open source. FFmpeg is LGPL (or GPL, depending on build options): use an LGPL build, keep attribution, and follow its linking rules. The project license is GPL v3, with all code written fresh: read other clients to learn how they handle playback, but do not copy their code unless its license is confirmed compatible (GPL v2-only code is not)
 
 ## 6. Milestones
 
@@ -105,7 +105,7 @@ The app detects the role at sign-in from the Jellyfin user policy and shows or h
 
 ## 7. Open decisions
 
-- App name (chosen and checked: Blue Wolf Player), logo and package name
+- App name (chosen and checked: Cobalt Wolf), logo and package name
 - Emby support: decided against, Jellyfin only
 - Decided: GPL v3. Revisit only if you later choose to copy code from a GPL v2-only project
 - Where it will be distributed (Google Play, Amazon Appstore, direct APK)

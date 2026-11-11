@@ -191,7 +191,7 @@ data class DecodePlan(val video: DecoderChoice = DecoderChoice.Device, val audio
 }
 
 /** What went wrong in the player, as far as the fallback order cares. */
-enum class PlayerErrorKind { VideoDecoder, AudioDecoder, Source, Other }
+enum class PlayerErrorKind { VideoDecoder, AudioDecoder, AudioOutput, Source, Other }
 
 sealed interface FallbackStep {
     /** Replay the same stream with FFmpeg doing the decoding that failed. */
@@ -221,7 +221,7 @@ fun nextFallback(
     return when {
         error == PlayerErrorKind.VideoDecoder && plan.video == DecoderChoice.Device &&
             canDecodeVideoLocally(info?.video, capabilities, strict) -> FallbackStep.LocalDecode(plan.copy(video = DecoderChoice.Local))
-        error == PlayerErrorKind.AudioDecoder && plan.audio == DecoderChoice.Device &&
+        (error == PlayerErrorKind.AudioDecoder || error == PlayerErrorKind.AudioOutput) && plan.audio == DecoderChoice.Device &&
             canDecodeAudioLocally(info?.audio, capabilities) -> FallbackStep.LocalDecode(plan.copy(audio = DecoderChoice.Local))
         else -> transcode
     }
