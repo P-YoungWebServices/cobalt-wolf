@@ -24,6 +24,15 @@ interface SeerrDataSource {
 
     /** POST /request. [seasons] is required for series (the season numbers to request) and ignored for movies. */
     suspend fun createRequest(serverUrl: String, type: SeerrMediaType, tmdbId: Int, seasons: List<Int>?): SeerrRequest
-    /** GET /request, scoped to the signed-in user (the server restricts non-managers to their own). */
-    suspend fun requests(serverUrl: String, take: Int = 50, skip: Int = 0): SeerrPage<SeerrRequest>
+    /**
+     * GET /request, scoped to the signed-in user (the server restricts non-managers to their own).
+     * Accounts with manage permission see every user's requests, narrowed by [filter].
+     */
+    suspend fun requests(serverUrl: String, filter: SeerrRequestFilter = SeerrRequestFilter.All, take: Int = 50, skip: Int = 0): SeerrPage<SeerrRequest>
+    /** GET /request/{id}. Requires manage permission for other users' requests. */
+    suspend fun requestDetails(serverUrl: String, requestId: Int): SeerrRequest
+    /** POST /request/{id}/approve. Requires manage permission. */
+    suspend fun approveRequest(serverUrl: String, requestId: Int): SeerrRequest
+    /** POST /request/{id}/decline. Requires manage permission. */
+    suspend fun declineRequest(serverUrl: String, requestId: Int): SeerrRequest
 }

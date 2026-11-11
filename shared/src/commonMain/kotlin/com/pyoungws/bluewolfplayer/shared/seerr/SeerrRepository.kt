@@ -190,21 +190,48 @@ class SeerrRepository(
 
     /** The user's own requests, enriched with titles and posters (Seerr does not embed them). */
     suspend fun myRequests(): Outcome<List<SeerrRequest>> = run { url ->
-        coroutineScope {
-            dataSource.requests(url).items.map { request ->
-                async {
-                    val details = runCatching {
-                        if (request.type == SeerrMediaType.Movie) dataSource.movieDetails(url, request.tmdbId)
-                        else dataSource.seriesDetails(url, request.tmdbId)
-                    }.getOrNull()
-                    request.copy(
-                        title = details?.title?.title,
-                        posterUrl = details?.title?.posterUrl,
-                        mediaStatus = details?.title?.mediaStatus ?: request.mediaStatus,
-                    )
-                }
-            }.awaitAll()
-        }
+        enrich(url, dataSource.requests(url).items)
+    }
+
+    /**
+     * Requests waiting for approval across all users, newest first. Only succeeds for Seerr
+     * accounts with manage permission; viewers get [LoadError.Forbidden].
+     */
+    suspend fun pendingRequests(): Outcome<List<SeerrRequest>> = run { url ->
+        val pending = dataSource.requests(url, SeerrRequestFilter.Pending).items
+            .filter { it.status == SeerrRequestStatus.Pending }
+        enrich(url, pending)
+    }
+
+    /** A single request, enriched with its title and poster. */
+    suspend fun requestDetails(requestId: Int): Outcome<SeerrRequest> = run { url ->
+        enrich(url, dataSource.requestDetails(url, requestId))
+    }
+
+    /** Approves a pending request and returns its new state. Requires manage permission. */
+    suspend fun approveRequest(requestId: Int): Outcome<SeerrRequest> = run { url ->
+        dataSource.approveRequest(url, requestId)
+    }
+
+    /** Declines a pending request and returns its new state. Requires manage permission. */
+    suspend fun declineRequest(requestId: Int): Outcome<SeerrRequest> = run { url ->
+        dataSource.declineRequest(url, requestId)
+    }
+
+    private suspend fun enrich(url: String, requests: List<SeerrRequest>): List<SeerrRequest> =
+        coroutineScope { requests.map { async { enrich(url, it) } }.awaitAll() }
+
+    /** Title and poster come from a separate details call; a failed lookup keeps the request's own data. */
+    private suspend fun enrich(url: String, request: SeerrRequest): SeerrRequest {
+        val details = runCatching {
+            if (request.type == SeerrMediaType.Movie) dataSource.movieDetails(url, request.tmdbId)
+            else dataSource.seriesDetails(url, request.tmdbId)
+        }.getOrNull()
+        return request.copy(
+            title = details?.title?.title,
+            posterUrl = details?.title?.posterUrl,
+            mediaStatus = details?.title?.mediaStatus ?: request.mediaStatus,
+        )
     }
 
     private suspend fun resetSession() {
@@ -237,8 +264,11 @@ class SeerrRepository(
         response.status.value == HTTP_UNAUTHORIZED
 
     private fun Throwable.toLoadError(): LoadError = when (this) {
-        is ClientRequestException ->
-            if (response.status.value == HTTP_NOT_FOUND) LoadError.NotFound else LoadError.Unexpected(message)
+        is ClientRequestException -> when (response.status.value) {
+            HTTP_NOT_FOUND -> LoadError.NotFound
+            HTTP_FORBIDDEN -> LoadError.Forbidden
+            else -> LoadError.Unexpected(message)
+        }
         is ServerResponseException, is RedirectResponseException -> LoadError.Unexpected(message)
         is JsonConvertException -> LoadError.Unexpected(message)
         is SSLHandshakeException -> LoadError.SecureConnectionFailed
@@ -258,6 +288,7 @@ class SeerrRepository(
 
     private companion object {
         const val HTTP_UNAUTHORIZED = 401
+        const val HTTP_FORBIDDEN = 403
         const val HTTP_NOT_FOUND = 404
     }
 }

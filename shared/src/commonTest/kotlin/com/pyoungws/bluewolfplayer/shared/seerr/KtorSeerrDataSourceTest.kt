@@ -8,6 +8,7 @@ import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.headersOf
@@ -243,6 +244,71 @@ class KtorSeerrDataSourceTest {
         assertEquals(SeerrMediaType.Series, page.items[1].type)
         assertEquals(SeerrMediaStatus.Available, page.items[1].mediaStatus)
         assertEquals(SeerrRequestStatus.Declined, page.items[2].status)
+    }
+
+    @Test
+    fun `the request list sends the pending filter`() = runTest {
+        responses["/api/v1/request"] = json(
+            """{"pageInfo":{"page":1,"pages":1,"pageSize":20,"results":1},
+               "results":[{"id":7,"status":1,"media":{"tmdbId":10,"mediaType":"movie","status":2}}]}""",
+        )
+        val ds = dataSource()
+
+        val page = ds.requests(SEERR_URL, SeerrRequestFilter.Pending)
+
+        assertEquals("pending", sent.single().url.parameters["filter"])
+        assertEquals(7, page.items.single().id)
+    }
+
+    @Test
+    fun `request details map the requester and timestamps`() = runTest {
+        responses["/api/v1/request/9"] = json(
+            """{"id":9,"status":1,"type":"tv","is4k":true,
+               "seasons":[{"seasonNumber":1},{"seasonNumber":2}],
+               "media":{"tmdbId":42,"mediaType":"tv","status":2},
+               "requestedBy":{"id":5,"jellyfinUsername":"bob"},
+               "createdAt":"2026-01-01T10:00:00.000Z","updatedAt":"2026-01-02T10:00:00.000Z"}""",
+        )
+        val ds = dataSource()
+
+        val request = ds.requestDetails(SEERR_URL, 9)
+
+        assertEquals("/api/v1/request/9", sent.single().url.encodedPath)
+        assertEquals(SeerrMediaType.Series, request.type)
+        assertEquals(5, request.requestedById)
+        assertEquals("bob", request.requestedByName)
+        assertTrue(request.is4k)
+        assertEquals(listOf(1, 2), request.seasons)
+        assertEquals("2026-01-02T10:00:00.000Z", request.updatedAt)
+    }
+
+    @Test
+    fun `approving posts to the approve endpoint`() = runTest {
+        responses["/api/v1/request/9/approve"] = json(
+            """{"id":9,"status":2,"media":{"tmdbId":42,"mediaType":"movie","status":3}}""",
+        )
+        val ds = dataSource()
+
+        val request = ds.approveRequest(SEERR_URL, 9)
+
+        val sent = sent.single()
+        assertEquals("/api/v1/request/9/approve", sent.url.encodedPath)
+        assertEquals(HttpMethod.Post, sent.method)
+        assertEquals(SeerrRequestStatus.Approved, request.status)
+        assertEquals(SeerrMediaStatus.Processing, request.mediaStatus)
+    }
+
+    @Test
+    fun `declining posts to the decline endpoint`() = runTest {
+        responses["/api/v1/request/9/decline"] = json(
+            """{"id":9,"status":3,"media":{"tmdbId":42,"mediaType":"movie","status":2}}""",
+        )
+        val ds = dataSource()
+
+        val request = ds.declineRequest(SEERR_URL, 9)
+
+        assertEquals("/api/v1/request/9/decline", sent.single().url.encodedPath)
+        assertEquals(SeerrRequestStatus.Declined, request.status)
     }
 
     @Test

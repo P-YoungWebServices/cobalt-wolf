@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Blue Wolf Player</string>
+    <string name="app_name">Cobalt Wolf</string>
 
     <!-- Server connection -->
     <string name="connect_title">Connect to your server</string>
@@ -12,7 +12,7 @@
     <string name="error_server_unreachable">Could not reach the server. Check the address and your connection.</string>
     <string name="error_server_secure_connection">Could not establish a secure connection. Check the server\'s HTTPS certificate.</string>
     <string name="error_server_not_jellyfin">No Jellyfin server was found at this address.</string>
-    <string name="error_server_unsupported_version">This server runs Jellyfin %1$s. Blue Wolf Player requires Jellyfin 12 or newer.</string>
+    <string name="error_server_unsupported_version">This server runs Jellyfin %1$s. Cobalt Wolf requires Jellyfin 12 or newer.</string>
 
     <!-- Sign in -->
     <string name="sign_in_title">Sign in to %1$s</string>
@@ -49,6 +49,9 @@
 
     <!-- Browse -->
     <string name="home_search">Search</string>
+    <string name="tv_nav_home">Home</string>
+    <string name="tv_nav_settings">Settings</string>
+    <string name="home_channel_recently_added">Recently Added</string>
     <string name="home_continue_watching">Continue Watching</string>
     <string name="home_libraries">Libraries</string>
     <string name="home_recently_added">Recently added in %1$s</string>
@@ -130,6 +133,17 @@
     <string name="request_kind_movie">Movie</string>
     <string name="request_kind_series">Series</string>
 
+    <!-- Request notifications -->
+    <string name="notification_channel_requests">Requests</string>
+    <string name="notification_channel_requests_desc">New media requests and updates on your requests</string>
+    <string name="notification_new_request">New request</string>
+    <string name="notification_new_request_by">%1$s requested %2$s</string>
+    <string name="notification_new_request_unknown">%1$s is waiting for approval</string>
+    <string name="notification_request_approved">Request approved</string>
+    <string name="notification_request_approved_body">%1$s was approved and is on its way</string>
+    <string name="notification_request_available">Now available</string>
+    <string name="notification_request_available_body">%1$s is now in your library</string>
+
     <!-- Admin dashboard -->
     <string name="home_dashboard">Dashboard</string>
     <string name="admin_dashboard_title">Server dashboard</string>
@@ -165,6 +179,8 @@
     <string name="admin_last_login">Last sign-in %1$s</string>
     <string name="admin_last_activity">Last active %1$s</string>
     <string name="admin_manage_title">Manage server</string>
+    <string name="admin_manage_requests">Request approvals</string>
+    <string name="admin_manage_requests_subtitle">Approve or decline Seerr requests</string>
     <string name="admin_manage_users">Users</string>
     <string name="admin_manage_users_subtitle">Create, edit and remove accounts</string>
     <string name="admin_manage_devices">Devices</string>
@@ -231,6 +247,24 @@
     <string name="admin_logs_warning">Warn</string>
     <string name="admin_logs_error">Error</string>
     <string name="admin_logs_fatal">Fatal</string>
+
+    <!-- Admin: request approval queue -->
+    <string name="admin_requests_title">Request approvals</string>
+    <string name="admin_requests_empty">No requests are waiting for approval.</string>
+    <string name="admin_request_approve">Approve</string>
+    <string name="admin_request_decline">Decline</string>
+    <string name="admin_request_requested_by">Requested by %1$s</string>
+    <string name="admin_request_4k">4K</string>
+    <string name="admin_request_created">Requested %1$s</string>
+    <string name="admin_request_updated">Updated %1$s</string>
+    <string name="admin_request_media_status">Media status: %1$s</string>
+    <string name="admin_request_details_title">Request details</string>
+    <string name="media_status_not_requested">Not requested</string>
+    <string name="media_status_unknown">Unknown</string>
+    <string name="media_status_pending">Pending</string>
+    <string name="media_status_processing">Processing</string>
+    <string name="media_status_partially_available">Partially available</string>
+    <string name="media_status_deleted">Deleted</string>
 
     <!-- Admin: system information -->
     <string name="admin_system_title">System information</string>

@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.util.Rational
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,6 +26,7 @@ import com.pyoungws.bluewolfplayer.BuildConfig
 import com.pyoungws.bluewolfplayer.shared.playback.AudioOutputPreference
 import com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector
 import com.pyoungws.bluewolfplayer.shared.playback.DecodingPreference
+import com.pyoungws.bluewolfplayer.shared.playback.FrameRateMatching
 import com.pyoungws.bluewolfplayer.shared.playback.HdrPreference
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
@@ -64,6 +66,8 @@ class PlayerActivity : ComponentActivity() {
                     debugPreferredAudioMimeType = intent.getStringExtra("audio_mime").takeIf { BuildConfig.DEBUG },
                     // Debug only: `--es subtitle_mime application/pgs` turns on the first subtitle track of that type.
                     debugSubtitleMimeType = intent.getStringExtra("subtitle_mime").takeIf { BuildConfig.DEBUG },
+                    // Debug only: `--ei max_channels 6` caps PCM output channel count.
+                    debugMaxChannels = intent.takeIf { it.hasExtra("max_channels") }?.getIntExtra("max_channels", 0)?.takeIf { BuildConfig.DEBUG },
                     onPlayerChanged = { player = it },
                     onPlayingChanged = ::updatePipParams,
                     onEnterPip = ::enterPip,
@@ -102,6 +106,25 @@ class PlayerActivity : ComponentActivity() {
 
     private fun enterPip() {
         if (supportsPip) enterPictureInPictureMode(pipParams(autoEnter = true))
+    }
+
+    /**
+     * Dedicated transport keys on TV remotes (play/pause, fast-forward, rewind, skip, stop).
+     * The D-pad is left to the player view and the overlay buttons.
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        val exoPlayer = player
+        if (exoPlayer != null && event.repeatCount == 0) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { if (exoPlayer.playWhenReady) exoPlayer.pause() else exoPlayer.play(); return true }
+                KeyEvent.KEYCODE_MEDIA_PLAY -> { exoPlayer.play(); return true }
+                KeyEvent.KEYCODE_MEDIA_PAUSE -> { exoPlayer.pause(); return true }
+                KeyEvent.KEYCODE_MEDIA_FAST_FORWARD, KeyEvent.KEYCODE_MEDIA_NEXT -> { exoPlayer.seekForward(); return true }
+                KeyEvent.KEYCODE_MEDIA_REWIND, KeyEvent.KEYCODE_MEDIA_PREVIOUS -> { exoPlayer.seekBack(); return true }
+                KeyEvent.KEYCODE_MEDIA_STOP -> { finish(); return true }
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onUserLeaveHint() {
@@ -152,6 +175,7 @@ class PlayerActivity : ComponentActivity() {
                 hdr = extras?.getString("hdr")?.let(HdrPreference::valueOf) ?: settings.hdr,
                 dolbyVision = if (extras?.containsKey("dolby_vision") == true) extras.getBoolean("dolby_vision") else settings.dolbyVision,
                 styledSubtitles = if (extras?.containsKey("styled_subtitles") == true) extras.getBoolean("styled_subtitles") else settings.styledSubtitles,
+                frameRateMatching = extras?.getString("frame_rate")?.let(FrameRateMatching::valueOf) ?: settings.frameRateMatching,
                 showStats = if (extras?.containsKey("stats") == true) extras.getBoolean("stats") else settings.showStats,
             )
         }
@@ -160,8 +184,8 @@ class PlayerActivity : ComponentActivity() {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
         }
-        Log.i("BlueWolfPlayback", "settings ${get<PlaybackSettingsRepository>().settings.value}")
-        Log.i("BlueWolfPlayback", "capabilities ${get<CapabilityDetector>().detect()}")
+        Log.i("CobaltWolfPlayback", "settings ${get<PlaybackSettingsRepository>().settings.value}")
+        Log.i("CobaltWolfPlayback", "capabilities ${get<CapabilityDetector>().detect()}")
     }
 
     companion object {

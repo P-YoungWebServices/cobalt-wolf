@@ -82,6 +82,6 @@ internal class DisplayModeController(private val activity: Activity) {
     }
 
     private companion object {
-        const val TAG = "BlueWolfPlayback"
+        const val TAG = "CobaltWolfPlayback"
     }
 }

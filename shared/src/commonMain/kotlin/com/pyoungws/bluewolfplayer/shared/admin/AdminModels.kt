@@ -26,7 +26,7 @@ data class ActiveSession(
     val id: String,
     val userName: String,
     val deviceName: String,
-    /** The app the session belongs to (e.g. "Jellyfin Web", "Blue Wolf Player"). */
+    /** The app the session belongs to (e.g. "Jellyfin Web", "Cobalt Wolf"). */
     val client: String?,
     /** What is playing, or null when the session is idle. */
     val item: MediaItem?,
@@ -50,10 +50,11 @@ data class AdminDashboard(
  * Entries in the signed-in top navigation. [Dashboard] and the management screens behind it
  * exist for administrators only.
  */
-enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard, Users, Devices, Libraries, Tasks, Logs, SystemInfo }
+enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard, RequestQueue, Users, Devices, Libraries, Tasks, Logs, SystemInfo }
 
 /** The admin management screens reachable from the dashboard. */
 val MANAGEMENT_DESTINATIONS = listOf(
+    NavDestination.RequestQueue,
     NavDestination.Users,
     NavDestination.Devices,
     NavDestination.Libraries,

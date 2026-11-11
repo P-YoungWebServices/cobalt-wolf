@@ -3,6 +3,8 @@
 package com.pyoungws.bluewolfplayer.player
 
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.OptIn
@@ -32,12 +34,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import android.view.View
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -51,6 +62,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.pyoungws.bluewolfplayer.BuildConfig
 import com.pyoungws.bluewolfplayer.R
+import com.pyoungws.bluewolfplayer.isTelevision
 import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackLevel
 import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
@@ -64,7 +76,7 @@ import java.util.Locale
 
 private const val PROGRESS_INTERVAL_MS = 10_000L
 private const val STATS_INTERVAL_MS = 1_000L
-private const val TAG = "BlueWolfPlayback"
+private const val TAG = "CobaltWolfPlayback"
 
 @Composable
 internal fun PlayerScreen(
@@ -73,6 +85,7 @@ internal fun PlayerScreen(
     displayModeController: DisplayModeController,
     debugPreferredAudioMimeType: String?,
     debugSubtitleMimeType: String?,
+    debugMaxChannels: Int? = null,
     onPlayerChanged: (ExoPlayer?) -> Unit,
     onPlayingChanged: (Boolean) -> Unit,
     onEnterPip: () -> Unit,
@@ -90,7 +103,7 @@ internal fun PlayerScreen(
                 Text(stringResource(R.string.player_error), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                 TextButton(onClick = onClose) { Text(stringResource(R.string.player_close)) }
             }
-            is PlayerUiState.Ready -> PlayerContent(current, viewModel, isInPip, displayModeController, debugPreferredAudioMimeType, debugSubtitleMimeType, onPlayerChanged, onPlayingChanged, onEnterPip, onClose)
+            is PlayerUiState.Ready -> PlayerContent(current, viewModel, isInPip, displayModeController, debugPreferredAudioMimeType, debugSubtitleMimeType, debugMaxChannels, onPlayerChanged, onPlayingChanged, onEnterPip, onClose)
         }
     }
 }
@@ -107,6 +120,7 @@ private fun PlayerContent(
     displayModeController: DisplayModeController,
     debugPreferredAudioMimeType: String?,
     debugSubtitleMimeType: String?,
+    debugMaxChannels: Int?,
     onPlayerChanged: (ExoPlayer?) -> Unit,
     onPlayingChanged: (Boolean) -> Unit,
     onEnterPip: () -> Unit,
@@ -116,7 +130,7 @@ private fun PlayerContent(
     val request = ready.request
     // The view comes first: libass draws styled subtitles into its subtitle layer.
     val playerView = remember(ready.generation) { PlayerView(context) }
-    val engine = remember(ready.generation) { buildPlayerEngine(context, request, playerView) }
+    val engine = remember(ready.generation) { buildPlayerEngine(context, request, playerView, debugMaxChannels) }
     val player = engine.player
     val stats by engine.stats.stats.collectAsStateWithLifecycle()
     var tracks by remember(player) { mutableStateOf(Tracks.EMPTY) }
@@ -159,6 +173,7 @@ private fun PlayerContent(
             request.startPositionMs,
         )
         val debugSelections = mutableMapOf(C.TRACK_TYPE_AUDIO to debugPreferredAudioMimeType, C.TRACK_TYPE_TEXT to debugSubtitleMimeType)
+        var audioPreferenceApplied = false
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 onPlayingChanged(isPlaying)
@@ -200,6 +215,33 @@ private fun PlayerContent(
                     player.stop()
                     viewModel.onPlayerError(player.currentPosition, unplayable.second)
                 }
+                // Prefer English 5.1 over higher-channel defaults (e.g. TrueHD Atmos on a receiver
+                // that cannot bitstream it); manual or debug selections still win afterwards.
+                if (!audioPreferenceApplied && debugPreferredAudioMimeType == null) {
+                    audioPreferenceApplied = true
+                    val audioGroups = newTracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
+                    val pickedFormat = audioGroups.firstNotNullOfOrNull { g ->
+                        (0 until g.length).firstNotNullOfOrNull { i -> if (g.isTrackSelected(i)) g.getTrackFormat(i) else null }
+                    }
+                    val candidate = audioGroups.firstNotNullOfOrNull { g ->
+                        (0 until g.length).firstNotNullOfOrNull { i ->
+                            g.getTrackFormat(i).takeIf { f -> f.language?.startsWith("en") == true && f.channelCount in 1..6 }?.let { g to i }
+                        }
+                    } ?: audioGroups.firstNotNullOfOrNull { g ->
+                        (0 until g.length).firstNotNullOfOrNull { i ->
+                            g.getTrackFormat(i).takeIf { f -> f.language?.startsWith("en") == true }?.let { g to i }
+                        }
+                    }
+                    if (candidate != null && (pickedFormat == null || pickedFormat.channelCount > 6 || pickedFormat.language?.startsWith("en") != true)) {
+                        Log.i(TAG, "Preferring English ${candidate.first.getTrackFormat(candidate.second).channelCount}ch audio over ${pickedFormat?.channelCount}ch default")
+                        // Applied after a short delay: the audio sink configures passthrough/channel
+                        // caps from the HDMI state, which is still settling if a display-mode switch
+                        // just happened (like a manual track change after startup).
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            if (!player.isReleased) selectTrack(player, C.TRACK_TYPE_AUDIO, TrackOption("", candidate.first, candidate.second, false))
+                        }, 2_500)
+                    }
+                }
             }
 
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) = onPlayingChanged(player.isPlaying)
@@ -230,7 +272,9 @@ private fun PlayerContent(
         displayModeController.setHdr(engine.stats.isHdrOutput)
     }
     LaunchedEffect(player, stats.frameRate) {
-        val frameRate = stats.frameRate
+        // Prefer the fps from the request so the HDMI switch settles before the audio sink
+        // resolves its capabilities; a mid-playback switch kills the passthrough AudioTrack.
+        val frameRate = request.source.info?.video?.frameRate ?: stats.frameRate
         if (frameRate == null || displayMatched) return@LaunchedEffect
         displayMatched = true
         val wasPlaying = player.playWhenReady
@@ -261,7 +305,39 @@ private fun PlayerContent(
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
+    // On TV the D-pad needs a focus target while the controls are hidden: a focusable root that
+    // shows the controller on select. When the controls appear, play/pause takes the focus.
+    val isTv = remember { context.isTelevision() }
+    val rootFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(isTv, controlsVisible) {
+        if (!isTv) return@LaunchedEffect
+        if (controlsVisible) {
+            playerView.findViewById<View>(androidx.media3.ui.R.id.exo_play_pause)?.requestFocus()
+        } else {
+            rootFocusRequester.requestFocus()
+        }
+    }
+    Box(
+        Modifier.fillMaxSize().then(
+            if (isTv) {
+                Modifier
+                    .focusRequester(rootFocusRequester)
+                    .onKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown && !controlsVisible &&
+                            (event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter)
+                        ) {
+                            playerView.showController()
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    .focusable()
+            } else {
+                Modifier
+            },
+        ),
+    ) {
         key(ready.generation) {
             AndroidView(
                 factory = {

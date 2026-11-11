@@ -18,6 +18,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.playback.SdkJellyfinPlaybackDataSource
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminDashboardViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminDevicesViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminLibrariesViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminLogsViewModel
@@ -34,6 +35,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SearchViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SeerrDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.seerr.KtorSeerrDataSource
+import com.pyoungws.bluewolfplayer.shared.seerr.RequestWatcher
 import com.pyoungws.bluewolfplayer.shared.seerr.SeerrDataSource
 import com.pyoungws.bluewolfplayer.shared.seerr.SeerrMediaType
 import com.pyoungws.bluewolfplayer.shared.seerr.SeerrRepository
@@ -81,6 +83,7 @@ val sharedModule = module {
     single<SeerrDataSource> { KtorSeerrDataSource(get()) }
     single { SeerrSettingsRepository(get()) }
     single { SeerrRepository(get(), get(), get(), get(), get()) }
+    single { RequestWatcher(get(), get()) }
 
     viewModelOf(::AppViewModel)
     viewModelOf(::LibraryHomeViewModel)
@@ -101,5 +104,6 @@ val sharedModule = module {
     viewModelOf(::AdminTasksViewModel)
     viewModelOf(::AdminLogsViewModel)
     viewModelOf(::AdminSystemInfoViewModel)
+    viewModelOf(::AdminRequestsViewModel)
     viewModel { (type: SeerrMediaType, tmdbId: Int) -> SeerrDetailViewModel(type, tmdbId, get()) }
 }

@@ -43,7 +43,9 @@ fun seerrRequest(
     status: SeerrRequestStatus = SeerrRequestStatus.Pending,
     mediaStatus: SeerrMediaStatus = SeerrMediaStatus.Pending,
     seasons: List<Int> = emptyList(),
-) = SeerrRequest(id, status, mediaStatus, type, tmdbId, seasons)
+    requestedById: Int? = null,
+    requestedByName: String? = null,
+) = SeerrRequest(id, status, mediaStatus, type, tmdbId, seasons, requestedById = requestedById, requestedByName = requestedByName)
 
 fun <T> pageOf(items: List<T>) = SeerrPage(items, page = 1, totalPages = 1, totalResults = items.size)
 
@@ -64,7 +66,10 @@ class FakeSeerrDataSource : SeerrDataSource {
     var seriesDetails: (tmdbId: Int) -> SeerrTitleDetails = { SeerrTitleDetails(seerrSeries(it)) }
     var createRequest: (type: SeerrMediaType, tmdbId: Int, seasons: List<Int>?) -> SeerrRequest =
         { type, tmdbId, seasons -> seerrRequest(id = 1, tmdbId = tmdbId, type = type, seasons = seasons.orEmpty()) }
-    var requests: () -> SeerrPage<SeerrRequest> = { pageOf(emptyList()) }
+    var requests: (filter: SeerrRequestFilter) -> SeerrPage<SeerrRequest> = { pageOf(emptyList()) }
+    var requestDetails: (requestId: Int) -> SeerrRequest = { seerrRequest(it) }
+    var approveRequest: (requestId: Int) -> SeerrRequest = { seerrRequest(it, status = SeerrRequestStatus.Approved) }
+    var declineRequest: (requestId: Int) -> SeerrRequest = { seerrRequest(it, status = SeerrRequestStatus.Declined) }
 
     override suspend fun signInWithJellyfin(serverUrl: String, username: String, password: String, hostname: String): SeerrAccount {
         calls += "signIn($username, $hostname)"
@@ -88,7 +93,17 @@ class FakeSeerrDataSource : SeerrDataSource {
         requestArgs = Triple(type, tmdbId, seasons)
         return createRequest(type, tmdbId, seasons)
     }
-    override suspend fun requests(serverUrl: String, take: Int, skip: Int) = requests().also { calls += "requests" }
+    override suspend fun requests(serverUrl: String, filter: SeerrRequestFilter, take: Int, skip: Int) =
+        requests(filter).also { calls += "requests($filter)" }
+
+    override suspend fun requestDetails(serverUrl: String, requestId: Int) =
+        requestDetails(requestId).also { calls += "requestDetails($requestId)" }
+
+    override suspend fun approveRequest(serverUrl: String, requestId: Int) =
+        approveRequest(requestId).also { calls += "approve($requestId)" }
+
+    override suspend fun declineRequest(serverUrl: String, requestId: Int) =
+        declineRequest(requestId).also { calls += "decline($requestId)" }
 }
 
 /** A [SeerrRepository] on in-memory stores, signed in to Jellyfin via [authRepository]. */

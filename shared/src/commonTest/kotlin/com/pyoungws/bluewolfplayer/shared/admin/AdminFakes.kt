@@ -14,7 +14,7 @@ fun playingSession(
     id = id,
     userName = user,
     deviceName = device,
-    client = "Blue Wolf Player",
+    client = "Cobalt Wolf",
     item = item,
     progressFraction = 0.4f,
     isPaused = false,

@@ -95,14 +95,26 @@ class KtorSeerrDataSource(
             }.body<RequestDto>().toRequest()
         }
 
-    override suspend fun requests(serverUrl: String, take: Int, skip: Int): SeerrPage<SeerrRequest> = call {
+    override suspend fun requests(serverUrl: String, filter: SeerrRequestFilter, take: Int, skip: Int): SeerrPage<SeerrRequest> = call {
         client.get("$serverUrl/api/v1/request") {
             parameter("take", take)
             parameter("skip", skip)
-            parameter("filter", "all")
+            parameter("filter", filter.apiValue)
             parameter("sort", "added")
             parameter("sortDirection", "desc")
         }.body<RequestPageDto>().toRequestPage()
+    }
+
+    override suspend fun requestDetails(serverUrl: String, requestId: Int): SeerrRequest = call {
+        client.get("$serverUrl/api/v1/request/$requestId").body<RequestDto>().toRequest()
+    }
+
+    override suspend fun approveRequest(serverUrl: String, requestId: Int): SeerrRequest = call {
+        client.post("$serverUrl/api/v1/request/$requestId/approve").body<RequestDto>().toRequest()
+    }
+
+    override suspend fun declineRequest(serverUrl: String, requestId: Int): SeerrRequest = call {
+        client.post("$serverUrl/api/v1/request/$requestId/decline").body<RequestDto>().toRequest()
     }
 
     private suspend fun <T> call(block: suspend () -> T): T = withContext(ioDispatcher) { block() }
@@ -145,6 +157,7 @@ internal data class RequestDto(
     val is4k: Boolean = false,
     val seasons: List<RequestedSeasonDto> = emptyList(),
     val media: MediaInfoDto? = null,
+    val requestedBy: UserDto? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null,
 )
@@ -342,7 +355,11 @@ private fun RequestDto.toRequest() = SeerrRequest(
     type = (type ?: media?.mediaType).toMediaType() ?: SeerrMediaType.Movie,
     tmdbId = media?.tmdbId ?: 0,
     seasons = seasons.map { it.seasonNumber },
+    is4k = is4k,
     createdAt = createdAt,
+    updatedAt = updatedAt,
+    requestedById = requestedBy?.id,
+    requestedByName = requestedBy?.let { it.displayName ?: it.jellyfinUsername ?: it.username ?: it.email },
 )
 
 private fun RequestPageDto.toRequestPage() = SeerrPage(

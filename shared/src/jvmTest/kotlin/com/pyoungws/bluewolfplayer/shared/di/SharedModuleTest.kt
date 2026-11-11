@@ -13,6 +13,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.AdminDashboardViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminDevicesViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminLibrariesViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminLogsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminSystemInfoViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminTasksViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminUsersViewModel
@@ -98,5 +99,6 @@ class SharedModuleTest {
         assertNotNull(koin.get<AdminTasksViewModel>())
         assertNotNull(koin.get<AdminLogsViewModel>())
         assertNotNull(koin.get<AdminSystemInfoViewModel>())
+        assertNotNull(koin.get<AdminRequestsViewModel>())
     }
 }

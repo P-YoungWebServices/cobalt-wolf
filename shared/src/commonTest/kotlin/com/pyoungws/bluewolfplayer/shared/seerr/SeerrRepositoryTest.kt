@@ -188,6 +188,80 @@ class SeerrRepositoryTest {
     }
 
     @Test
+    fun `pending requests uses the pending filter, keeps pending only and enriches`() = runTest {
+        dataSource.requests = { filter ->
+            if (filter == SeerrRequestFilter.Pending) {
+                pageOf(
+                    listOf(
+                        seerrRequest(1, tmdbId = 10, status = SeerrRequestStatus.Pending, requestedById = 8, requestedByName = "bob"),
+                        seerrRequest(2, tmdbId = 20, status = SeerrRequestStatus.Approved),
+                    ),
+                )
+            } else {
+                pageOf(emptyList())
+            }
+        }
+        dataSource.movieDetails = { SeerrTitleDetails(seerrMovie(it, "The Movie")) }
+        val repository = repository(signedIn())
+        advanceUntilIdle()
+
+        val requests = (repository.pendingRequests() as Outcome.Success).value
+
+        assertTrue("requests(Pending)" in dataSource.calls)
+        assertEquals(listOf(1), requests.map { it.id })
+        assertEquals("The Movie", requests.single().title)
+        assertEquals("bob", requests.single().requestedByName)
+        assertEquals(8, requests.single().requestedById)
+    }
+
+    @Test
+    fun `request details are enriched with the title`() = runTest {
+        dataSource.requestDetails = { seerrRequest(it, tmdbId = 10, status = SeerrRequestStatus.Pending) }
+        dataSource.movieDetails = { SeerrTitleDetails(seerrMovie(it, "The Movie").copy(posterUrl = "p.jpg")) }
+        val repository = repository(signedIn())
+        advanceUntilIdle()
+
+        val details = (repository.requestDetails(5) as Outcome.Success).value
+
+        assertEquals(5, details.id)
+        assertEquals("The Movie", details.title)
+        assertEquals("p.jpg", details.posterUrl)
+    }
+
+    @Test
+    fun `approve and decline hit the right endpoints`() = runTest {
+        val repository = repository(signedIn())
+        advanceUntilIdle()
+
+        val approved = repository.approveRequest(9)
+        val declined = repository.declineRequest(10)
+
+        assertEquals(SeerrRequestStatus.Approved, (approved as Outcome.Success).value.status)
+        assertEquals(SeerrRequestStatus.Declined, (declined as Outcome.Success).value.status)
+        assertTrue("approve(9)" in dataSource.calls && "decline(10)" in dataSource.calls)
+    }
+
+    @Test
+    fun `a 403 from the api reports forbidden without signing out`() = runTest {
+        val sessionStore = InMemorySeerrSessionStore("sid")
+        val client = HttpClient(MockEngine { respondError(HttpStatusCode.Forbidden) }) { seerrDefaults(sessionStore) }
+        val httpSource = KtorSeerrDataSource(client, StandardTestDispatcher(testScheduler))
+        val repository = seerrRepository(
+            httpSource,
+            signedIn(),
+            SeerrSettings(SEERR_URL),
+            scope = TestScope(testScheduler),
+            sessionStore = sessionStore,
+        )
+        advanceUntilIdle()
+
+        val result = repository.pendingRequests()
+
+        assertEquals(Outcome.Failure(LoadError.Forbidden), result)
+        assertEquals("sid", sessionStore.stored)
+    }
+
+    @Test
     fun `signing out of jellyfin clears the seerr session`() = runTest {
         val sessionStore = InMemorySeerrSessionStore("sid")
         val authRepository = signedIn()
