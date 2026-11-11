@@ -65,7 +65,10 @@ class SignInViewModelTest {
         assertFalse(state.isSigningIn)
         assertNull(state.error)
         assertIs<SessionState.SignedIn>(repository.sessionState.value)
-        assertEquals(listOf("getPublicUsers", "authenticateByName($SERVER, alice)"), dataSource.calls)
+        assertEquals(
+            listOf("getPublicUsers", "authenticateByName($SERVER, alice)", "getServerName($SERVER)"),
+            dataSource.calls,
+        )
     }
 
     @Test

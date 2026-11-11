@@ -285,6 +285,19 @@
     <string name="admin_system_storage">Storage</string>
     <string name="admin_system_storage_free">%1$s free of %2$s</string>
 
+    <!-- Servers (multi-server switcher) -->
+    <string name="home_servers">Servers</string>
+    <string name="servers_title">Servers</string>
+    <string name="servers_add">Add server or account</string>
+    <string name="servers_add_title">Add server</string>
+    <string name="servers_empty">No saved accounts yet. Sign in on another server and it appears here for quick switching.</string>
+    <string name="servers_current">Current</string>
+    <string name="servers_user_at">%1$s · %2$s</string>
+    <string name="servers_remove">Remove</string>
+    <string name="servers_remove_title">Remove %1$s?</string>
+    <string name="servers_remove_body">The saved sign-in for %1$s on %2$s will be deleted.</string>
+    <string name="servers_remove_body_active">This signs you out of %1$s on %2$s.</string>
+
     <!-- Watch together (SyncPlay) -->
     <string name="home_watch_together">Watch together</string>
     <string name="syncplay_title">Watch together</string>

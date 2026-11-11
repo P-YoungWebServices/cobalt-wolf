@@ -32,6 +32,7 @@ import com.pyoungws.bluewolfplayer.ui.discover.SeerrDetailScreen
 import com.pyoungws.bluewolfplayer.ui.home.HomeScreen
 import com.pyoungws.bluewolfplayer.ui.library.LibraryScreen
 import com.pyoungws.bluewolfplayer.ui.search.SearchScreen
+import com.pyoungws.bluewolfplayer.ui.servers.ServersScreen
 import com.pyoungws.bluewolfplayer.ui.settings.PlaybackSettingsActivity
 import com.pyoungws.bluewolfplayer.ui.syncplay.WatchTogetherScreen
 import org.koin.compose.viewmodel.koinViewModel
@@ -42,6 +43,7 @@ internal sealed interface Route {
     data object Discover : Route
     data object MyRequests : Route
     data object SyncPlay : Route
+    data object Servers : Route
     data object Dashboard : Route
     data object AdminRequests : Route
     data object AdminUsers : Route
@@ -60,6 +62,7 @@ internal fun Route.encode(): String = when (this) {
     Route.Discover -> "discover"
     Route.MyRequests -> "myrequests"
     Route.SyncPlay -> "syncplay"
+    Route.Servers -> "servers"
     Route.Dashboard -> "dashboard"
     Route.AdminRequests -> "adminrequests"
     Route.AdminUsers -> "adminusers"
@@ -80,6 +83,7 @@ internal fun decodeRoute(value: String): Route? {
         "discover" -> Route.Discover
         "myrequests" -> Route.MyRequests
         "syncplay" -> Route.SyncPlay
+        "servers" -> Route.Servers
         "dashboard" -> Route.Dashboard
         "adminrequests" -> Route.AdminRequests
         "adminusers" -> Route.AdminUsers
@@ -151,6 +155,7 @@ fun SignedInNavigation() {
             onSearch = { push(Route.Search) },
             onDiscover = { push(Route.Discover) },
             onWatchTogether = { push(Route.SyncPlay) },
+            onServers = { push(Route.Servers) },
             onPlaybackSettings = { context.startActivity(PlaybackSettingsActivity.intent(context)) },
             isAdmin = user?.canNavigateTo(NavDestination.Dashboard) == true,
             onDashboard = { push(Route.Dashboard) },
@@ -163,6 +168,7 @@ fun SignedInNavigation() {
         )
         Route.MyRequests -> MyRequestsScreen(onBack = pop)
         Route.SyncPlay -> WatchTogetherScreen(onBack = pop, onWatch = play)
+        Route.Servers -> ServersScreen(onBack = pop)
         Route.Dashboard -> AdminDashboardScreen(
             onBack = pop,
             onOpenItem = { push(Route.Detail(it)) },
