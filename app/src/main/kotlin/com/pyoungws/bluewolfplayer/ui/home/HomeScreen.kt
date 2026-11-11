@@ -1,9 +1,11 @@
 package com.pyoungws.bluewolfplayer.ui.home
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +23,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -58,6 +61,7 @@ fun HomeScreen(
     onWatchTogether: () -> Unit,
     onServers: () -> Unit,
     onCalendar: () -> Unit,
+    onDownloads: () -> Unit,
     onPlaybackSettings: () -> Unit,
     isAdmin: Boolean,
     onDashboard: () -> Unit,
@@ -79,19 +83,22 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
-                    TextButton(onClick = onSearch) { Text(stringResource(R.string.home_search)) }
-                    TextButton(onClick = onDiscover) { Text(stringResource(R.string.home_requests)) }
-                    TextButton(onClick = onWatchTogether) { Text(stringResource(R.string.home_watch_together)) }
-                    TextButton(onClick = onServers) { Text(stringResource(R.string.home_servers)) }
-                    TextButton(onClick = onCalendar) { Text(stringResource(R.string.home_calendar)) }
-                    TextButton(onClick = onPlaybackSettings) { Text(stringResource(R.string.home_playback_settings)) }
-                    if (isAdmin) {
-                        TextButton(onClick = onDashboard) { Text(stringResource(R.string.home_dashboard)) }
-                    }
-                    if (isSigningOut) {
-                        CircularProgressIndicator(modifier = Modifier.padding(horizontal = 16.dp).size(20.dp), strokeWidth = 2.dp)
-                    } else {
-                        TextButton(onClick = { confirmSignOut = true }) { Text(stringResource(R.string.home_sign_out)) }
+                    Row(Modifier.horizontalScroll(rememberScrollState())) {
+                        TextButton(onClick = onSearch) { Text(stringResource(R.string.home_search)) }
+                        TextButton(onClick = onDiscover) { Text(stringResource(R.string.home_requests)) }
+                        TextButton(onClick = onWatchTogether) { Text(stringResource(R.string.home_watch_together)) }
+                        TextButton(onClick = onServers) { Text(stringResource(R.string.home_servers)) }
+                        TextButton(onClick = onCalendar) { Text(stringResource(R.string.home_calendar)) }
+                        TextButton(onClick = onDownloads) { Text(stringResource(R.string.home_downloads)) }
+                        TextButton(onClick = onPlaybackSettings) { Text(stringResource(R.string.home_playback_settings)) }
+                        if (isAdmin) {
+                            TextButton(onClick = onDashboard) { Text(stringResource(R.string.home_dashboard)) }
+                        }
+                        if (isSigningOut) {
+                            CircularProgressIndicator(modifier = Modifier.padding(horizontal = 16.dp).size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            TextButton(onClick = { confirmSignOut = true }) { Text(stringResource(R.string.home_sign_out)) }
+                        }
                     }
                 },
             )

@@ -5,10 +5,14 @@
         <exclude domain="sharedpref" path="session.xml" />
         <exclude domain="sharedpref" path="server_profiles.xml" />
         <exclude domain="sharedpref" path="arr_settings.xml" />
+        <exclude domain="sharedpref" path="qbittorrent_settings.xml" />
+        <exclude domain="sharedpref" path="qbittorrent_session.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="session.xml" />
         <exclude domain="sharedpref" path="server_profiles.xml" />
         <exclude domain="sharedpref" path="arr_settings.xml" />
+        <exclude domain="sharedpref" path="qbittorrent_settings.xml" />
+        <exclude domain="sharedpref" path="qbittorrent_session.xml" />
     </device-transfer>
 </data-extraction-rules>

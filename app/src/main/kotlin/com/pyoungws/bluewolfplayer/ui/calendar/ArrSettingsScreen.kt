@@ -31,17 +31,20 @@ import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.shared.arrs.ArrService
 import com.pyoungws.bluewolfplayer.shared.presentation.ArrServiceForm
 import com.pyoungws.bluewolfplayer.shared.presentation.ArrSettingsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.QBittorrentSettingsViewModel
 import com.pyoungws.bluewolfplayer.ui.message
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Per-service connection settings: each gets a server URL and API key plus save and test. */
+/** Per-service connection settings: *arr services get URL + API key, qBittorrent gets URL + login. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArrSettingsScreen(
     onBack: () -> Unit,
     viewModel: ArrSettingsViewModel = koinViewModel(),
+    qbittorrentViewModel: QBittorrentSettingsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val qbittorrent by qbittorrentViewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -57,6 +60,50 @@ fun ArrSettingsScreen(
             ServiceCard(ArrService.Radarr, state.radarr, viewModel)
             Spacer(Modifier.height(24.dp))
             ServiceCard(ArrService.Sonarr, state.sonarr, viewModel)
+            Spacer(Modifier.height(24.dp))
+            QBittorrentCard(qbittorrent, qbittorrentViewModel)
+        }
+    }
+}
+
+@Composable
+private fun QBittorrentCard(
+    form: com.pyoungws.bluewolfplayer.shared.presentation.QBittorrentSettingsUiState,
+    viewModel: QBittorrentSettingsViewModel,
+) {
+    Text(stringResource(R.string.qbittorrent_title), style = MaterialTheme.typography.titleMedium)
+    OutlinedTextField(
+        value = form.serverUrl,
+        onValueChange = viewModel::onServerUrlChange,
+        label = { Text(stringResource(R.string.arr_field_url)) },
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        singleLine = true,
+    )
+    OutlinedTextField(
+        value = form.username,
+        onValueChange = viewModel::onUsernameChange,
+        label = { Text(stringResource(R.string.qbit_field_username)) },
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        singleLine = true,
+    )
+    OutlinedTextField(
+        value = form.password,
+        onValueChange = viewModel::onPasswordChange,
+        label = { Text(stringResource(R.string.qbit_field_password)) },
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        singleLine = true,
+        visualTransformation = PasswordVisualTransformation(),
+    )
+    Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Button(onClick = viewModel::save) { Text(stringResource(R.string.arr_save)) }
+        TextButton(onClick = viewModel::test, enabled = !form.testing) {
+            Text(stringResource(R.string.arr_test))
+        }
+        when {
+            form.testing -> CircularProgressIndicator(Modifier.padding(start = 12.dp).size(20.dp), strokeWidth = 2.dp)
+            form.testSucceeded == true -> StatusText(stringResource(R.string.arr_connected), MaterialTheme.colorScheme.primary)
+            form.testSucceeded == false -> StatusText(form.testError?.message().orEmpty(), MaterialTheme.colorScheme.error)
+            form.saved -> StatusText(stringResource(R.string.arr_saved), MaterialTheme.colorScheme.primary)
         }
     }
 }

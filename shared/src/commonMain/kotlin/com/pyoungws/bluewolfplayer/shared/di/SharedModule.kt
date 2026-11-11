@@ -22,6 +22,11 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.playback.SdkJellyfinPlaybackDataSource
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.KtorQBittorrentDataSource
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.QBittorrentDataSource
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.QBittorrentRepository
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.QBittorrentSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.qbittorrentHttpClient
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminDashboardViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminDevicesViewModel
@@ -34,11 +39,13 @@ import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ArrSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.CalendarViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.DiscoverViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.DownloadsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MyRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.QBittorrentSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SearchViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SeerrDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.seerr.KtorSeerrDataSource
@@ -105,6 +112,11 @@ val sharedModule = module {
     single { ArrSettingsRepository(get()) }
     single { ArrRepository(get(), get()) }
 
+    single { qbittorrentHttpClient(get()) }
+    single<QBittorrentDataSource> { KtorQBittorrentDataSource(get()) }
+    single { QBittorrentSettingsRepository(get()) }
+    single { QBittorrentRepository(get(), get()) }
+
     viewModelOf(::AppViewModel)
     viewModelOf(::LibraryHomeViewModel)
     viewModel { SearchViewModel(get()) }
@@ -130,4 +142,6 @@ val sharedModule = module {
     viewModel { (type: SeerrMediaType, tmdbId: Int) -> SeerrDetailViewModel(type, tmdbId, get()) }
     viewModelOf(::CalendarViewModel)
     viewModelOf(::ArrSettingsViewModel)
+    viewModelOf(::DownloadsViewModel)
+    viewModelOf(::QBittorrentSettingsViewModel)
 }
