@@ -26,6 +26,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // The Jellyfin SDK exposes java.time (e.g. SyncPlay message timestamps); API 24-25 lacks it.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     buildFeatures {
@@ -39,6 +41,8 @@ kotlin {
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+
     implementation(project(":shared"))
 
     implementation(libs.androidx.core.ktx)

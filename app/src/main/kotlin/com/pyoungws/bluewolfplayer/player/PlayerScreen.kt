@@ -69,6 +69,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
 import com.pyoungws.bluewolfplayer.shared.playback.summary
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.SyncPlayUiCommand
 import com.pyoungws.bluewolfplayer.ui.common.ErrorBox
 import com.pyoungws.bluewolfplayer.ui.common.LoadingBox
 import kotlinx.coroutines.delay
@@ -76,6 +77,7 @@ import java.util.Locale
 
 private const val PROGRESS_INTERVAL_MS = 10_000L
 private const val STATS_INTERVAL_MS = 1_000L
+private const val SYNC_DRIFT_TOLERANCE_MS = 1_500L
 private const val TAG = "CobaltWolfPlayback"
 
 @Composable
@@ -133,6 +135,7 @@ private fun PlayerContent(
     val engine = remember(ready.generation) { buildPlayerEngine(context, request, playerView, debugMaxChannels) }
     val player = engine.player
     val stats by engine.stats.stats.collectAsStateWithLifecycle()
+    val membership by viewModel.membership.collectAsStateWithLifecycle()
     var tracks by remember(player) { mutableStateOf(Tracks.EMPTY) }
     var controlsVisible by remember(player) { mutableStateOf(true) }
     var dialog by remember(player) { mutableStateOf<TrackDialog?>(null) }
@@ -179,6 +182,13 @@ private fun PlayerContent(
                 onPlayingChanged(isPlaying)
                 if (isPlaying) viewModel.onPlaybackStarted(player.currentPosition, isPaused = false)
                 viewModel.onProgress(player.currentPosition, isPaused = !isPlaying)
+                // SyncPlay: tell the group about local pauses and resumes; commands it sent
+                // first are filtered inside the view model, so these only carry user actions.
+                if (isPlaying) {
+                    viewModel.onUserResume(player.currentPosition)
+                } else if (player.playbackState == Player.STATE_READY) {
+                    viewModel.onUserPause(player.currentPosition)
+                }
             }
 
             override fun onPlaybackStateChanged(state: Int) {
@@ -186,10 +196,16 @@ private fun PlayerContent(
                     viewModel.onStopped(player.duration.coerceAtLeast(0))
                     onClose()
                 }
+                // SyncPlay: the group waits for buffering members and resumes when they are ready.
+                if (state == Player.STATE_BUFFERING) viewModel.onBuffering(player.currentPosition, player.playWhenReady)
+                if (state == Player.STATE_READY) viewModel.onReady(player.currentPosition, player.isPlaying)
             }
 
             override fun onPositionDiscontinuity(old: Player.PositionInfo, new: Player.PositionInfo, reason: Int) {
-                if (reason == Player.DISCONTINUITY_REASON_SEEK) viewModel.onProgress(new.positionMs, isPaused = !player.isPlaying)
+                if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+                    viewModel.onProgress(new.positionMs, isPaused = !player.isPlaying)
+                    viewModel.onUserSeek(new.positionMs)
+                }
             }
 
             override fun onTracksChanged(newTracks: Tracks) {
@@ -255,7 +271,7 @@ private fun PlayerContent(
         }
         player.addListener(listener)
         player.prepare()
-        player.playWhenReady = true
+        player.playWhenReady = !request.startPaused
         onPlayerChanged(player)
         onDispose {
             onPlayerChanged(null)
@@ -286,11 +302,30 @@ private fun PlayerContent(
         }
     }
 
+    // Commands coming from the SyncPlay group the user is in. Applying them triggers the same
+    // player listeners as local actions; the view model filters those echoes out.
+    LaunchedEffect(player) {
+        viewModel.commands.collect { command ->
+            when (command) {
+                is SyncPlayUiCommand.SeekTo -> player.seekTo(command.positionMs)
+                SyncPlayUiCommand.Pause -> player.pause()
+                is SyncPlayUiCommand.Resume -> {
+                    command.positionMs?.let {
+                        if (kotlin.math.abs(it - player.currentPosition) > SYNC_DRIFT_TOLERANCE_MS) player.seekTo(it)
+                    }
+                    player.play()
+                }
+                SyncPlayUiCommand.Close -> onClose()
+            }
+        }
+    }
+
     LaunchedEffect(player) {
         var logged = 0
         while (true) {
             delay(STATS_INTERVAL_MS)
             engine.stats.refreshDisplay()
+            viewModel.onSyncTick(player.currentPosition)
             // Debug builds log the stats shortly after start and then periodically, for device test runs.
             if (BuildConfig.DEBUG && player.isPlaying && (++logged == 5 || logged % 15 == 0)) {
                 Log.i(TAG, "stats position=${player.currentPosition / 1000}s ${engine.stats.stats.value.summary()}")
@@ -355,8 +390,17 @@ private fun PlayerContent(
         if (controlsVisible && !isInPip) {
             Row(
                 Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                membership?.let {
+                    Text(
+                        stringResource(R.string.syncplay_badge, it.groupName),
+                        color = Color.White.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                }
                 TextButton(onClick = { dialog = TrackDialog.Audio }) { Text(stringResource(R.string.player_audio), color = Color.White) }
                 TextButton(onClick = { dialog = TrackDialog.Subtitles }) { Text(stringResource(R.string.player_subtitles), color = Color.White) }
                 TextButton(onClick = { showStats = !showStats }) { Text(stringResource(R.string.player_stats), color = Color.White) }

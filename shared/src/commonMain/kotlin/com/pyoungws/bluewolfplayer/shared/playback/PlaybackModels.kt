@@ -46,7 +46,8 @@ data class SourceMediaInfo(
 
 /** What to play: a library item, or (debug builds) a file or URL played without the server. */
 sealed interface PlaybackTarget {
-    data class Item(val itemId: String) : PlaybackTarget
+    /** [startPositionMs] overrides the resume point (e.g. joining a SyncPlay group mid-playback). */
+    data class Item(val itemId: String, val startPositionMs: Long? = null, val startPaused: Boolean = false) : PlaybackTarget
     data class DirectUri(val uri: String, val title: String = uri.substringAfterLast('/')) : PlaybackTarget
 }
 
@@ -67,6 +68,8 @@ data class PlaybackRequest(
     val item: MediaItem,
     val source: PlaybackSource,
     val startPositionMs: Long,
+    /** True when the player must start paused (a paused SyncPlay group was joined mid-playback). */
+    val startPaused: Boolean = false,
     /** Which decoders to use for the streams; moves to FFmpeg after a decoder failure. */
     val plan: DecodePlan = DecodePlan(),
     val settings: PlaybackSettings = PlaybackSettings(),

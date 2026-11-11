@@ -55,6 +55,7 @@ fun HomeScreen(
     onOpenItem: (String) -> Unit,
     onSearch: () -> Unit,
     onDiscover: () -> Unit,
+    onWatchTogether: () -> Unit,
     onPlaybackSettings: () -> Unit,
     isAdmin: Boolean,
     onDashboard: () -> Unit,
@@ -78,6 +79,7 @@ fun HomeScreen(
                 actions = {
                     TextButton(onClick = onSearch) { Text(stringResource(R.string.home_search)) }
                     TextButton(onClick = onDiscover) { Text(stringResource(R.string.home_requests)) }
+                    TextButton(onClick = onWatchTogether) { Text(stringResource(R.string.home_watch_together)) }
                     TextButton(onClick = onPlaybackSettings) { Text(stringResource(R.string.home_playback_settings)) }
                     if (isAdmin) {
                         TextButton(onClick = onDashboard) { Text(stringResource(R.string.home_dashboard)) }

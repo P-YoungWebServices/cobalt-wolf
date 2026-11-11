@@ -20,12 +20,21 @@ import com.pyoungws.bluewolfplayer.shared.playback.SourceMediaInfo
 import com.pyoungws.bluewolfplayer.shared.playback.VideoRange
 import com.pyoungws.bluewolfplayer.shared.playback.VideoStreamInfo
 import com.pyoungws.bluewolfplayer.shared.playback.playbackRepository
+import com.pyoungws.bluewolfplayer.shared.syncplay.CorrectionType
+import com.pyoungws.bluewolfplayer.shared.syncplay.FakeSyncPlayDataSource
+import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayEvent
+import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayGroupState
+import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayRepository
+import com.pyoungws.bluewolfplayer.shared.syncplay.group
+import com.pyoungws.bluewolfplayer.shared.syncplay.queueItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.jellyfin.sdk.api.client.exception.InvalidStatusException
@@ -51,11 +60,20 @@ class PlayerViewModelTest {
     private suspend fun TestScope.viewModel(
         target: PlaybackTarget = PlaybackTarget.Item("m1"),
         capabilities: DeviceCapabilities = PHONE_CAPABILITIES,
+        syncPlay: SyncPlayRepository? = null,
     ) = PlayerViewModel(
         target,
         playbackRepository(library, playback, SessionGuard(signedInAuthRepository()), capabilities),
         reportScope = this,
+        syncPlay = syncPlay ?: syncPlayRepository(),
     )
+
+    private suspend fun TestScope.syncPlayRepository(
+        dataSource: FakeSyncPlayDataSource = FakeSyncPlayDataSource(),
+    ): SyncPlayRepository {
+        val auth = signedInAuthRepository()
+        return SyncPlayRepository(dataSource, SessionGuard(auth), auth, scope = backgroundScope)
+    }
 
     private fun sourceWith(video: VideoStreamInfo? = null, audio: AudioStreamInfo? = null) =
         DIRECT_SOURCE.copy(info = SourceMediaInfo(container = "mkv", video = video, audio = audio))
@@ -235,6 +253,83 @@ class PlayerViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PlaybackLevel.Transcode, (viewModel.uiState.value as PlayerUiState.Ready).request.level)
+    }
+
+    @Test
+    fun `a group load command for another item switches the target`() = runTest {
+        val dataSource = FakeSyncPlayDataSource()
+        val syncPlay = syncPlayRepository(dataSource)
+        syncPlay.join(group("g1"))
+        val viewModel = viewModel(syncPlay = syncPlay)
+        runCurrent()
+
+        dataSource.emit(SyncPlayEvent.QueueChanged(listOf(queueItem("m2")), 0, 600_000_000, isPlaying = true))
+        runCurrent()
+
+        val ready = viewModel.uiState.value as PlayerUiState.Ready
+        assertEquals("m2", ready.request.item.id)
+        assertEquals(60_000L, ready.request.startPositionMs)
+        assertEquals(false, ready.request.startPaused)
+    }
+
+    @Test
+    fun `a paused group starts the player paused`() = runTest {
+        val dataSource = FakeSyncPlayDataSource()
+        val syncPlay = syncPlayRepository(dataSource)
+        syncPlay.join(group("g1"))
+        val viewModel = viewModel(syncPlay = syncPlay)
+        runCurrent()
+
+        dataSource.emit(SyncPlayEvent.QueueChanged(listOf(queueItem("m2")), 0, 0, isPlaying = false))
+        runCurrent()
+
+        val ready = viewModel.uiState.value as PlayerUiState.Ready
+        assertEquals("m2", ready.request.item.id)
+        assertEquals(true, ready.request.startPaused)
+    }
+
+    @Test
+    fun `group pause and seek commands reach the ui`() = runTest {
+        val dataSource = FakeSyncPlayDataSource()
+        val syncPlay = syncPlayRepository(dataSource)
+        syncPlay.join(group("g1"))
+        val viewModel = viewModel(syncPlay = syncPlay)
+        runCurrent()
+        dataSource.emit(SyncPlayEvent.QueueChanged(listOf(queueItem("m1")), 0, 0, isPlaying = true))
+        runCurrent()
+
+        val commands = mutableListOf<SyncPlayUiCommand>()
+        backgroundScope.launch { viewModel.commands.collect { commands += it } }
+        dataSource.emit(SyncPlayEvent.StateChanged(SyncPlayGroupState.Paused))
+        dataSource.emit(SyncPlayEvent.Correction(CorrectionType.Seek, 42_000_000))
+        runCurrent()
+
+        assertEquals(SyncPlayUiCommand.Pause, commands.first())
+        assertEquals(SyncPlayUiCommand.SeekTo(4_200), commands.last())
+    }
+
+    @Test
+    fun `local transport is only reported while the group controls the item`() = runTest {
+        val dataSource = FakeSyncPlayDataSource()
+        val syncPlay = syncPlayRepository(dataSource)
+        val viewModel = viewModel(syncPlay = syncPlay)
+        runCurrent()
+
+        // Outside a group nothing is reported.
+        viewModel.onUserPause(1_000)
+        viewModel.onUserSeek(2_000)
+        runCurrent()
+        assertTrue(dataSource.calls.isEmpty())
+
+        // Inside a group on the same item the actions are relayed.
+        syncPlay.join(group("g1"))
+        runCurrent()
+        dataSource.emit(SyncPlayEvent.QueueChanged(listOf(queueItem("m1")), 0, 0, isPlaying = true))
+        runCurrent()
+        viewModel.onUserPause(1_000)
+        viewModel.onUserSeek(20_000)
+        runCurrent()
+        assertEquals(listOf("join(g1)", "pause", "seek"), dataSource.calls.filter { it != "groups" })
     }
 
     @Test
