@@ -4,6 +4,7 @@ kotlin = "2.4.20"
 jellyfin-sdk = "1.9.4"
 kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.11.0"
+kotlinx-datetime = "0.7.1"
 ktor = "3.3.3"
 koin = "4.2.2"
 androidx-lifecycle = "2.11.0"
@@ -28,6 +29,7 @@ jellyfin-core = { module = "org.jellyfin.sdk:jellyfin-core", version.ref = "jell
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }

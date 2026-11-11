@@ -415,6 +415,27 @@
     <string name="playback_show_stats_summary">Codec, bitrate, HDR type, audio output and dropped frames while playing</string>
     <string name="playback_reset">Reset to automatic</string>
 
+    <!-- Radarr/Sonarr upcoming calendar -->
+    <string name="home_calendar">Calendar</string>
+    <string name="calendar_title">Upcoming</string>
+    <string name="calendar_settings">Services</string>
+    <string name="calendar_not_configured">Add your Radarr or Sonarr server to see what\'s coming up.</string>
+    <string name="calendar_empty">Nothing scheduled in the next 30 days</string>
+    <string name="calendar_service_failed">Couldn\'t load: %1$s</string>
+    <string name="calendar_today">Today</string>
+    <string name="calendar_tomorrow">Tomorrow</string>
+    <string name="calendar_yesterday">Yesterday</string>
+    <string name="calendar_downloaded">Downloaded</string>
+    <string name="arr_service_radarr">Radarr</string>
+    <string name="arr_service_sonarr">Sonarr</string>
+    <string name="arr_settings_title">Services</string>
+    <string name="arr_field_url">Server URL</string>
+    <string name="arr_field_api_key">API key</string>
+    <string name="arr_save">Save</string>
+    <string name="arr_saved">Saved</string>
+    <string name="arr_test">Test connection</string>
+    <string name="arr_connected">Connected</string>
+
     <!-- Home-screen sessions widget -->
     <string name="widget_sessions_name">Cobalt Wolf sessions</string>
     <string name="widget_sessions_description">See who is watching on your Jellyfin server</string>

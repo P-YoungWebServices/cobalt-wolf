@@ -145,6 +145,14 @@ Conventions and rules for contributing to Cobalt Wolf.
   `AdminRepository.sessions()`; session→row mapping lives in `SessionRow.kt`
   and is unit-tested in `app/src/test`. The widget reads repositories through
   the Koin `GlobalContext` started by `BlueWolfApplication`.
+- `shared/.../arrs/` is the Radarr/Sonarr integration: `ArrSettingsRepository`
+  (per-service URL + API key), `KtorArrDataSource` (`X-Api-Key` header,
+  `/api/v3/calendar` + `system/status`), `ArrRepository` (merges both
+  calendars, isolates per-service failures). API keys are encrypted at rest by
+  `SharedPreferencesArrSettingsStore` via `KeystoreCipher`. `CalendarViewModel`
+  and `ArrSettingsViewModel` drive `app/.../ui/calendar/` (phone) and
+  `ui/tv/TvCalendarScreen.kt`. `shared/.../net/` holds helpers shared by the
+  REST integrations (`normalizeServerUrl`, `Throwable.toLoadError`).
 - SyncPlay ("watch together") lives in `shared/.../syncplay`
   (`SyncPlayDataSource` over the SDK's `syncPlayApi` + `apiClient.webSocket`,
   `SyncPlayRepository`, models, `SyncPlayEchoGate`) with
@@ -164,7 +172,7 @@ All checked for GPL v3 compatibility:
 
 - Jellyfin Kotlin SDK (`org.jellyfin.sdk`), LGPL-3.0. Keep attribution.
   Requires Jellyfin server 12.0+ (see `docs/SPEC.md`).
-- Kotlin, kotlinx.coroutines, kotlinx.serialization: Apache-2.0
+- Kotlin, kotlinx.coroutines, kotlinx.serialization, kotlinx.datetime: Apache-2.0
 - Ktor client (core, OkHttp engine, content negotiation, kotlinx-json; mock for
   tests): Apache-2.0. Used for the Seerr/Jellyseerr REST API in `shared/.../seerr`.
 - AndroidX (Compose, Material 3, Activity, Lifecycle, Core): Apache-2.0
