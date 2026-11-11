@@ -130,7 +130,7 @@ private fun parseDate(value: String): LocalDate? =
     runCatching { LocalDate.parse(value.take(10)) }.getOrNull()
 
 /** Poster served by the service itself (cached), falling back to the remote image URL. */
-private fun List<ArrImageDto>?.posterUrl(baseUrl: String): String? =
+internal fun List<ArrImageDto>?.posterUrl(baseUrl: String): String? =
     this?.firstOrNull { it.coverType == "poster" }?.let { image ->
         when {
             image.url?.startsWith("/") == true -> baseUrl + image.url

@@ -47,6 +47,7 @@ import java.time.LocalDate as JavaLocalDate
 fun CalendarScreen(
     onBack: () -> Unit,
     onSettings: () -> Unit,
+    canConfigureServices: Boolean,
     viewModel: CalendarViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -57,7 +58,9 @@ fun CalendarScreen(
                 title = { Text(stringResource(R.string.calendar_title)) },
                 navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.nav_back)) } },
                 actions = {
-                    TextButton(onClick = onSettings) { Text(stringResource(R.string.calendar_settings)) }
+                    if (canConfigureServices) {
+                        TextButton(onClick = onSettings) { Text(stringResource(R.string.calendar_settings)) }
+                    }
                     TextButton(onClick = viewModel::refresh) { Text(stringResource(R.string.admin_refresh)) }
                 },
             )
@@ -66,7 +69,7 @@ fun CalendarScreen(
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (val current = state) {
                 CalendarUiState.Loading -> LoadingBox()
-                CalendarUiState.NotConfigured -> NotConfigured(onSettings)
+                CalendarUiState.NotConfigured -> NotConfigured(onSettings.takeIf { canConfigureServices })
                 is CalendarUiState.Error -> ErrorBox(current.error, onRetry = viewModel::refresh)
                 is CalendarUiState.Ready -> CalendarList(current)
             }
@@ -75,7 +78,7 @@ fun CalendarScreen(
 }
 
 @Composable
-private fun NotConfigured(onSettings: () -> Unit) {
+private fun NotConfigured(onSettings: (() -> Unit)?) {
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.Center,
@@ -86,8 +89,10 @@ private fun NotConfigured(onSettings: () -> Unit) {
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(onClick = onSettings, modifier = Modifier.padding(top = 16.dp)) {
-            Text(stringResource(R.string.calendar_settings))
+        if (onSettings != null) {
+            Button(onClick = onSettings, modifier = Modifier.padding(top = 16.dp)) {
+                Text(stringResource(R.string.calendar_settings))
+            }
         }
     }
 }

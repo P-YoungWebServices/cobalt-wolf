@@ -71,11 +71,25 @@ class SyncPlayViewModel(
         }
     }
 
-    fun join(group: SyncPlayGroup) = act { repository.join(group) }
+    /**
+     * Joins [group]; when [queueItemId] is given (the "watch together" entry on a media
+     * detail page) that item becomes the group's queue so it starts for everyone.
+     */
+    fun join(group: SyncPlayGroup, queueItemId: String? = null) = act {
+        repository.join(group).thenQueue(queueItemId)
+    }
 
-    fun createAndJoin(name: String) = act { repository.createAndJoin(name) }
+    fun createAndJoin(name: String, queueItemId: String? = null) = act {
+        repository.createAndJoin(name).thenQueue(queueItemId)
+    }
+
+    /** Replaces the queue of the group this device is in with a single item. */
+    fun queueItem(itemId: String) = act { repository.playInGroup(listOf(itemId)) }
 
     fun leave() = act { repository.leave() }
+
+    private suspend fun Outcome<Unit>.thenQueue(itemId: String?): Outcome<Unit> =
+        if (this is Outcome.Success && itemId != null) repository.playInGroup(listOf(itemId)) else this
 
     private fun act(block: suspend () -> Outcome<Unit>) {
         viewModelScope.launch {

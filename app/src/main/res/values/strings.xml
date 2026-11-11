@@ -286,6 +286,7 @@
     <string name="admin_system_storage_free">%1$s free of %2$s</string>
 
     <!-- Servers (multi-server switcher) -->
+    <string name="home_more">More</string>
     <string name="home_servers">Servers</string>
     <string name="servers_title">Servers</string>
     <string name="servers_add">Add server or account</string>
@@ -318,6 +319,7 @@
     <string name="syncplay_notice_access_denied">You do not have access to the group\'s library.</string>
     <string name="syncplay_notice_events_lost">Lost contact with the group.</string>
     <string name="syncplay_badge">SyncPlay · %1$s</string>
+    <string name="syncplay_queue_item">Play this for the group</string>
 
     <!-- Player -->
     <string name="player_audio">Audio</string>
@@ -435,6 +437,74 @@
     <string name="arr_saved">Saved</string>
     <string name="arr_test">Test connection</string>
     <string name="arr_connected">Connected</string>
+
+    <!-- Admin: Radarr/Sonarr media manager -->
+    <string name="admin_manage_media">Media manager</string>
+    <string name="admin_manage_media_subtitle">Edit, search, rename and delete Radarr and Sonarr media</string>
+    <string name="admin_manage_downloads_subtitle">qBittorrent transfers</string>
+    <string name="admin_manage_services_subtitle">Radarr, Sonarr and qBittorrent connections</string>
+    <string name="media_manager_title">Media manager</string>
+    <string name="media_manager_not_configured">Add your Radarr or Sonarr server to manage media.</string>
+    <string name="media_manager_search_hint">Filter by title</string>
+    <string name="media_manager_empty">Nothing is tracked by this service yet.</string>
+    <string name="media_manager_no_match">No titles match this filter.</string>
+    <string name="media_monitored">Monitored</string>
+    <string name="media_unmonitored">Unmonitored</string>
+    <string name="media_has_file">On disk</string>
+    <string name="media_no_file">Missing</string>
+    <string name="media_detail_title">Edit media</string>
+    <string name="media_quality_profile">Quality profile</string>
+    <string name="media_root_folder">Root folder</string>
+    <string name="media_tags">Tags</string>
+    <string name="media_new_tag">New tag</string>
+    <string name="media_auto_search">Automatic search</string>
+    <string name="media_auto_search_series">Search series</string>
+    <string name="media_interactive_search">Interactive search</string>
+    <string name="media_search">Search</string>
+    <string name="media_search_season">Auto search</string>
+    <string name="media_search_releases">Releases</string>
+    <string name="media_rename_files">Rename files</string>
+    <string name="media_manual_import">Manual import</string>
+    <string name="media_seasons">Seasons</string>
+    <string name="media_season_counts">%1$d of %2$d episodes downloaded</string>
+    <string name="media_show_episodes">Episodes</string>
+    <string name="media_hide_episodes">Hide</string>
+    <string name="media_no_episodes">No episodes in this season.</string>
+    <string name="media_files">Files</string>
+    <string name="media_no_files">No files on disk.</string>
+    <string name="media_delete_movie">Delete movie…</string>
+    <string name="media_delete_series">Delete series…</string>
+    <string name="media_delete_movie_title">Delete this movie?</string>
+    <string name="media_delete_series_title">Delete this series?</string>
+    <string name="media_delete_item_message">The item is removed from the service. This cannot be undone.</string>
+    <string name="media_delete_files_too">Also delete the files on disk</string>
+    <string name="media_delete_file_title">Delete this file?</string>
+    <string name="media_delete_file_message">The file is deleted from disk. This cannot be undone.</string>
+    <string name="media_rename_title">Rename files</string>
+    <string name="media_rename_nothing">Every file already matches the naming format.</string>
+    <string name="media_rename_apply">Rename %1$d file(s)</string>
+    <string name="media_releases_movie">Releases</string>
+    <string name="media_releases_season">Releases · Season %1$d</string>
+    <string name="media_no_releases">No releases found.</string>
+    <string name="media_seeders">%1$d seeders</string>
+    <string name="media_age_hours">%1$d h</string>
+    <string name="media_grab">Grab</string>
+    <string name="media_grabbed">Grabbed</string>
+    <string name="media_import_title">Manual import</string>
+    <string name="media_import_folder">Folder on the server</string>
+    <string name="media_import_scan">List files</string>
+    <string name="media_import_empty">No importable files in this folder.</string>
+    <string name="media_import_run">Import %1$d file(s)</string>
+    <string name="media_import_started">Import queued. The files are copied into the library in the background.</string>
+    <string name="media_saved">Saved.</string>
+    <string name="media_deleted">Deleted.</string>
+    <string name="media_file_deleted">File deleted.</string>
+    <string name="media_rename_applied">Rename queued.</string>
+    <string name="media_search_started">Search started.</string>
+    <string name="media_release_grabbed">Release grabbed.</string>
+    <string name="media_monitoring_updated">Monitoring updated.</string>
+    <string name="media_tag_created">Tag created.</string>
+    <string name="media_action_done">Done.</string>
 
     <!-- qBittorrent downloads monitor -->
     <string name="home_downloads">Downloads</string>

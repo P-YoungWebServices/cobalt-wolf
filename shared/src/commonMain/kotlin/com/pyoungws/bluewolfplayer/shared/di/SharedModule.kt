@@ -2,9 +2,13 @@ package com.pyoungws.bluewolfplayer.shared.di
 
 import com.pyoungws.bluewolfplayer.shared.admin.AdminRepository
 import com.pyoungws.bluewolfplayer.shared.arrs.ArrDataSource
+import com.pyoungws.bluewolfplayer.shared.arrs.ArrMediaDataSource
+import com.pyoungws.bluewolfplayer.shared.arrs.ArrMediaRepository
 import com.pyoungws.bluewolfplayer.shared.arrs.ArrRepository
+import com.pyoungws.bluewolfplayer.shared.arrs.ArrService
 import com.pyoungws.bluewolfplayer.shared.arrs.ArrSettingsRepository
 import com.pyoungws.bluewolfplayer.shared.arrs.KtorArrDataSource
+import com.pyoungws.bluewolfplayer.shared.arrs.KtorArrMediaDataSource
 import com.pyoungws.bluewolfplayer.shared.arrs.arrHttpClient
 import com.pyoungws.bluewolfplayer.shared.admin.JellyfinAdminDataSource
 import com.pyoungws.bluewolfplayer.shared.admin.SdkJellyfinAdminDataSource
@@ -43,6 +47,8 @@ import com.pyoungws.bluewolfplayer.shared.presentation.DownloadsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.MediaDetailViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.MediaManagerViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MyRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.QBittorrentSettingsViewModel
@@ -109,8 +115,10 @@ val sharedModule = module {
 
     single { arrHttpClient() }
     single<ArrDataSource> { KtorArrDataSource(get()) }
+    single<ArrMediaDataSource> { KtorArrMediaDataSource(get()) }
     single { ArrSettingsRepository(get()) }
     single { ArrRepository(get(), get()) }
+    single { ArrMediaRepository(get(), get()) }
 
     single { qbittorrentHttpClient(get()) }
     single<QBittorrentDataSource> { KtorQBittorrentDataSource(get()) }
@@ -142,6 +150,8 @@ val sharedModule = module {
     viewModel { (type: SeerrMediaType, tmdbId: Int) -> SeerrDetailViewModel(type, tmdbId, get()) }
     viewModelOf(::CalendarViewModel)
     viewModelOf(::ArrSettingsViewModel)
+    viewModelOf(::MediaManagerViewModel)
+    viewModel { (service: ArrService, itemId: Int) -> MediaDetailViewModel(service, itemId, get()) }
     viewModelOf(::DownloadsViewModel)
     viewModelOf(::QBittorrentSettingsViewModel)
 }

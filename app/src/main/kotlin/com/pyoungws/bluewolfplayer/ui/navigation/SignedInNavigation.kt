@@ -11,6 +11,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pyoungws.bluewolfplayer.player.PlayerActivity
 import com.pyoungws.bluewolfplayer.shared.admin.NavDestination
 import com.pyoungws.bluewolfplayer.shared.admin.canNavigateTo
+import com.pyoungws.bluewolfplayer.shared.arrs.ArrService
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.LibraryType
 import com.pyoungws.bluewolfplayer.shared.model.UserProfile
@@ -25,6 +26,8 @@ import com.pyoungws.bluewolfplayer.ui.admin.AdminRequestsScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminSystemInfoScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminTasksScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminUsersScreen
+import com.pyoungws.bluewolfplayer.ui.arrmedia.MediaDetailScreen
+import com.pyoungws.bluewolfplayer.ui.arrmedia.MediaManagerScreen
 import com.pyoungws.bluewolfplayer.ui.detail.DetailScreen
 import com.pyoungws.bluewolfplayer.ui.discover.DiscoverScreen
 import com.pyoungws.bluewolfplayer.ui.discover.MyRequestsScreen
@@ -45,7 +48,8 @@ internal sealed interface Route {
     data object Search : Route
     data object Discover : Route
     data object MyRequests : Route
-    data object SyncPlay : Route
+    /** The group's item to queue once inside a group; null for the plain group browser. */
+    data class SyncPlay(val itemId: String? = null) : Route
     data object Servers : Route
     data object Calendar : Route
     data object ArrSettings : Route
@@ -58,6 +62,8 @@ internal sealed interface Route {
     data object AdminTasks : Route
     data object AdminLogs : Route
     data object AdminSystem : Route
+    data object MediaManager : Route
+    data class MediaDetail(val service: ArrService, val itemId: Int) : Route
     data class SeerrDetail(val type: SeerrMediaType, val tmdbId: Int) : Route
     data class LibraryRoute(val library: Library) : Route
     data class Detail(val itemId: String) : Route
@@ -67,7 +73,7 @@ internal fun Route.encode(): String = when (this) {
     Route.Search -> "search"
     Route.Discover -> "discover"
     Route.MyRequests -> "myrequests"
-    Route.SyncPlay -> "syncplay"
+    is Route.SyncPlay -> itemId?.let { listOf("syncplay", it).joinToString(SEPARATOR) } ?: "syncplay"
     Route.Servers -> "servers"
     Route.Calendar -> "calendar"
     Route.ArrSettings -> "arrsettings"
@@ -80,6 +86,8 @@ internal fun Route.encode(): String = when (this) {
     Route.AdminTasks -> "admintasks"
     Route.AdminLogs -> "adminlogs"
     Route.AdminSystem -> "adminsystem"
+    Route.MediaManager -> "mediamanager"
+    is Route.MediaDetail -> listOf("mediadetail", service.name, itemId).joinToString(SEPARATOR)
     is Route.SeerrDetail -> listOf("seerr", type.name, tmdbId).joinToString(SEPARATOR)
     is Route.LibraryRoute -> listOf("library", library.id, library.type.name, library.name).joinToString(SEPARATOR)
     is Route.Detail -> "detail$SEPARATOR$itemId"
@@ -91,7 +99,7 @@ internal fun decodeRoute(value: String): Route? {
         "search" -> Route.Search
         "discover" -> Route.Discover
         "myrequests" -> Route.MyRequests
-        "syncplay" -> Route.SyncPlay
+        "syncplay" -> Route.SyncPlay(parts.getOrNull(1))
         "servers" -> Route.Servers
         "calendar" -> Route.Calendar
         "arrsettings" -> Route.ArrSettings
@@ -104,6 +112,10 @@ internal fun decodeRoute(value: String): Route? {
         "admintasks" -> Route.AdminTasks
         "adminlogs" -> Route.AdminLogs
         "adminsystem" -> Route.AdminSystem
+        "mediamanager" -> Route.MediaManager
+        "mediadetail" -> parts.getOrNull(2)?.toIntOrNull()?.let {
+            Route.MediaDetail(ArrService.valueOf(parts[1]), it)
+        }
         "seerr" -> parts.getOrNull(2)?.toIntOrNull()?.let { Route.SeerrDetail(SeerrMediaType.valueOf(parts[1]), it) }
         "library" -> parts.getOrNull(3)?.let { name ->
             Route.LibraryRoute(Library(parts[1], name, LibraryType.valueOf(parts[2]), imageUrl = null))
@@ -125,6 +137,9 @@ private fun Route.adminDestination(): NavDestination? = when (this) {
     Route.AdminTasks -> NavDestination.Tasks
     Route.AdminLogs -> NavDestination.Logs
     Route.AdminSystem -> NavDestination.SystemInfo
+    Route.MediaManager, is Route.MediaDetail -> NavDestination.MediaManager
+    Route.Downloads -> NavDestination.Downloads
+    Route.ArrSettings -> NavDestination.Services
     else -> null
 }
 
@@ -137,6 +152,9 @@ private fun Route.isAllowedFor(user: UserProfile?): Boolean =
 
 private fun managementRoute(destination: NavDestination): Route? = when (destination) {
     NavDestination.RequestQueue -> Route.AdminRequests
+    NavDestination.MediaManager -> Route.MediaManager
+    NavDestination.Downloads -> Route.Downloads
+    NavDestination.Services -> Route.ArrSettings
     NavDestination.Users -> Route.AdminUsers
     NavDestination.Devices -> Route.AdminDevices
     NavDestination.Libraries -> Route.AdminLibraries
@@ -166,10 +184,8 @@ fun SignedInNavigation() {
             onOpenItem = { push(Route.Detail(it)) },
             onSearch = { push(Route.Search) },
             onDiscover = { push(Route.Discover) },
-            onWatchTogether = { push(Route.SyncPlay) },
             onServers = { push(Route.Servers) },
             onCalendar = { push(Route.Calendar) },
-            onDownloads = { push(Route.Downloads) },
             onPlaybackSettings = { context.startActivity(PlaybackSettingsActivity.intent(context)) },
             isAdmin = user?.canNavigateTo(NavDestination.Dashboard) == true,
             onDashboard = { push(Route.Dashboard) },
@@ -181,9 +197,13 @@ fun SignedInNavigation() {
             onMyRequests = { push(Route.MyRequests) },
         )
         Route.MyRequests -> MyRequestsScreen(onBack = pop)
-        Route.SyncPlay -> WatchTogetherScreen(onBack = pop, onWatch = play)
+        is Route.SyncPlay -> WatchTogetherScreen(onBack = pop, onWatch = play, queueItemId = route.itemId)
         Route.Servers -> ServersScreen(onBack = pop)
-        Route.Calendar -> CalendarScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
+        Route.Calendar -> CalendarScreen(
+            onBack = pop,
+            onSettings = { push(Route.ArrSettings) },
+            canConfigureServices = user?.canNavigateTo(NavDestination.Services) == true,
+        )
         Route.ArrSettings -> ArrSettingsScreen(onBack = pop)
         Route.Downloads -> DownloadsScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
         Route.Dashboard -> AdminDashboardScreen(
@@ -198,8 +218,20 @@ fun SignedInNavigation() {
         Route.AdminTasks -> AdminTasksScreen(onBack = pop)
         Route.AdminLogs -> AdminLogsScreen(onBack = pop)
         Route.AdminSystem -> AdminSystemInfoScreen(onBack = pop)
+        Route.MediaManager -> MediaManagerScreen(
+            onBack = pop,
+            onOpenItem = { service, itemId -> push(Route.MediaDetail(service, itemId)) },
+            onSettings = { push(Route.ArrSettings) },
+        )
+        is Route.MediaDetail -> MediaDetailScreen(route.service, route.itemId, onBack = pop)
         is Route.SeerrDetail -> SeerrDetailScreen(route.type, route.tmdbId, onBack = pop)
         is Route.LibraryRoute -> LibraryScreen(route.library, onBack = pop, onOpenItem = { push(Route.Detail(it)) })
-        is Route.Detail -> DetailScreen(route.itemId, onBack = pop, onPlay = play, onOpenItem = { push(Route.Detail(it)) })
+        is Route.Detail -> DetailScreen(
+            route.itemId,
+            onBack = pop,
+            onPlay = play,
+            onOpenItem = { push(Route.Detail(it)) },
+            onWatchTogether = { push(Route.SyncPlay(it)) },
+        )
     }
 }

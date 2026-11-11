@@ -50,7 +50,13 @@ import org.koin.core.parameter.parametersOf
 /** Detail for a movie, series (with seasons and episodes) or episode. [onPlay] starts the player for an item id. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetailScreen(itemId: String, onBack: () -> Unit, onPlay: (String) -> Unit, onOpenItem: (String) -> Unit) {
+fun DetailScreen(
+    itemId: String,
+    onBack: () -> Unit,
+    onPlay: (String) -> Unit,
+    onOpenItem: (String) -> Unit,
+    onWatchTogether: (String) -> Unit,
+) {
     val viewModel: ItemDetailViewModel = koinViewModel(key = "detail-$itemId", parameters = { parametersOf(itemId) })
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -71,7 +77,7 @@ fun DetailScreen(itemId: String, onBack: () -> Unit, onPlay: (String) -> Unit, o
             when (val current = state) {
                 ItemDetailUiState.Loading -> LoadingBox()
                 is ItemDetailUiState.Error -> ErrorBox(current.error, onRetry = viewModel::load)
-                is ItemDetailUiState.Loaded -> DetailContent(current, viewModel, onPlay, onOpenItem)
+                is ItemDetailUiState.Loaded -> DetailContent(current, viewModel, onPlay, onOpenItem, onWatchTogether)
             }
         }
     }
@@ -83,6 +89,7 @@ private fun DetailContent(
     viewModel: ItemDetailViewModel,
     onPlay: (String) -> Unit,
     onOpenItem: (String) -> Unit,
+    onWatchTogether: (String) -> Unit,
 ) {
     val item = state.item
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -115,6 +122,7 @@ private fun DetailContent(
                 Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     state.playTarget?.let { target ->
                         Button(onClick = { onPlay(target.id) }) { Text(playLabel(item, target)) }
+                        OutlinedButton(onClick = { onWatchTogether(target.id) }) { Text(stringResource(R.string.syncplay_title)) }
                     }
                     item.seriesId?.takeIf { item.kind == MediaKind.Episode }?.let { seriesId ->
                         OutlinedButton(onClick = { onOpenItem(seriesId) }) { Text(stringResource(R.string.detail_view_series)) }

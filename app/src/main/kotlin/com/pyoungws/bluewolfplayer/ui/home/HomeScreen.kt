@@ -1,7 +1,6 @@
 package com.pyoungws.bluewolfplayer.ui.home
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +14,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -23,7 +24,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -58,10 +58,8 @@ fun HomeScreen(
     onOpenItem: (String) -> Unit,
     onSearch: () -> Unit,
     onDiscover: () -> Unit,
-    onWatchTogether: () -> Unit,
     onServers: () -> Unit,
     onCalendar: () -> Unit,
-    onDownloads: () -> Unit,
     onPlaybackSettings: () -> Unit,
     isAdmin: Boolean,
     onDashboard: () -> Unit,
@@ -71,6 +69,7 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val isSigningOut by accountViewModel.isSigningOut.collectAsStateWithLifecycle()
     var confirmSignOut by rememberSaveable { mutableStateOf(false) }
+    var moreMenuOpen by rememberSaveable { mutableStateOf(false) }
 
     // Watch progress changes while playing, so refresh whenever the screen comes back.
     LifecycleResumeEffect(Unit) {
@@ -83,21 +82,37 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
-                    Row(Modifier.horizontalScroll(rememberScrollState())) {
-                        TextButton(onClick = onSearch) { Text(stringResource(R.string.home_search)) }
-                        TextButton(onClick = onDiscover) { Text(stringResource(R.string.home_requests)) }
-                        TextButton(onClick = onWatchTogether) { Text(stringResource(R.string.home_watch_together)) }
-                        TextButton(onClick = onServers) { Text(stringResource(R.string.home_servers)) }
-                        TextButton(onClick = onCalendar) { Text(stringResource(R.string.home_calendar)) }
-                        TextButton(onClick = onDownloads) { Text(stringResource(R.string.home_downloads)) }
-                        TextButton(onClick = onPlaybackSettings) { Text(stringResource(R.string.home_playback_settings)) }
-                        if (isAdmin) {
-                            TextButton(onClick = onDashboard) { Text(stringResource(R.string.home_dashboard)) }
-                        }
-                        if (isSigningOut) {
-                            CircularProgressIndicator(modifier = Modifier.padding(horizontal = 16.dp).size(20.dp), strokeWidth = 2.dp)
-                        } else {
-                            TextButton(onClick = { confirmSignOut = true }) { Text(stringResource(R.string.home_sign_out)) }
+                    TextButton(onClick = onSearch) { Text(stringResource(R.string.home_search)) }
+                    TextButton(onClick = onDiscover) { Text(stringResource(R.string.home_requests)) }
+                    if (isSigningOut) {
+                        CircularProgressIndicator(modifier = Modifier.padding(horizontal = 16.dp).size(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        Box {
+                            TextButton(onClick = { moreMenuOpen = true }) { Text(stringResource(R.string.home_more)) }
+                            DropdownMenu(expanded = moreMenuOpen, onDismissRequest = { moreMenuOpen = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.home_servers)) },
+                                    onClick = { moreMenuOpen = false; onServers() },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.home_calendar)) },
+                                    onClick = { moreMenuOpen = false; onCalendar() },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.home_playback_settings)) },
+                                    onClick = { moreMenuOpen = false; onPlaybackSettings() },
+                                )
+                                if (isAdmin) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.home_dashboard)) },
+                                        onClick = { moreMenuOpen = false; onDashboard() },
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.home_sign_out)) },
+                                    onClick = { moreMenuOpen = false; confirmSignOut = true },
+                                )
+                            }
                         }
                     }
                 },

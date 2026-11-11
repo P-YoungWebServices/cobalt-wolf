@@ -106,6 +106,57 @@ class SyncPlayViewModelTest {
     }
 
     @Test
+    fun `joining with an item queues it for the group`() = runTest {
+        val viewModel = viewModel()
+        runCurrent()
+
+        viewModel.join(group("g9", "Night"), queueItemId = "item-1")
+        runCurrent()
+
+        val state = viewModel.uiState.value as SyncPlayUiState.Ready
+        assertEquals("g9", state.membership?.groupId)
+        assertEquals(listOf("item-1"), dataSource.lastQueue)
+        assertNull(state.actionError)
+    }
+
+    @Test
+    fun `a failed join does not queue the item`() = runTest {
+        dataSource.joinResult = { throw InvalidStatusException(500) }
+        val viewModel = viewModel()
+        runCurrent()
+
+        viewModel.join(group("g1"), queueItemId = "item-1")
+        runCurrent()
+
+        assertNull(dataSource.lastQueue)
+        assertIs<LoadError.Unexpected>((viewModel.uiState.value as SyncPlayUiState.Ready).actionError)
+    }
+
+    @Test
+    fun `creating a group with an item queues it`() = runTest {
+        val viewModel = viewModel()
+        runCurrent()
+
+        viewModel.createAndJoin("Room", queueItemId = "item-2")
+        runCurrent()
+
+        assertEquals(listOf("item-2"), dataSource.lastQueue)
+    }
+
+    @Test
+    fun `queueItem replaces the queue while in a group`() = runTest {
+        val viewModel = viewModel()
+        runCurrent()
+        viewModel.join(group("g1"))
+        runCurrent()
+
+        viewModel.queueItem("item-7")
+        runCurrent()
+
+        assertEquals(listOf("item-7"), dataSource.lastQueue)
+    }
+
+    @Test
     fun `an empty name creates a group with the default name`() = runTest {
         var createdName: String? = null
         dataSource.created = { name -> createdName = name; group("g-new", name) }
