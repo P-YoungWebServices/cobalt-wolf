@@ -34,6 +34,7 @@ import com.pyoungws.bluewolfplayer.ui.library.LibraryScreen
 import com.pyoungws.bluewolfplayer.ui.search.SearchScreen
 import com.pyoungws.bluewolfplayer.ui.calendar.ArrSettingsScreen
 import com.pyoungws.bluewolfplayer.ui.calendar.CalendarScreen
+import com.pyoungws.bluewolfplayer.ui.downloads.DownloadsScreen
 import com.pyoungws.bluewolfplayer.ui.servers.ServersScreen
 import com.pyoungws.bluewolfplayer.ui.settings.PlaybackSettingsActivity
 import com.pyoungws.bluewolfplayer.ui.syncplay.WatchTogetherScreen
@@ -48,6 +49,7 @@ internal sealed interface Route {
     data object Servers : Route
     data object Calendar : Route
     data object ArrSettings : Route
+    data object Downloads : Route
     data object Dashboard : Route
     data object AdminRequests : Route
     data object AdminUsers : Route
@@ -69,6 +71,7 @@ internal fun Route.encode(): String = when (this) {
     Route.Servers -> "servers"
     Route.Calendar -> "calendar"
     Route.ArrSettings -> "arrsettings"
+    Route.Downloads -> "downloads"
     Route.Dashboard -> "dashboard"
     Route.AdminRequests -> "adminrequests"
     Route.AdminUsers -> "adminusers"
@@ -92,6 +95,7 @@ internal fun decodeRoute(value: String): Route? {
         "servers" -> Route.Servers
         "calendar" -> Route.Calendar
         "arrsettings" -> Route.ArrSettings
+        "downloads" -> Route.Downloads
         "dashboard" -> Route.Dashboard
         "adminrequests" -> Route.AdminRequests
         "adminusers" -> Route.AdminUsers
@@ -165,6 +169,7 @@ fun SignedInNavigation() {
             onWatchTogether = { push(Route.SyncPlay) },
             onServers = { push(Route.Servers) },
             onCalendar = { push(Route.Calendar) },
+            onDownloads = { push(Route.Downloads) },
             onPlaybackSettings = { context.startActivity(PlaybackSettingsActivity.intent(context)) },
             isAdmin = user?.canNavigateTo(NavDestination.Dashboard) == true,
             onDashboard = { push(Route.Dashboard) },
@@ -180,6 +185,7 @@ fun SignedInNavigation() {
         Route.Servers -> ServersScreen(onBack = pop)
         Route.Calendar -> CalendarScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
         Route.ArrSettings -> ArrSettingsScreen(onBack = pop)
+        Route.Downloads -> DownloadsScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
         Route.Dashboard -> AdminDashboardScreen(
             onBack = pop,
             onOpenItem = { push(Route.Detail(it)) },

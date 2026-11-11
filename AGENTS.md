@@ -153,6 +153,14 @@ Conventions and rules for contributing to Cobalt Wolf.
   and `ArrSettingsViewModel` drive `app/.../ui/calendar/` (phone) and
   `ui/tv/TvCalendarScreen.kt`. `shared/.../net/` holds helpers shared by the
   REST integrations (`normalizeServerUrl`, `Throwable.toLoadError`).
+- `shared/.../qbittorrent/` is the qBittorrent monitor: URL + username +
+  password settings (password encrypted via `KeystoreCipher`), SID-cookie auth
+  (`QBittorrentCookieStorage` + `KeystoreQBittorrentSessionStore`), automatic
+  re-login when the cookie expires, and `DownloadsViewModel` polling
+  `torrents/info` + `transfer/info` every 3 s while the screen is open. The
+  phone screen is `ui/downloads/`; TV has a section whose Services button
+  shares `ui/tv/TvServiceSettings.kt` with the calendar screen (the same form
+  backs `ui/calendar/ArrSettingsScreen.kt` on phone).
 - SyncPlay ("watch together") lives in `shared/.../syncplay`
   (`SyncPlayDataSource` over the SDK's `syncPlayApi` + `apiClient.webSocket`,
   `SyncPlayRepository`, models, `SyncPlayEchoGate`) with

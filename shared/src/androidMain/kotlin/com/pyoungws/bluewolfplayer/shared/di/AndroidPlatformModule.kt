@@ -10,6 +10,10 @@ import com.pyoungws.bluewolfplayer.shared.playback.AndroidCapabilityDetector
 import com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsStore
 import com.pyoungws.bluewolfplayer.shared.playback.SharedPreferencesPlaybackSettingsStore
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.KeystoreQBittorrentSessionStore
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.QBittorrentSessionStore
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.QBittorrentSettingsStore
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.SharedPreferencesQBittorrentSettingsStore
 import com.pyoungws.bluewolfplayer.shared.seerr.KeystoreSeerrSessionStore
 import com.pyoungws.bluewolfplayer.shared.seerr.SeerrSessionStore
 import com.pyoungws.bluewolfplayer.shared.seerr.SeerrSettingsStore
@@ -40,6 +44,8 @@ fun androidPlatformModule(clientName: String, clientVersion: String): Module {
         single<SeerrSettingsStore> { SharedPreferencesSeerrSettingsStore(androidContext()) }
         single<SeerrSessionStore> { KeystoreSeerrSessionStore(androidContext()) }
         single<ArrSettingsStore> { SharedPreferencesArrSettingsStore(androidContext()) }
+        single<QBittorrentSettingsStore> { SharedPreferencesQBittorrentSettingsStore(androidContext()) }
+        single<QBittorrentSessionStore> { KeystoreQBittorrentSessionStore(androidContext()) }
     }
 }
 

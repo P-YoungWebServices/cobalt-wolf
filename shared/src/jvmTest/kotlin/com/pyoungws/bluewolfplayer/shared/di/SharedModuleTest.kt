@@ -10,6 +10,10 @@ import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.LibraryType
 import com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector
 import com.pyoungws.bluewolfplayer.shared.playback.InMemoryPlaybackSettingsStore
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.InMemoryQBittorrentSessionStore
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.InMemoryQBittorrentSettingsStore
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.QBittorrentSessionStore
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.QBittorrentSettingsStore
 import com.pyoungws.bluewolfplayer.shared.playback.PHONE_CAPABILITIES
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsStore
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
@@ -25,6 +29,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ArrSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.CalendarViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.DiscoverViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.DownloadsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MyRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.HomeViewModel
@@ -32,6 +37,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.QBittorrentSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SearchViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SeerrDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ServerConnectViewModel
@@ -85,6 +91,8 @@ class SharedModuleTest {
             single<SeerrSettingsStore> { InMemorySeerrSettingsStore() }
             single<SeerrSessionStore> { InMemorySeerrSessionStore() }
             single<ArrSettingsStore> { InMemoryArrSettingsStore() }
+            single<QBittorrentSettingsStore> { InMemoryQBittorrentSettingsStore() }
+            single<QBittorrentSessionStore> { InMemoryQBittorrentSessionStore() }
         }
         val koin = koinApplication { modules(sharedModule, platform) }.koin
         val library = Library("l1", "Movies", LibraryType.Movies, null)
@@ -114,5 +122,7 @@ class SharedModuleTest {
         assertNotNull(koin.get<ServersViewModel>())
         assertNotNull(koin.get<CalendarViewModel>())
         assertNotNull(koin.get<ArrSettingsViewModel>())
+        assertNotNull(koin.get<DownloadsViewModel>())
+        assertNotNull(koin.get<QBittorrentSettingsViewModel>())
     }
 }

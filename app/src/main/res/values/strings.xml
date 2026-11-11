@@ -436,6 +436,25 @@
     <string name="arr_test">Test connection</string>
     <string name="arr_connected">Connected</string>
 
+    <!-- qBittorrent downloads monitor -->
+    <string name="home_downloads">Downloads</string>
+    <string name="downloads_title">Downloads</string>
+    <string name="downloads_not_configured">Add your qBittorrent server to monitor downloads.</string>
+    <string name="downloads_empty">No torrents</string>
+    <string name="downloads_stale">Connection lost — showing the last update</string>
+    <string name="downloads_eta">ETA %1$s</string>
+    <string name="qbittorrent_title">qBittorrent</string>
+    <string name="qbit_field_username">Username</string>
+    <string name="qbit_field_password">Password</string>
+    <string name="torrent_state_downloading">Downloading</string>
+    <string name="torrent_state_stalled">Stalled</string>
+    <string name="torrent_state_queued">Queued</string>
+    <string name="torrent_state_seeding">Seeding</string>
+    <string name="torrent_state_paused">Paused</string>
+    <string name="torrent_state_checking">Checking</string>
+    <string name="torrent_state_moving">Moving</string>
+    <string name="torrent_state_error">Error</string>
+
     <!-- Home-screen sessions widget -->
     <string name="widget_sessions_name">Cobalt Wolf sessions</string>
     <string name="widget_sessions_description">See who is watching on your Jellyfin server</string>
