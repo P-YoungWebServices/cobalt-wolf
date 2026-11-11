@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.androidx.tv.foundation)
     implementation(libs.androidx.tv.material)
     implementation(libs.androidx.tvprovider)
+    implementation(libs.androidx.glance.appwidget)
 
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)

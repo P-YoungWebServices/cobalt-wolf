@@ -17,6 +17,7 @@ coil = "3.4.0"
 androidx-tv-foundation = "1.0.0"
 androidx-tv-material = "1.1.0"
 androidx-tvprovider = "1.1.0"
+androidx-glance = "1.1.1"
 
 android-compileSdk = "37"
 android-targetSdk = "37"
@@ -51,6 +52,7 @@ coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version
 androidx-tv-foundation = { module = "androidx.tv:tv-foundation", version.ref = "androidx-tv-foundation" }
 androidx-tv-material = { module = "androidx.tv:tv-material", version.ref = "androidx-tv-material" }
 androidx-tvprovider = { module = "androidx.tvprovider:tvprovider", version.ref = "androidx-tvprovider" }
+androidx-glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "androidx-glance" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-material3 = { module = "androidx.compose.material3:material3" }

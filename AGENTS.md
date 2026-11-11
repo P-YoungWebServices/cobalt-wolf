@@ -140,6 +140,11 @@ Conventions and rules for contributing to Cobalt Wolf.
   `AdminRequestsScreen` + `AdminRequestsViewModel`. Local notifications for
   request events come from `RequestWatcher` (shared, polls while signed in)
   feeding `RequestNotifier` (app module, posts via NotificationCompat).
+- `app/widget/` holds the Android home-screen widget (`SessionsWidget`, a
+  Glance `GlanceAppWidget`) listing the server's active sessions via
+  `AdminRepository.sessions()`; session→row mapping lives in `SessionRow.kt`
+  and is unit-tested in `app/src/test`. The widget reads repositories through
+  the Koin `GlobalContext` started by `BlueWolfApplication`.
 - SyncPlay ("watch together") lives in `shared/.../syncplay`
   (`SyncPlayDataSource` over the SDK's `syncPlayApi` + `apiClient.webSocket`,
   `SyncPlayRepository`, models, `SyncPlayEchoGate`) with
@@ -170,6 +175,8 @@ All checked for GPL v3 compatibility:
 - AndroidX TV Provider (`androidx.tvprovider:tvprovider`): Apache-2.0. Used for
   the Android TV home screen channels only; never invoked on devices without
   the TV provider (Fire TV).
+- AndroidX Glance (`androidx.glance:glance-appwidget`): Apache-2.0. Used for
+  the home-screen sessions widget in `app/widget`.
 - NextLib `nextlib-media3ext` (FFmpeg audio/video renderers for Media3):
   GPL-3.0. Bundles FFmpeg as shared libraries built **LGPL v3+** (no
   `--enable-gpl`/`--enable-nonfree`), with dav1d (BSD-2-Clause) and Mbed TLS
