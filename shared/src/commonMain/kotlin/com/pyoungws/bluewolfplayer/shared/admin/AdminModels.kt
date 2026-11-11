@@ -46,15 +46,31 @@ data class AdminDashboard(
     val recentlyAdded: List<MediaItem>,
 )
 
-/** Entries in the signed-in top navigation. [Dashboard] exists for administrators only. */
-enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard }
+/**
+ * Entries in the signed-in top navigation. [Dashboard] and the management screens behind it
+ * exist for administrators only.
+ */
+enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard, Users, Devices, Libraries, Tasks, Logs, SystemInfo }
+
+/** The admin management screens reachable from the dashboard. */
+val MANAGEMENT_DESTINATIONS = listOf(
+    NavDestination.Users,
+    NavDestination.Devices,
+    NavDestination.Libraries,
+    NavDestination.Tasks,
+    NavDestination.Logs,
+    NavDestination.SystemInfo,
+)
 
 /** What this user may see and reach. Admin destinations are hidden for everyone else. */
 fun UserProfile.navDestinations(): List<NavDestination> = buildList {
     add(NavDestination.Search)
     add(NavDestination.Requests)
     add(NavDestination.PlaybackSettings)
-    if (isAdministrator) add(NavDestination.Dashboard)
+    if (isAdministrator) {
+        add(NavDestination.Dashboard)
+        addAll(MANAGEMENT_DESTINATIONS)
+    }
 }
 
 fun UserProfile.canNavigateTo(destination: NavDestination): Boolean = destination in navDestinations()

@@ -25,6 +25,43 @@ class AdminRepository(
         return guard.run { dataSource.sendMessage(it, sessionId, message) }
     }
 
+    suspend fun users(): Outcome<List<AdminUser>> = guard.run { dataSource.getUsers(it) }
+
+    /** Creates a user. A blank [password] creates an account without one. */
+    suspend fun createUser(name: String, password: String): Outcome<AdminUser> =
+        guard.run { dataSource.createUser(it, name.trim(), password.ifBlank { null }) }
+
+    /** Applies the non-null fields of [edit] to the account. */
+    suspend fun updateUser(userId: String, edit: AdminUserEdit): Outcome<Unit> =
+        guard.run { dataSource.updateUser(it, userId, edit.copy(name = edit.name?.trim())) }
+
+    suspend fun deleteUser(userId: String): Outcome<Unit> =
+        guard.run { dataSource.deleteUser(it, userId) }
+
+    suspend fun devices(): Outcome<List<AdminDevice>> = guard.run { dataSource.getDevices(it) }
+
+    suspend fun renameDevice(deviceId: String, name: String): Outcome<Unit> =
+        guard.run { dataSource.renameDevice(it, deviceId, name.trim()) }
+
+    suspend fun deleteDevice(deviceId: String): Outcome<Unit> =
+        guard.run { dataSource.deleteDevice(it, deviceId) }
+
+    suspend fun libraries(): Outcome<List<AdminLibrary>> = guard.run { dataSource.getAdminLibraries(it) }
+
+    suspend fun scheduledTasks(): Outcome<List<ScheduledTask>> = guard.run { dataSource.getScheduledTasks(it) }
+
+    suspend fun startTask(taskId: String): Outcome<Unit> = guard.run { dataSource.startTask(it, taskId) }
+
+    suspend fun stopTask(taskId: String): Outcome<Unit> = guard.run { dataSource.stopTask(it, taskId) }
+
+    /** Log files, newest first. */
+    suspend fun logFiles(): Outcome<List<ServerLogFile>> = guard.run { dataSource.getLogFiles(it) }
+
+    suspend fun logContent(fileName: String): Outcome<String> =
+        guard.run { dataSource.getLogContent(it, fileName) }
+
+    suspend fun systemInfo(): Outcome<SystemInformation> = guard.run { dataSource.getSystemInfo(it) }
+
     private companion object {
         const val RECENT_LIMIT = 16
     }

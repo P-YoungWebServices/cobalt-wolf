@@ -110,6 +110,24 @@ fun LandscapeCard(item: MediaItem, onClick: () -> Unit, modifier: Modifier = Mod
     }
 }
 
+/** "2026-11-10T12:34:56" style timestamps become "2026-11-10 12:34"; other values pass through. */
+fun formatTimestamp(iso: String): String {
+    val cleaned = iso.substringBefore('.').replace('T', ' ')
+    return if (cleaned.count { it == ':' } >= 2) cleaned.substringBeforeLast(':') else cleaned
+}
+
+/** Formats a byte count as "12.3 GB" style text for storage displays. */
+fun formatBytes(bytes: Long): String {
+    val units = listOf("B", "KB", "MB", "GB", "TB")
+    var value = bytes.toDouble()
+    var unit = 0
+    while (value >= 1024 && unit < units.lastIndex) {
+        value /= 1024
+        unit++
+    }
+    return if (unit == 0) "${bytes} ${units[0]}" else "%.1f %s".format(value, units[unit])
+}
+
 @Composable
 fun <T> CardRow(items: List<T>, key: (T) -> Any, content: @Composable (T) -> Unit) {
     LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

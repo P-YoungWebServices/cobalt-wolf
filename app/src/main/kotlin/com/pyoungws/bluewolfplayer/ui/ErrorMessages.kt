@@ -33,6 +33,7 @@ fun LoadError.message(): String = when (this) {
     LoadError.SessionExpired -> stringResource(R.string.error_session_expired)
     LoadError.ServerUnreachable -> stringResource(R.string.error_load_unreachable)
     LoadError.SecureConnectionFailed -> stringResource(R.string.error_load_secure_connection)
+    LoadError.Forbidden -> stringResource(R.string.error_load_forbidden)
     LoadError.NotFound -> stringResource(R.string.error_load_not_found)
     is LoadError.Unexpected -> stringResource(R.string.error_unexpected, message ?: stringResource(R.string.error_unknown))
 }

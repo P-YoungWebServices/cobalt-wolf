@@ -18,6 +18,12 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.playback.SdkJellyfinPlaybackDataSource
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminDashboardViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminDevicesViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminLibrariesViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminLogsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminSystemInfoViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminTasksViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminUsersViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.DiscoverViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
@@ -89,5 +95,11 @@ val sharedModule = module {
     viewModel { DiscoverViewModel(get(), get()) }
     viewModelOf(::MyRequestsViewModel)
     viewModelOf(::AdminDashboardViewModel)
+    viewModelOf(::AdminUsersViewModel)
+    viewModelOf(::AdminDevicesViewModel)
+    viewModelOf(::AdminLibrariesViewModel)
+    viewModelOf(::AdminTasksViewModel)
+    viewModelOf(::AdminLogsViewModel)
+    viewModelOf(::AdminSystemInfoViewModel)
     viewModel { (type: SeerrMediaType, tmdbId: Int) -> SeerrDetailViewModel(type, tmdbId, get()) }
 }
