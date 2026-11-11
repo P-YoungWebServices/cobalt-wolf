@@ -57,6 +57,7 @@ fun HomeScreen(
     onDiscover: () -> Unit,
     onWatchTogether: () -> Unit,
     onServers: () -> Unit,
+    onCalendar: () -> Unit,
     onPlaybackSettings: () -> Unit,
     isAdmin: Boolean,
     onDashboard: () -> Unit,
@@ -82,6 +83,7 @@ fun HomeScreen(
                     TextButton(onClick = onDiscover) { Text(stringResource(R.string.home_requests)) }
                     TextButton(onClick = onWatchTogether) { Text(stringResource(R.string.home_watch_together)) }
                     TextButton(onClick = onServers) { Text(stringResource(R.string.home_servers)) }
+                    TextButton(onClick = onCalendar) { Text(stringResource(R.string.home_calendar)) }
                     TextButton(onClick = onPlaybackSettings) { Text(stringResource(R.string.home_playback_settings)) }
                     if (isAdmin) {
                         TextButton(onClick = onDashboard) { Text(stringResource(R.string.home_dashboard)) }

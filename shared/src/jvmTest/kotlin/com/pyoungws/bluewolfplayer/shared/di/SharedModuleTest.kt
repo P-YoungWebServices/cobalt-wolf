@@ -1,5 +1,7 @@
 package com.pyoungws.bluewolfplayer.shared.di
 
+import com.pyoungws.bluewolfplayer.shared.arrs.ArrSettingsStore
+import com.pyoungws.bluewolfplayer.shared.arrs.InMemoryArrSettingsStore
 import com.pyoungws.bluewolfplayer.shared.auth.InMemoryServerProfilesStore
 import com.pyoungws.bluewolfplayer.shared.auth.InMemorySessionStore
 import com.pyoungws.bluewolfplayer.shared.auth.ServerProfilesStore
@@ -20,6 +22,8 @@ import com.pyoungws.bluewolfplayer.shared.presentation.AdminSystemInfoViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminTasksViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminUsersViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.ArrSettingsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.CalendarViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.DiscoverViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MyRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
@@ -80,6 +84,7 @@ class SharedModuleTest {
             single<PlaybackSettingsStore> { InMemoryPlaybackSettingsStore() }
             single<SeerrSettingsStore> { InMemorySeerrSettingsStore() }
             single<SeerrSessionStore> { InMemorySeerrSessionStore() }
+            single<ArrSettingsStore> { InMemoryArrSettingsStore() }
         }
         val koin = koinApplication { modules(sharedModule, platform) }.koin
         val library = Library("l1", "Movies", LibraryType.Movies, null)
@@ -107,5 +112,7 @@ class SharedModuleTest {
         assertNotNull(koin.get<AdminRequestsViewModel>())
         assertNotNull(koin.get<SyncPlayViewModel>())
         assertNotNull(koin.get<ServersViewModel>())
+        assertNotNull(koin.get<CalendarViewModel>())
+        assertNotNull(koin.get<ArrSettingsViewModel>())
     }
 }

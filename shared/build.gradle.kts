@@ -30,6 +30,7 @@ kotlin {
             api(libs.koin.core)
             api(libs.koin.core.viewmodel)
             api(libs.kotlinx.serialization.json)
+            api(libs.kotlinx.datetime)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.ktor.client.content.negotiation)

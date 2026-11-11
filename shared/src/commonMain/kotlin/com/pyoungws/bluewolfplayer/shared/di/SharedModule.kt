@@ -1,6 +1,11 @@
 package com.pyoungws.bluewolfplayer.shared.di
 
 import com.pyoungws.bluewolfplayer.shared.admin.AdminRepository
+import com.pyoungws.bluewolfplayer.shared.arrs.ArrDataSource
+import com.pyoungws.bluewolfplayer.shared.arrs.ArrRepository
+import com.pyoungws.bluewolfplayer.shared.arrs.ArrSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.arrs.KtorArrDataSource
+import com.pyoungws.bluewolfplayer.shared.arrs.arrHttpClient
 import com.pyoungws.bluewolfplayer.shared.admin.JellyfinAdminDataSource
 import com.pyoungws.bluewolfplayer.shared.admin.SdkJellyfinAdminDataSource
 import com.pyoungws.bluewolfplayer.shared.auth.AuthRepository
@@ -26,6 +31,8 @@ import com.pyoungws.bluewolfplayer.shared.presentation.AdminSystemInfoViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminTasksViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminUsersViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.ArrSettingsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.CalendarViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.DiscoverViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
@@ -93,6 +100,11 @@ val sharedModule = module {
     single<SyncPlayDataSource> { SdkSyncPlayDataSource(get()) }
     single { SyncPlayRepository(get(), get(), get(), get()) }
 
+    single { arrHttpClient() }
+    single<ArrDataSource> { KtorArrDataSource(get()) }
+    single { ArrSettingsRepository(get()) }
+    single { ArrRepository(get(), get()) }
+
     viewModelOf(::AppViewModel)
     viewModelOf(::LibraryHomeViewModel)
     viewModel { SearchViewModel(get()) }
@@ -116,4 +128,6 @@ val sharedModule = module {
     viewModelOf(::AdminSystemInfoViewModel)
     viewModelOf(::AdminRequestsViewModel)
     viewModel { (type: SeerrMediaType, tmdbId: Int) -> SeerrDetailViewModel(type, tmdbId, get()) }
+    viewModelOf(::CalendarViewModel)
+    viewModelOf(::ArrSettingsViewModel)
 }

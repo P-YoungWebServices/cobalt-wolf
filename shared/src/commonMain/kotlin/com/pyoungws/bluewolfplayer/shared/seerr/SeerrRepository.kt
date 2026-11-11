@@ -6,6 +6,7 @@ import com.pyoungws.bluewolfplayer.shared.auth.SignInError
 import com.pyoungws.bluewolfplayer.shared.auth.SignInResult
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
+import com.pyoungws.bluewolfplayer.shared.net.toLoadError
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.HttpRequestTimeoutException
@@ -262,20 +263,6 @@ class SeerrRepository(
         // unverifiable cookie too, which must not be treated as "session expired" — the user
         // stays signed in and sees the error instead of being silently signed out.
         response.status.value == HTTP_UNAUTHORIZED
-
-    private fun Throwable.toLoadError(): LoadError = when (this) {
-        is ClientRequestException -> when (response.status.value) {
-            HTTP_NOT_FOUND -> LoadError.NotFound
-            HTTP_FORBIDDEN -> LoadError.Forbidden
-            else -> LoadError.Unexpected(message)
-        }
-        is ServerResponseException, is RedirectResponseException -> LoadError.Unexpected(message)
-        is JsonConvertException -> LoadError.Unexpected(message)
-        is SSLHandshakeException -> LoadError.SecureConnectionFailed
-        is HttpRequestTimeoutException, is SocketTimeoutException -> LoadError.ServerUnreachable
-        is IOException -> LoadError.ServerUnreachable
-        else -> LoadError.Unexpected(message)
-    }
 
     private fun Throwable.toSignInError(): SignInError = when (this) {
         is ClientRequestException -> if (isAuthError()) SignInError.InvalidCredentials else SignInError.Unexpected(message)

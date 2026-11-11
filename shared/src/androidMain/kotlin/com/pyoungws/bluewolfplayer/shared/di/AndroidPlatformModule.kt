@@ -1,5 +1,7 @@
 package com.pyoungws.bluewolfplayer.shared.di
 
+import com.pyoungws.bluewolfplayer.shared.arrs.ArrSettingsStore
+import com.pyoungws.bluewolfplayer.shared.arrs.SharedPreferencesArrSettingsStore
 import com.pyoungws.bluewolfplayer.shared.auth.KeystoreServerProfilesStore
 import com.pyoungws.bluewolfplayer.shared.auth.KeystoreSessionStore
 import com.pyoungws.bluewolfplayer.shared.auth.ServerProfilesStore
@@ -37,6 +39,7 @@ fun androidPlatformModule(clientName: String, clientVersion: String): Module {
         single<PlaybackSettingsStore> { SharedPreferencesPlaybackSettingsStore(androidContext()) }
         single<SeerrSettingsStore> { SharedPreferencesSeerrSettingsStore(androidContext()) }
         single<SeerrSessionStore> { KeystoreSeerrSessionStore(androidContext()) }
+        single<ArrSettingsStore> { SharedPreferencesArrSettingsStore(androidContext()) }
     }
 }
 
