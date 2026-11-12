@@ -6,15 +6,18 @@ import com.pyoungws.bluewolfplayer.shared.admin.playingSession
 import com.pyoungws.bluewolfplayer.shared.arrs.ArrService
 import com.pyoungws.bluewolfplayer.shared.arrs.ArrSettingsRepository
 import com.pyoungws.bluewolfplayer.shared.arrs.InMemoryArrSettingsStore
+import com.pyoungws.bluewolfplayer.shared.auth.ADMIN
 import com.pyoungws.bluewolfplayer.shared.auth.AuthRepository
 import com.pyoungws.bluewolfplayer.shared.auth.FakeAuthDataSource
 import com.pyoungws.bluewolfplayer.shared.auth.InMemorySessionStore
+import com.pyoungws.bluewolfplayer.shared.auth.VIEWER
 import com.pyoungws.bluewolfplayer.shared.bazarr.BazarrRepository
 import com.pyoungws.bluewolfplayer.shared.bazarr.FakeBazarrDataSource
 import com.pyoungws.bluewolfplayer.shared.library.SESSION
 import com.pyoungws.bluewolfplayer.shared.library.SessionGuard
 import com.pyoungws.bluewolfplayer.shared.library.movie
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
+import com.pyoungws.bluewolfplayer.shared.model.UserProfile
 import com.pyoungws.bluewolfplayer.shared.prowlarr.FakeProwlarrDataSource
 import com.pyoungws.bluewolfplayer.shared.prowlarr.ProwlarrIndexer
 import com.pyoungws.bluewolfplayer.shared.prowlarr.ProwlarrRepository
@@ -52,12 +55,17 @@ class AdminDashboardViewModelTest {
         dataSource: FakeAdminDataSource,
         bazarr: FakeBazarrDataSource = FakeBazarrDataSource(),
         prowlarr: FakeProwlarrDataSource = FakeProwlarrDataSource(),
+        user: UserProfile = ADMIN,
         configureServices: ArrSettingsRepository.() -> Unit = {},
         body: suspend (AdminDashboardViewModel) -> Unit,
     ) {
-        val auth = AuthRepository(FakeAuthDataSource(), InMemorySessionStore(SESSION)).apply { restoreSession() }
+        val auth = AuthRepository(
+            FakeAuthDataSource().apply { onGetCurrentUser = { user } },
+            InMemorySessionStore(SESSION),
+        ).apply { restoreSession() }
         val settings = ArrSettingsRepository(InMemoryArrSettingsStore()).apply(configureServices)
         val viewModel = AdminDashboardViewModel(
+            auth,
             AdminRepository(dataSource, SessionGuard(auth)),
             BazarrRepository(bazarr, settings),
             ProwlarrRepository(prowlarr, settings),
@@ -122,6 +130,29 @@ class AdminDashboardViewModelTest {
             advanceTimeBy(20_000)
             runCurrent()
             assertEquals(3, dataSource.dashboardCalls)
+        }
+    }
+
+    @Test
+    fun `viewers get recently added without polling sessions`() = runTest {
+        val dataSource = FakeAdminDataSource().apply {
+            sessions = { listOf(playingSession("s1")) }
+            recentlyAdded = { listOf(movie("m1")) }
+        }
+        withViewModel(dataSource, user = VIEWER) { viewModel ->
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertEquals(false, state.isLoading)
+            assertEquals(false, state.isAdmin)
+            assertEquals(emptyList(), state.sessions)
+            assertEquals(listOf("m1"), state.recentlyAdded.map { it.id })
+            assertEquals(0, dataSource.dashboardCalls)
+
+            // refresh() reloads recently added but still never touches the admin feed.
+            viewModel.refresh()
+            runCurrent()
+            assertEquals(0, dataSource.dashboardCalls)
         }
     }
 

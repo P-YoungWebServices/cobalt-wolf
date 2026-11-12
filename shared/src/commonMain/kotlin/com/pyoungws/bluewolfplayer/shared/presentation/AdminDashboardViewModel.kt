@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pyoungws.bluewolfplayer.shared.admin.ActiveSession
 import com.pyoungws.bluewolfplayer.shared.admin.AdminRepository
+import com.pyoungws.bluewolfplayer.shared.auth.AuthRepository
+import com.pyoungws.bluewolfplayer.shared.auth.SignInResult
 import com.pyoungws.bluewolfplayer.shared.bazarr.BazarrRepository
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
@@ -40,6 +42,8 @@ data class ServiceBadge(
 
 data class AdminDashboardUiState(
     val isLoading: Boolean = true,
+    /** Administrators see sessions, service cards and the management section; viewers do not. */
+    val isAdmin: Boolean = false,
     val sessions: List<ActiveSession> = emptyList(),
     val recentlyAdded: List<MediaItem> = emptyList(),
     /** Set on a failed (re)load; earlier data is kept so the screen does not blank on one bad poll. */
@@ -50,8 +54,13 @@ data class AdminDashboardUiState(
     val prowlarr: ServiceBadge = ServiceBadge(),
 )
 
-/** Admin dashboard: sessions and recently added media, re-fetched every [AdminDashboardUiState.refreshSeconds]. */
+/**
+ * The dashboard is open to everyone: admins get sessions, service badges and the management
+ * section (re-fetched every [AdminDashboardUiState.refreshSeconds]); viewers get the
+ * Servers/Playback actions and recently added media.
+ */
 class AdminDashboardViewModel(
+    private val authRepository: AuthRepository,
     private val repository: AdminRepository,
     private val bazarrRepository: BazarrRepository,
     private val prowlarrRepository: ProwlarrRepository,
@@ -62,10 +71,21 @@ class AdminDashboardViewModel(
     private var pollJob: Job? = null
 
     init {
-        restartPolling()
-        // The badge counts change slowly; they are fetched once up front and on refresh(),
-        // not on every poll like the sessions list.
-        viewModelScope.launch { loadBadges() }
+        viewModelScope.launch { resolveAccess() }
+    }
+
+    /** Reads the user policy once, then loads either the admin feed or the viewer feed. */
+    private suspend fun resolveAccess() {
+        val admin = (authRepository.currentUser() as? SignInResult.Success)?.user?.isAdministrator == true
+        _uiState.update { it.copy(isAdmin = admin) }
+        if (admin) {
+            restartPolling()
+            // The badge counts change slowly; they are fetched once up front and on refresh(),
+            // not on every poll like the sessions list.
+            loadBadges()
+        } else {
+            loadRecentlyAdded()
+        }
     }
 
     /** Changes the auto-refresh interval and applies it right away (the next poll uses it). */
@@ -79,8 +99,12 @@ class AdminDashboardViewModel(
     /** One-off reload, e.g. pull-to-refresh; the poll loop keeps its own schedule. */
     fun refresh() {
         viewModelScope.launch {
-            loadOnce()
-            loadBadges()
+            if (_uiState.value.isAdmin) {
+                loadOnce()
+                loadBadges()
+            } else {
+                loadRecentlyAdded()
+            }
         }
     }
 
@@ -119,6 +143,14 @@ class AdminDashboardViewModel(
                     error = null,
                 )
             }
+            is Outcome.Failure -> _uiState.update { it.copy(isLoading = false, error = result.error) }
+        }
+    }
+
+    /** The viewer feed: recently added media, no sessions poll. */
+    private suspend fun loadRecentlyAdded() {
+        when (val result = repository.recentlyAdded()) {
+            is Outcome.Success -> _uiState.update { it.copy(isLoading = false, recentlyAdded = result.value, error = null) }
             is Outcome.Failure -> _uiState.update { it.copy(isLoading = false, error = result.error) }
         }
     }

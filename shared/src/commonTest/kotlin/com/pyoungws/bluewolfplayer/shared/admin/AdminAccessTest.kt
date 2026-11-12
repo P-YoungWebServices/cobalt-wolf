@@ -13,8 +13,13 @@ import kotlin.test.assertTrue
  */
 class AdminAccessTest {
 
-    private val viewerDestinations = listOf(NavDestination.Search, NavDestination.Requests, NavDestination.PlaybackSettings)
-    private val adminDestinations = listOf(NavDestination.Dashboard) + MANAGEMENT_DESTINATIONS
+    private val viewerDestinations = listOf(
+        NavDestination.Search,
+        NavDestination.Requests,
+        NavDestination.PlaybackSettings,
+        NavDestination.Dashboard,
+    )
+    private val adminDestinations = listOf(NavDestination.Sessions) + MANAGEMENT_DESTINATIONS
 
     @Test
     fun `non-admin users get no admin navigation entry`() {
@@ -26,7 +31,13 @@ class AdminAccessTest {
     }
 
     @Test
-    fun `administrators get the dashboard and every management destination`() {
+    fun `everyone can reach the dashboard, including viewers`() {
+        assertTrue(VIEWER.canNavigateTo(NavDestination.Dashboard))
+        assertTrue(ADMIN.canNavigateTo(NavDestination.Dashboard))
+    }
+
+    @Test
+    fun `administrators get sessions and every management destination`() {
         adminDestinations.forEach { destination ->
             assertTrue(destination in ADMIN.navDestinations(), "$destination must be listed for admins")
             assertTrue(ADMIN.canNavigateTo(destination), "$destination must be reachable for admins")

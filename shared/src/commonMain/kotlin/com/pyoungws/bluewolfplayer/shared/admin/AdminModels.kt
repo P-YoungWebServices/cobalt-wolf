@@ -47,10 +47,11 @@ data class AdminDashboard(
 )
 
 /**
- * Entries in the signed-in top navigation. [Dashboard] and the management screens behind it
- * exist for administrators only.
+ * Entries in the signed-in top navigation. [Dashboard] is for everyone; its content varies
+ * by privilege. [Sessions] and the management screens behind the dashboard exist for
+ * administrators only.
  */
-enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard, RequestQueue, Users, Devices, Libraries, Tasks, Logs, SystemInfo, MediaManager, Downloads, Bazarr, Prowlarr, Services }
+enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard, Sessions, RequestQueue, Users, Devices, Libraries, Tasks, Logs, SystemInfo, MediaManager, Downloads, Bazarr, Prowlarr, Services }
 
 /** The admin management screens reachable from the dashboard. */
 val MANAGEMENT_DESTINATIONS = listOf(
@@ -73,8 +74,9 @@ fun UserProfile.navDestinations(): List<NavDestination> = buildList {
     add(NavDestination.Search)
     add(NavDestination.Requests)
     add(NavDestination.PlaybackSettings)
+    add(NavDestination.Dashboard)
     if (isAdministrator) {
-        add(NavDestination.Dashboard)
+        add(NavDestination.Sessions)
         addAll(MANAGEMENT_DESTINATIONS)
     }
 }

@@ -91,33 +91,35 @@ private fun DashboardContent(
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item(key = "actions") {
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DashboardActionCard(
-                        title = stringResource(R.string.admin_active_sessions),
-                        subtitle = pluralStringResource(R.plurals.admin_session_count, state.sessions.size, state.sessions.size),
-                        onClick = onOpenSessions,
-                        modifier = Modifier.weight(1f),
-                    )
-                    DashboardActionCard(
-                        title = stringResource(R.string.home_downloads),
-                        subtitle = stringResource(R.string.admin_manage_downloads_subtitle),
-                        onClick = { onOpenManage(NavDestination.Downloads) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DashboardActionCard(
-                        title = stringResource(R.string.bazarr_title),
-                        subtitle = bazarrSubtitle(state.bazarr),
-                        onClick = { onOpenManage(NavDestination.Bazarr) },
-                        modifier = Modifier.weight(1f),
-                    )
-                    DashboardActionCard(
-                        title = stringResource(R.string.prowlarr_title),
-                        subtitle = prowlarrSubtitle(state.prowlarr),
-                        onClick = { onOpenManage(NavDestination.Prowlarr) },
-                        modifier = Modifier.weight(1f),
-                    )
+                if (state.isAdmin) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DashboardActionCard(
+                            title = stringResource(R.string.admin_active_sessions),
+                            subtitle = pluralStringResource(R.plurals.admin_session_count, state.sessions.size, state.sessions.size),
+                            onClick = onOpenSessions,
+                            modifier = Modifier.weight(1f),
+                        )
+                        DashboardActionCard(
+                            title = stringResource(R.string.home_downloads),
+                            subtitle = stringResource(R.string.admin_manage_downloads_subtitle),
+                            onClick = { onOpenManage(NavDestination.Downloads) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DashboardActionCard(
+                            title = stringResource(R.string.bazarr_title),
+                            subtitle = bazarrSubtitle(state.bazarr),
+                            onClick = { onOpenManage(NavDestination.Bazarr) },
+                            modifier = Modifier.weight(1f),
+                        )
+                        DashboardActionCard(
+                            title = stringResource(R.string.prowlarr_title),
+                            subtitle = prowlarrSubtitle(state.prowlarr),
+                            onClick = { onOpenManage(NavDestination.Prowlarr) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DashboardActionCard(
@@ -141,19 +143,21 @@ private fun DashboardContent(
                 CardRow(state.recentlyAdded, key = { it.id }) { PosterCard(it, onClick = { onOpenItem(it.id) }) }
             }
         }
-        item(key = "manage-title") { SectionTitle(stringResource(R.string.admin_manage_title)) }
-        items(MANAGEMENT_DESTINATIONS.filter { it !in DASHBOARD_CARD_DESTINATIONS }, key = { "manage-${it.name}" }) { destination ->
-            Card(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(8.dp)).clickable { onOpenManage(destination) },
-                shape = RoundedCornerShape(8.dp),
-            ) {
-                Column(Modifier.padding(12.dp)) {
-                    Text(manageTitle(destination), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        manageSubtitle(destination),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+        if (state.isAdmin) {
+            item(key = "manage-title") { SectionTitle(stringResource(R.string.admin_manage_title)) }
+            items(MANAGEMENT_DESTINATIONS.filter { it !in DASHBOARD_CARD_DESTINATIONS }, key = { "manage-${it.name}" }) { destination ->
+                Card(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(8.dp)).clickable { onOpenManage(destination) },
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(manageTitle(destination), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            manageSubtitle(destination),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
