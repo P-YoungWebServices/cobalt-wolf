@@ -339,6 +339,7 @@
     <string name="player_no_tracks">No tracks available.</string>
     <string name="player_pip_unavailable">Picture-in-picture is not available on this device.</string>
     <string name="player_stats">Stats</string>
+    <string name="player_bitrate">Stream quality</string>
     <string name="player_fallback_local">The device decoder failed. Decoding in software (FFmpeg) instead.</string>
     <string name="player_fallback_transcode">This device cannot play the original. The server is transcoding it.</string>
     <string name="level_direct_play">Direct play</string>

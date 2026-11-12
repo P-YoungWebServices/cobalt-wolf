@@ -11,6 +11,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.nextFallback
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackReport
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRepository
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRequest
+import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.TICKS_PER_MILLISECOND
 import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayEchoGate
 import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayMembership
@@ -94,6 +95,19 @@ class PlayerViewModel(
     fun retry() {
         _uiState.value = PlayerUiState.Loading
         prepare(forceTranscode = triedTranscode)
+    }
+
+    /**
+     * Applies a new bitrate cap and re-requests the source, resuming at [positionMs].
+     * The cap persists, so the next stream starts with it too.
+     */
+    fun changeBitrate(bitrate: StreamBitrate, positionMs: Long) {
+        val ready = _uiState.value as? PlayerUiState.Ready ?: return
+        if (ready.request.settings.maxBitrate == bitrate) return
+        repository.setMaxBitrate(bitrate)
+        endCurrentReporting(positionMs)
+        _uiState.value = PlayerUiState.Loading
+        prepare(forceTranscode = triedTranscode, resumeAtMs = positionMs)
     }
 
     /**

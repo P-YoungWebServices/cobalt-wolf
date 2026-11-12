@@ -46,11 +46,10 @@ class PlaybackSettingsViewModelTest {
         viewModel.setHdr(HdrPreference.Auto)
         viewModel.setFrameRateMatching(FrameRateMatching.Off)
         viewModel.setStyledSubtitles(false)
-        viewModel.setShowStats(true)
 
         val expected = PlaybackSettings(
             dolbyVision = false, audioOutput = AudioOutputPreference.PcmOnly, frameRateMatching = FrameRateMatching.Off,
-            styledSubtitles = false, showStats = true,
+            styledSubtitles = false,
         )
         assertEquals(expected, state().settings)
         assertEquals(expected, store.saved)
@@ -76,14 +75,13 @@ class PlaybackSettingsViewModelTest {
     }
 
     @Test
-    fun `reset returns to automatic but keeps the stats toggle`() {
+    fun `reset returns to automatic`() {
         viewModel.setDecoding(DecodingPreference.PreferLocal)
         viewModel.setHdr(HdrPreference.SdrOnly)
-        viewModel.setShowStats(true)
 
         viewModel.resetToAutomatic()
 
-        assertEquals(PlaybackSettings(showStats = true), store.saved)
+        assertEquals(PlaybackSettings(), store.saved)
     }
 
     @Test

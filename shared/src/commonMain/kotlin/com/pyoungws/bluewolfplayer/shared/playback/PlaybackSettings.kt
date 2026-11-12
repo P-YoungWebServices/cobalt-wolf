@@ -62,7 +62,6 @@ data class PlaybackSettings(
     val maxBitrate: StreamBitrate = StreamBitrate.Auto,
     /** Render ASS/SSA subtitles with libass (full styling) instead of the basic text renderer. */
     val styledSubtitles: Boolean = true,
-    val showStats: Boolean = false,
 )
 
 /** Persists [PlaybackSettings]. */

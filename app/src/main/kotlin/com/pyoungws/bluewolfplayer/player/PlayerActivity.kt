@@ -69,6 +69,8 @@ class PlayerActivity : ComponentActivity() {
                     debugSubtitleMimeType = intent.getStringExtra("subtitle_mime").takeIf { BuildConfig.DEBUG },
                     // Debug only: `--ei max_channels 6` caps PCM output channel count.
                     debugMaxChannels = intent.takeIf { it.hasExtra("max_channels") }?.getIntExtra("max_channels", 0)?.takeIf { BuildConfig.DEBUG },
+                    // Debug only: `--ez stats` opens the stats overlay for this run.
+                    debugShowStats = BuildConfig.DEBUG && intent.getBooleanExtra("stats", false),
                     onPlayerChanged = { player = it },
                     onPlayingChanged = ::updatePipParams,
                     onEnterPip = ::enterPip,
@@ -164,8 +166,8 @@ class PlayerActivity : ComponentActivity() {
 
     /**
      * Debug only: `--es decoding Auto|PreferLocal|AlwaysTranscode`, `--es audio_output Auto|PcmOnly`,
-     * `--es hdr Auto|SdrOnly`, `--es max_bitrate Auto|Mbps120|...`, `--ez dolby_vision`,
-     * `--ez styled_subtitles` and `--ez stats` change the
+     * `--es hdr Auto|SdrOnly`, `--es max_bitrate Auto|Mbps120|...`, `--ez dolby_vision` and
+     * `--ez styled_subtitles` change the
      * saved Playback settings before playing, and the detected capabilities are logged.
      */
     private fun applyDebugOverrides(intent: Intent) {
@@ -179,7 +181,6 @@ class PlayerActivity : ComponentActivity() {
                 styledSubtitles = if (extras?.containsKey("styled_subtitles") == true) extras.getBoolean("styled_subtitles") else settings.styledSubtitles,
                 frameRateMatching = extras?.getString("frame_rate")?.let(FrameRateMatching::valueOf) ?: settings.frameRateMatching,
                 maxBitrate = extras?.getString("max_bitrate")?.let(StreamBitrate::valueOf) ?: settings.maxBitrate,
-                showStats = if (extras?.containsKey("stats") == true) extras.getBoolean("stats") else settings.showStats,
             )
         }
         // `--ez over_lock_screen true` lets a test run play on a locked, sleeping device.
