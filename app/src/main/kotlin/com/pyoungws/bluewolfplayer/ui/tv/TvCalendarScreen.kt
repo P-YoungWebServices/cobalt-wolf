@@ -11,20 +11,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,7 +48,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.CalendarPeriod
 import com.pyoungws.bluewolfplayer.shared.presentation.CalendarUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.CalendarViewModel
 import com.pyoungws.bluewolfplayer.ui.calendar.labelRes
-import com.pyoungws.bluewolfplayer.ui.common.tvListScroll
+import com.pyoungws.bluewolfplayer.ui.common.Artwork
 import org.koin.compose.viewmodel.koinViewModel
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -57,30 +62,23 @@ import kotlinx.datetime.todayIn
 import kotlin.time.Clock
 import java.time.LocalDate as JavaLocalDate
 
-/** Upcoming Radarr/Sonarr releases on TV; admins get a "Services" button that swaps the list for the settings form. */
+/** Upcoming Radarr/Sonarr releases on TV, as a list, a week agenda or a month grid. */
 @Composable
 fun TvCalendarScreen(
     viewModel: CalendarViewModel = koinViewModel(),
-    canConfigureServices: Boolean = false,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val mode by viewModel.mode.collectAsStateWithLifecycle()
     val anchor by viewModel.anchor.collectAsStateWithLifecycle()
-    var showSettings by rememberSaveable { mutableStateOf(false) }
     val failedNames = buildList {
         for (service in (state as? CalendarUiState.Ready)?.failedServices.orEmpty()) add(stringResource(service.labelRes()))
     }.joinToString()
 
-    if (showSettings) {
-        TvServiceSettings(onDone = { showSettings = false })
-        return
-    }
-
     var selected by remember(anchor) { mutableStateOf<LocalDate?>(null) }
-    val listState = rememberLazyListState()
+    val contentFocus = remember { FocusRequester() }
+    var focusContent by remember { mutableStateOf(false) }
     LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize().tvListScroll(listState),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = TvContentPadding, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -98,11 +96,11 @@ fun TvCalendarScreen(
                     if (option == mode) {
                         Button(onClick = {}) { Text(label) }
                     } else {
-                        OutlinedButton(onClick = { viewModel.show(option, anchor) }) { Text(label) }
+                        OutlinedButton(onClick = {
+                            viewModel.show(option, anchor)
+                            focusContent = option != CalendarMode.List
+                        }) { Text(label) }
                     }
-                }
-                if (canConfigureServices) {
-                    OutlinedButton(onClick = { showSettings = true }) { Text(stringResource(R.string.calendar_settings)) }
                 }
                 OutlinedButton(onClick = viewModel::refresh) { Text(stringResource(R.string.admin_refresh)) }
             }
@@ -129,8 +127,8 @@ fun TvCalendarScreen(
                 }
                 when (mode) {
                     CalendarMode.List -> tvCalendarListItems(current)
-                    CalendarMode.Week -> tvCalendarWeekItems(current, anchor, viewModel)
-                    CalendarMode.Month -> tvCalendarMonthItems(current, anchor, viewModel, selected) { selected = it }
+                    CalendarMode.Week -> tvCalendarWeekItems(current, anchor, viewModel, contentFocus, focusContent) { focusContent = false }
+                    CalendarMode.Month -> tvCalendarMonthItems(current, anchor, viewModel, selected, contentFocus, focusContent, { focusContent = false }) { selected = it }
                 }
             }
         }
@@ -150,10 +148,19 @@ private fun LazyListScope.tvCalendarListItems(current: CalendarUiState.Ready) {
     items(current.items) { item -> TvCalendarItem(item) }
 }
 
-private fun LazyListScope.tvCalendarWeekItems(current: CalendarUiState.Ready, anchor: LocalDate, viewModel: CalendarViewModel) {
+private fun LazyListScope.tvCalendarWeekItems(
+    current: CalendarUiState.Ready,
+    anchor: LocalDate,
+    viewModel: CalendarViewModel,
+    contentFocus: FocusRequester,
+    focusContent: Boolean,
+    onFocusHandled: () -> Unit,
+) {
     val (start, end) = CalendarPeriod.weekRange(anchor)
     val byDate = current.items.groupBy { it.date }
-    item(key = "week-header") { TvPeriodHeader(weekLabel(start, end), viewModel, anchor, CalendarMode.Week) }
+    item(key = "week-header") {
+        TvPeriodHeader(weekLabel(start, end), viewModel, anchor, CalendarMode.Week, contentFocus, focusContent, onFocusHandled)
+    }
     generateSequence(start) { it.plus(1, DateTimeUnit.DAY).takeIf { d -> d <= end } }.forEach { date ->
         item(key = "day-$date") {
             Text(tvFormatWeekday(date), style = MaterialTheme.typography.titleMedium)
@@ -178,13 +185,18 @@ private fun LazyListScope.tvCalendarMonthItems(
     anchor: LocalDate,
     viewModel: CalendarViewModel,
     selected: LocalDate?,
+    contentFocus: FocusRequester,
+    focusContent: Boolean,
+    onFocusHandled: () -> Unit,
     onSelect: (LocalDate) -> Unit,
 ) {
     val days = CalendarPeriod.monthGridDays(anchor)
     val byDate = current.items.groupBy { it.date }
     val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
     val selectedDay = selected ?: if (today.month == anchor.month && today.year == anchor.year) today else days.first { it.month == anchor.month }
-    item(key = "month-header") { TvPeriodHeader(monthLabel(anchor), viewModel, anchor, CalendarMode.Month) }
+    item(key = "month-header") {
+        TvPeriodHeader(monthLabel(anchor), viewModel, anchor, CalendarMode.Month, contentFocus, focusContent, onFocusHandled)
+    }
     item(key = "dow") {
         val firstDay = days.first().toJava()
         Row(Modifier.fillMaxWidth()) {
@@ -232,13 +244,30 @@ private fun LazyListScope.tvCalendarMonthItems(
 }
 
 @Composable
-private fun TvPeriodHeader(label: String, viewModel: CalendarViewModel, anchor: LocalDate, mode: CalendarMode) {
+private fun TvPeriodHeader(
+    label: String,
+    viewModel: CalendarViewModel,
+    anchor: LocalDate,
+    mode: CalendarMode,
+    contentFocus: FocusRequester,
+    focusContent: Boolean,
+    onFocusHandled: () -> Unit,
+) {
+    LaunchedEffect(focusContent) {
+        if (focusContent) {
+            contentFocus.requestFocus()
+            onFocusHandled()
+        }
+    }
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        OutlinedButton(onClick = { viewModel.show(mode, CalendarPeriod.step(anchor, mode, -1)) }) { Text("‹") }
+        OutlinedButton(
+            onClick = { viewModel.show(mode, CalendarPeriod.step(anchor, mode, -1)) },
+            modifier = Modifier.focusRequester(contentFocus),
+        ) { Text("‹") }
         Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
         OutlinedButton(onClick = { viewModel.show(mode, CalendarPeriod.step(anchor, mode, 1)) }) { Text("›") }
     }
@@ -295,18 +324,31 @@ private fun tvServiceDotColor(service: ArrService) = when (service) {
 
 @Composable
 private fun TvCalendarItem(item: UpcomingItem) {
-    Column {
-        Text(item.title, style = MaterialTheme.typography.bodyLarge)
-        Text(
-            listOfNotNull(
-                item.date.toString(),
-                stringResource(item.service.labelRes()),
-                item.subtitle,
-                stringResource(R.string.calendar_downloaded).takeIf { item.hasFile },
-            ).joinToString(" · "),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    var focused by remember { mutableStateOf(false) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .onFocusChanged { focused = it.isFocused }
+            .background(if (focused) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .focusable(),
+    ) {
+        Artwork(item.posterUrl, aspectRatio = 2f / 3f, modifier = Modifier.width(48.dp))
+        Column(Modifier.padding(start = 12.dp)) {
+            Text(item.title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                listOfNotNull(
+                    item.date.toString(),
+                    stringResource(item.service.labelRes()),
+                    item.subtitle,
+                    stringResource(R.string.calendar_downloaded).takeIf { item.hasFile },
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

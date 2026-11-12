@@ -86,9 +86,6 @@ fun CalendarScreen(
                 title = { Text(stringResource(R.string.calendar_title)) },
                 navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.nav_back)) } },
                 actions = {
-                    if (canConfigureServices) {
-                        TextButton(onClick = onSettings) { Text(stringResource(R.string.calendar_settings)) }
-                    }
                     TextButton(onClick = viewModel::refresh) { Text(stringResource(R.string.admin_refresh)) }
                 },
             )

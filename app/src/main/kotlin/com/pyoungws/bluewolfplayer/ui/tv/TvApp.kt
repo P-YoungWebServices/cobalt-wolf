@@ -174,6 +174,7 @@ private fun TvSignedInNavigation(
         TvTopBar(
             section = tvSection(section),
             userName = user?.name,
+            isAdmin = user?.isAdministrator == true,
             isSigningOut = isSigningOut,
             onSelect = { selected ->
                 if (routes.isNotEmpty()) stack = emptyList()
@@ -232,9 +233,7 @@ private fun TvSignedInNavigation(
                     TvSection.Requests -> TvDiscoverScreen(onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) })
                     TvSection.MyRequests -> TvMyRequestsScreen(onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) })
                     TvSection.Servers -> TvServersScreen()
-                    TvSection.Calendar -> TvCalendarScreen(
-                        canConfigureServices = user?.canNavigateTo(NavDestination.Services) == true,
-                    )
+                    TvSection.Calendar -> TvCalendarScreen()
                 }
                 else -> Unit
             }
@@ -264,6 +263,7 @@ private fun TvSignedInNavigation(
 private fun TvTopBar(
     section: TvSection,
     userName: String?,
+    isAdmin: Boolean,
     isSigningOut: Boolean,
     onSelect: (TvSection) -> Unit,
     onOpenRoute: (Route) -> Unit,
@@ -287,7 +287,10 @@ private fun TvTopBar(
         Box {
             TvNavButton(stringResource(R.string.home_more), selected = section in TvMoreSections) { menuOpen = true }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                TvMenuItem(R.string.discover_my_requests) { menuOpen = false; onSelect(TvSection.MyRequests) }
+                // Admin requests auto-approve, so admins have no list of their own to watch.
+                if (!isAdmin) {
+                    TvMenuItem(R.string.discover_my_requests) { menuOpen = false; onSelect(TvSection.MyRequests) }
+                }
                 // Servers and Settings live on the dashboard now.
                 TvMenuItem(R.string.home_dashboard) { menuOpen = false; onOpenRoute(Route.Dashboard) }
                 TvMenuItem(R.string.home_sign_out) { menuOpen = false; onSignOut() }
