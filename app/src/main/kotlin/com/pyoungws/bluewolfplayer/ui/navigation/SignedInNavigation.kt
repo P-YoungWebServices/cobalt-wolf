@@ -142,7 +142,8 @@ private const val SEPARATOR = "\u001F"
 
 /** The [NavDestination] an admin-only route is gated by, or null for routes everyone may see. */
 internal fun Route.adminDestination(): NavDestination? = when (this) {
-    Route.Dashboard, Route.Sessions -> NavDestination.Dashboard
+    Route.Dashboard -> NavDestination.Dashboard
+    Route.Sessions -> NavDestination.Sessions
     Route.AdminRequests -> NavDestination.RequestQueue
     Route.AdminUsers -> NavDestination.Users
     Route.AdminDevices -> NavDestination.Devices
@@ -202,7 +203,6 @@ fun SignedInNavigation() {
             onSearch = { push(Route.Search) },
             onDiscover = { push(Route.Discover) },
             onCalendar = { push(Route.Calendar) },
-            isAdmin = user?.canNavigateTo(NavDestination.Dashboard) == true,
             onDashboard = { push(Route.Dashboard) },
         )
         Route.Search -> SearchScreen(

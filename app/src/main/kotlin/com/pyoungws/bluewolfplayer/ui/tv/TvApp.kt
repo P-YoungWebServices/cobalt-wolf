@@ -174,7 +174,6 @@ private fun TvSignedInNavigation(
         TvTopBar(
             section = tvSection(section),
             userName = user?.name,
-            isAdmin = user?.canNavigateTo(NavDestination.Dashboard) == true,
             isSigningOut = isSigningOut,
             onSelect = { selected ->
                 if (routes.isNotEmpty()) stack = emptyList()
@@ -265,7 +264,6 @@ private fun TvSignedInNavigation(
 private fun TvTopBar(
     section: TvSection,
     userName: String?,
-    isAdmin: Boolean,
     isSigningOut: Boolean,
     onSelect: (TvSection) -> Unit,
     onOpenRoute: (Route) -> Unit,
@@ -290,10 +288,8 @@ private fun TvTopBar(
             TvNavButton(stringResource(R.string.home_more), selected = section in TvMoreSections) { menuOpen = true }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 TvMenuItem(R.string.discover_my_requests) { menuOpen = false; onSelect(TvSection.MyRequests) }
-                // Servers and Settings live on the admin dashboard now.
-                if (isAdmin) {
-                    TvMenuItem(R.string.admin_dashboard_title) { menuOpen = false; onOpenRoute(Route.Dashboard) }
-                }
+                // Servers and Settings live on the dashboard now.
+                TvMenuItem(R.string.admin_dashboard_title) { menuOpen = false; onOpenRoute(Route.Dashboard) }
                 TvMenuItem(R.string.home_sign_out) { menuOpen = false; onSignOut() }
             }
         }

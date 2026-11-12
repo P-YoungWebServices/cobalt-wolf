@@ -157,7 +157,11 @@ Conventions and rules for contributing to Cobalt Wolf.
   and the screen in `app/.../ui/admin`. `navDestinations()`/`canNavigateTo()`
   in `AdminModels.kt` are the single source of truth for admin visibility:
   the role comes from `UserProfile.isAdministrator` (the Jellyfin user policy),
-  and admin routes stay hidden and unreachable for everyone else. The Seerr
+  and admin routes stay hidden and unreachable for everyone else. The
+  dashboard itself is open to everyone — `AdminDashboardViewModel` resolves
+  the user policy and viewers get the Servers/Playback cards and recently
+  added media without the sessions poll, service cards or management section.
+  The Seerr
   request approval queue (`NavDestination.RequestQueue`) is the exception:
   its data goes through `SeerrRepository`, its screen is
   `AdminRequestsScreen` + `AdminRequestsViewModel`. Local notifications for
@@ -168,7 +172,7 @@ Conventions and rules for contributing to Cobalt Wolf.
   screen) — both are admin-only even though their underlying screens are
   general. The dashboard leads with "Active sessions" and "Downloads"
   action cards; sessions live on their own page (`Route.Sessions`,
-  `AdminSessionsScreen`, gated by `NavDestination.Dashboard`).
+  `AdminSessionsScreen`, gated by `NavDestination.Sessions`).
 - `app/widget/` holds the Android home-screen widget (`SessionsWidget`, a
   Glance `GlanceAppWidget`) listing the server's active sessions via
   `AdminRepository.sessions()`; session→row mapping lives in `SessionRow.kt`

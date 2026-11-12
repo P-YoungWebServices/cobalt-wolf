@@ -1,6 +1,7 @@
 package com.pyoungws.bluewolfplayer.shared.admin
 
 import com.pyoungws.bluewolfplayer.shared.library.SessionGuard
+import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -20,6 +21,10 @@ class AdminRepository(
             AdminDashboard(sessions.await(), latest.await())
         }
     }
+
+    /** Recently added media alone — the dashboard row viewers get without admin sessions. */
+    suspend fun recentlyAdded(): Outcome<List<MediaItem>> =
+        guard.run { dataSource.getRecentlyAdded(it, RECENT_LIMIT) }
 
     /** Sends a popup message to an active session. [text] is ignored when blank. */
     suspend fun sendMessage(sessionId: String, text: String): Outcome<Unit> {

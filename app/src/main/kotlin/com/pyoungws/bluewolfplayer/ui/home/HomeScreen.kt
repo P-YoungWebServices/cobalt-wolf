@@ -64,7 +64,6 @@ fun HomeScreen(
     onSearch: () -> Unit,
     onDiscover: () -> Unit,
     onCalendar: () -> Unit,
-    isAdmin: Boolean,
     onDashboard: () -> Unit,
     viewModel: LibraryHomeViewModel = koinViewModel(),
     accountViewModel: HomeViewModel = koinViewModel(),
@@ -114,12 +113,10 @@ fun HomeScreen(
                                     text = { Text(stringResource(R.string.home_calendar)) },
                                     onClick = { moreMenuOpen = false; onCalendar() },
                                 )
-                                if (isAdmin) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.home_dashboard)) },
-                                        onClick = { moreMenuOpen = false; onDashboard() },
-                                    )
-                                }
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.home_dashboard)) },
+                                    onClick = { moreMenuOpen = false; onDashboard() },
+                                )
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.home_sign_out)) },
                                     onClick = { moreMenuOpen = false; confirmSignOut = true },
