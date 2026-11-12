@@ -6,6 +6,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.Jellyfin
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.exception.InvalidContentException
 import org.jellyfin.sdk.api.client.extensions.mediaInfoApi
@@ -39,8 +47,17 @@ interface JellyfinPlaybackDataSource {
     suspend fun reportStopped(session: Session, report: PlaybackReport)
 }
 
+/** Client used only for the byte-range reads that probe Matroska cue indexes. */
+internal fun playbackHttpClient(): HttpClient = HttpClient(OkHttp) {
+    install(HttpTimeout) {
+        connectTimeoutMillis = 10_000
+        requestTimeoutMillis = 30_000
+    }
+}
+
 class SdkJellyfinPlaybackDataSource(
     private val jellyfin: Jellyfin,
+    private val rangeClient: HttpClient,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : JellyfinPlaybackDataSource {
 
@@ -72,7 +89,22 @@ class SdkJellyfinPlaybackDataSource(
             ),
         ).content
         val source = response.mediaSources.firstOrNull() ?: throw noPlayableSource()
-        source.toPlaybackSource(session, itemId, response.playSessionId)
+        val playbackSource = source.toPlaybackSource(session, itemId, response.playSessionId)
+        val isMatroska = source.container.equals("mkv", ignoreCase = true) || source.container.equals("webm", ignoreCase = true)
+        if (!isMatroska || playbackSource.method == PlaybackMethod.Transcode) return@call playbackSource
+        // Files whose head SeekHead omits the Cues entry play back unseekable; fetch the index now
+        // so the player can supply the SeekMap itself. Failures just keep the stream unseekable.
+        val cuePoints = runCatching {
+            probeMkvCueIndex { start, end ->
+                val response = rangeClient.get(playbackSource.url) {
+                    playbackSource.headers.forEach { (name, value) -> header(name, value) }
+                    header(HttpHeaders.Range, "bytes=$start-$end")
+                }
+                if (response.status != HttpStatusCode.PartialContent) error("No range support (${response.status})")
+                response.body<ByteArray>()
+            }
+        }.getOrNull()
+        playbackSource.copy(cuePoints = cuePoints)
     }
 
     override suspend fun canTranscodeVideo(session: Session): Boolean = call(session) {

@@ -25,7 +25,6 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.extractor.DefaultExtractorsFactory
-import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.ui.PlayerView
 import com.pyoungws.bluewolfplayer.shared.playback.AudioOutputPreference
@@ -82,11 +81,17 @@ internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playe
 
     val http = DefaultHttpDataSource.Factory().setDefaultRequestProperties(request.source.headers)
     val dataSource = DefaultDataSource.Factory(context, http)
-    // Progressive HTTP streams must not seek: Matroska cues live at the end of the file and
-    // seeking to them on a plain stream stalls playback repeatedly.
-    val extractors = DefaultExtractorsFactory()
-        .setMatroskaExtractorFlags(MatroskaExtractor.FLAG_DISABLE_SEEK_FOR_CUES)
-    fun ExtractorsFactory.finished() = withDolbyVisionBaseLayerFallback(request.capabilities, settings)
+    // Matroska cues live at the end of the file, so the extractor does one ranged read of them
+    // up front; FLAG_DISABLE_SEEK_FOR_CUES must stay off or the stream reports itself unseekable
+    // and every seek control (rw/ff, scrub, skip) is disabled.
+    val extractors: ExtractorsFactory = DefaultExtractorsFactory()
+    val cuePoints = request.source.cuePoints
+    fun ExtractorsFactory.finished(): ExtractorsFactory {
+        var factory = this
+        // After the ASS wrapper replaces the extractors so it also patches AssMatroskaExtractor.
+        if (!cuePoints.isNullOrEmpty()) factory = factory.withMkvCueIndex(cuePoints)
+        return factory.withDolbyVisionBaseLayerFallback(request.capabilities, settings)
+    }
 
     val assHandler = if (settings.styledSubtitles) AssHandler(AssRenderType.OVERLAY_OPEN_GL) else null
     val mediaSourceFactory = if (assHandler != null) {

@@ -397,12 +397,15 @@ private fun PlayerContent(
     // shows the controller on select. When the controls appear, play/pause takes the focus.
     val isTv = remember { context.isTelevision() }
     val rootFocusRequester = remember { FocusRequester() }
-    LaunchedEffect(isTv, controlsVisible) {
+    val activeSegment = segments.firstOrNull { it.contains(positionMs) }
+    LaunchedEffect(isTv, controlsVisible, activeSegment) {
         if (!isTv) return@LaunchedEffect
-        if (controlsVisible) {
-            playerView.findViewById<View>(androidx.media3.ui.R.id.exo_play_pause)?.requestFocus()
-        } else {
-            rootFocusRequester.requestFocus()
+        when {
+            // While a marked section is up the skip button takes focus — nothing else is
+            // reachable once the controller hides, and the D-pad cannot leave the player view.
+            activeSegment != null -> skipFocusRequester.requestFocus()
+            controlsVisible -> playerView.findViewById<View>(androidx.media3.ui.R.id.exo_play_pause)?.requestFocus()
+            else -> rootFocusRequester.requestFocus()
         }
     }
 
@@ -480,13 +483,7 @@ private fun PlayerContent(
                 ControlButton(onClick = onClose, icon = Icons.Outlined.Close, description = stringResource(R.string.player_close))
             }
         }
-        val activeSegment = segments.firstOrNull { it.contains(positionMs) }
         val duration = player.duration
-        // Nothing else is focusable while the controls are hidden, so on TV the skip button
-        // takes focus the moment a marked section begins and a single OK press skips it.
-        LaunchedEffect(activeSegment) {
-            if (isTv && activeSegment != null) skipFocusRequester.requestFocus()
-        }
         if (!isInPip && (activeSegment != null || (controlsVisible && duration > 0))) {
             Row(
                 Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 120.dp),

@@ -155,7 +155,22 @@ Conventions and rules for contributing to Cobalt Wolf.
   `playNext`; episodes also auto-advance on `STATE_ENDED` (not in SyncPlay
   groups). `PlaybackRepository.nextEpisode`/`mediaSegments` feed both —
   segments come from the Jellyfin `MediaSegments` API (intro/outro), and a
-  visible segment auto-focuses the TV skip button.
+  visible segment auto-focuses the TV skip button. PiP is disabled on TV
+  (`supportsPip` excludes `isTelevision()` — Fire OS declares the feature
+  but Home→PiP is wrong there).
+- Matroska seeking: ffmpeg-remuxed MKVs only reference their Cues from a
+  second SeekHead at EOF, which `MatroskaExtractor` never follows, so the
+  stream reports `SeekMap.Unseekable` and every seek control dies (rw/ff,
+  scrub, `seekTo` lands at 0). `probeMkvCueIndex` (shared/playback/
+  `MkvSeekIndex.kt`) parses the file over HTTP Range requests — head
+  SeekHead, chased trailing SeekHeads, then the Cues element — during
+  `getPlaybackSource`; `PlaybackSource.cuePoints` carries the index and
+  `PlayerEngine` wraps the Matroska extractors (`withMkvCueIndex` in
+  `player/MkvCueSeekMap.kt`) so an `Unseekable` map is swapped for
+  `MkvCueSeekMap` built from the real cue index. Never re-enable
+  `FLAG_DISABLE_SEEK_FOR_CUES` — it also disables the whole seek path.
+  `playbackHttpClient()` (OkHttp, in the data source binding) does the
+  range fetches; the SDK's `ApiClient.request` cannot send headers.
 - Playback decisions live in `shared/.../playback`: `Capabilities.kt` (what was
   detected), `PlaybackSelection.kt` (best path per codec/HDR format and the
   fallback order), `DeviceProfiles.kt` (what the server is told),

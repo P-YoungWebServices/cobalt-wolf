@@ -23,6 +23,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.pyoungws.bluewolfplayer.BuildConfig
+import com.pyoungws.bluewolfplayer.isTelevision
 import com.pyoungws.bluewolfplayer.shared.playback.AudioOutputPreference
 import com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector
 import com.pyoungws.bluewolfplayer.shared.playback.DecodingPreference
@@ -82,7 +83,8 @@ class PlayerActivity : ComponentActivity() {
 
     private val supportsPip: Boolean
         get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
+            !isTelevision()
 
     private fun pipParams(autoEnter: Boolean): PictureInPictureParams {
         val size = player?.videoSize
