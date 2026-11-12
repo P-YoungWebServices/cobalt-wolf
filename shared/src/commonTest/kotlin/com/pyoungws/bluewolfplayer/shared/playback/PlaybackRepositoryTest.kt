@@ -2,7 +2,9 @@ package com.pyoungws.bluewolfplayer.shared.playback
 
 import com.pyoungws.bluewolfplayer.shared.library.FakeLibraryDataSource
 import com.pyoungws.bluewolfplayer.shared.library.SessionGuard
+import com.pyoungws.bluewolfplayer.shared.library.episode
 import com.pyoungws.bluewolfplayer.shared.library.movie
+import com.pyoungws.bluewolfplayer.shared.library.season
 import com.pyoungws.bluewolfplayer.shared.library.signedInAuthRepository
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
@@ -116,6 +118,43 @@ class PlaybackRepositoryTest {
         library.item = { throw InvalidStatusException(404) }
 
         assertEquals(Outcome.Failure(LoadError.NotFound), repository().prepare(item))
+    }
+
+    @Test
+    fun `next episode comes from the same season`() = runTest {
+        library.episodes = { _, _ -> listOf(episode("e1", 1), episode("e2", 2), episode("e3", 3)) }
+
+        assertEquals("e3", repository().nextEpisode(episode("e2", 2))?.id)
+    }
+
+    @Test
+    fun `the last episode of a season rolls into the next season`() = runTest {
+        library.episodes = { _, seasonId ->
+            if (seasonId == "season-1") listOf(episode("e1", 1), episode("e2", 2)) else listOf(episode("e3", 1, seasonNumber = 2))
+        }
+        library.seasons = { listOf(season("season-1", 1), season("season-2", 2)) }
+
+        assertEquals("e3", repository().nextEpisode(episode("e2", 2))?.id)
+    }
+
+    @Test
+    fun `a series finale and a movie have no next episode`() = runTest {
+        library.episodes = { _, _ -> listOf(episode("e2", 2)) }
+        library.seasons = { listOf(season("season-1", 1)) }
+
+        val repository = repository()
+        assertNull(repository.nextEpisode(episode("e2", 2)))
+        assertNull(repository.nextEpisode(movie("m1")))
+    }
+
+    @Test
+    fun `media segments come back empty when the server has none`() = runTest {
+        val intro = listOf(MediaSegment(MediaSegmentKind.Intro, 60_000, 120_000))
+        playback.segments = { if (it == "e1") intro else emptyList() }
+
+        val repository = repository()
+        assertEquals(intro, repository.mediaSegments("e1"))
+        assertEquals(emptyList(), repository.mediaSegments("e2"))
     }
 
     @Test

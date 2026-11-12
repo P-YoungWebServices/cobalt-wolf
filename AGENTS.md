@@ -147,6 +147,15 @@ Conventions and rules for contributing to Cobalt Wolf.
   play/pause when controls show; `PlayerActivity.onKeyDown` maps remote
   transport keys (play/pause, fast-forward, rewind, stop). Frame rate matching
   (`DisplayModeController`) already applies on TV via `capabilities.isTv`.
+  The overlay shows the item title top-left, icon buttons top-right (white
+  ring + fill on focus), and an "Ends at" wall-clock time + skip button
+  bottom-right. Next-episode goes through the controller's own next button:
+  a `ForwardingPlayer` advertises `COMMAND_SEEK_TO_NEXT` once
+  `PlayerViewModel.nextItem` resolves and routes `seekToNext()` to
+  `playNext`; episodes also auto-advance on `STATE_ENDED` (not in SyncPlay
+  groups). `PlaybackRepository.nextEpisode`/`mediaSegments` feed both —
+  segments come from the Jellyfin `MediaSegments` API (intro/outro), and a
+  visible segment auto-focuses the TV skip button.
 - Playback decisions live in `shared/.../playback`: `Capabilities.kt` (what was
   detected), `PlaybackSelection.kt` (best path per codec/HDR format and the
   fallback order), `DeviceProfiles.kt` (what the server is told),

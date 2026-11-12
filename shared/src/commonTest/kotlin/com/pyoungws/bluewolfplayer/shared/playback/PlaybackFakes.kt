@@ -101,6 +101,10 @@ class FakePlaybackDataSource : JellyfinPlaybackDataSource {
 
     override suspend fun canTranscodeVideo(session: Session) = transcodesVideo
 
+    var segments: (itemId: String) -> List<MediaSegment> = { emptyList() }
+
+    override suspend fun getMediaSegments(session: Session, itemId: String) = segments(itemId)
+
     override suspend fun reportStart(session: Session, report: PlaybackReport) {
         reports += "start"
         reported += report

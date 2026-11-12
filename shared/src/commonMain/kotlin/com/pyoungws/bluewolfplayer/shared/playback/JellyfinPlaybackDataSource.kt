@@ -9,10 +9,12 @@ import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.exception.InvalidContentException
 import org.jellyfin.sdk.api.client.extensions.mediaInfoApi
+import org.jellyfin.sdk.api.client.extensions.mediaSegmentApi
 import org.jellyfin.sdk.api.client.extensions.sessionApi
 import org.jellyfin.sdk.api.client.extensions.userApi
 import org.jellyfin.sdk.model.UUID
 import org.jellyfin.sdk.model.api.DeviceProfile
+import org.jellyfin.sdk.model.api.MediaSegmentType
 import org.jellyfin.sdk.model.api.MediaSourceInfo
 import org.jellyfin.sdk.model.api.MediaStreamType
 import org.jellyfin.sdk.model.api.PlayMethod
@@ -30,6 +32,8 @@ interface JellyfinPlaybackDataSource {
     suspend fun getPlaybackSource(session: Session, itemId: String, startPositionTicks: Long, profile: DeviceProfile, forceTranscode: Boolean, maxBitrate: Int? = null): PlaybackSource
     /** Whether the server re-encodes video for this user; false when their policy disables video transcoding. */
     suspend fun canTranscodeVideo(session: Session): Boolean
+    /** Intro/outro markers the server has for the item (from its media segment provider). */
+    suspend fun getMediaSegments(session: Session, itemId: String): List<MediaSegment>
     suspend fun reportStart(session: Session, report: PlaybackReport)
     suspend fun reportProgress(session: Session, report: PlaybackReport)
     suspend fun reportStopped(session: Session, report: PlaybackReport)
@@ -73,6 +77,17 @@ class SdkJellyfinPlaybackDataSource(
 
     override suspend fun canTranscodeVideo(session: Session): Boolean = call(session) {
         userApi.getCurrentUser().content.policy?.enableVideoPlaybackTranscoding ?: true
+    }
+
+    override suspend fun getMediaSegments(session: Session, itemId: String): List<MediaSegment> = call(session) {
+        mediaSegmentApi.getItemSegments(UUID.fromString(itemId)).content.items.mapNotNull {
+            val kind = when (it.type) {
+                MediaSegmentType.INTRO -> MediaSegmentKind.Intro
+                MediaSegmentType.OUTRO -> MediaSegmentKind.Outro
+                else -> return@mapNotNull null
+            }
+            MediaSegment(kind, it.startTicks / TICKS_PER_MILLISECOND, it.endTicks / TICKS_PER_MILLISECOND)
+        }
     }
 
     override suspend fun reportStart(session: Session, report: PlaybackReport) = call(session) {
