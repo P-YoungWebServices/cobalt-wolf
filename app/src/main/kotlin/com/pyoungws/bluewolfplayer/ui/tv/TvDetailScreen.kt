@@ -15,7 +15,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -71,6 +78,18 @@ private fun TvDetailContent(
     onWatchTogether: (String) -> Unit,
 ) {
     val item = state.item
+    // The first thing on the page is "what can I do with this": hand focus to Play/Resume once,
+    // on first load — not again when a season switch swaps the episode behind the button.
+    val playFocusRequester = remember { FocusRequester() }
+    var autoFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(state.playTarget?.id) {
+        if (!autoFocused && state.playTarget != null) {
+            autoFocused = true
+            // Wait one frame so the LazyColumn item holding the button is composed before we focus it.
+            withFrameNanos { }
+            playFocusRequester.requestFocus()
+        }
+    }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 48.dp)) {
         item(key = "backdrop") {
             Box(Modifier.fillMaxWidth()) {
@@ -108,7 +127,7 @@ private fun TvDetailContent(
         item(key = "actions") {
             Row(Modifier.padding(horizontal = TvContentPadding, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 state.playTarget?.let { target ->
-                    Button(onClick = { onPlay(target.id) }) { Text(tvPlayLabel(item, target)) }
+                    Button(onClick = { onPlay(target.id) }, modifier = Modifier.focusRequester(playFocusRequester)) { Text(tvPlayLabel(item, target)) }
                     OutlinedButton(onClick = { onWatchTogether(target.id) }) { Text(stringResource(R.string.syncplay_title)) }
                 }
                 item.seriesId?.takeIf { item.kind == MediaKind.Episode }?.let { seriesId ->

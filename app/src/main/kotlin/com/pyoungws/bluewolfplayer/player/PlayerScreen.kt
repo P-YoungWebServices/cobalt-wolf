@@ -498,7 +498,11 @@ private fun PlayerContent(
                     )
                 }
                 activeSegment?.let { segment ->
-                    val buttonModifier = Modifier.focusRequester(skipFocusRequester)
+                    var skipFocused by remember { mutableStateOf(false) }
+                    val buttonModifier = Modifier
+                        .focusRequester(skipFocusRequester)
+                        .onFocusChanged { skipFocused = it.isFocused }
+                        .border(2.dp, if (skipFocused) Color.White else Color.Transparent, CircleShape)
                     when {
                         segment.kind == MediaSegmentKind.Outro && nextItem != null -> Button(onClick = { viewModel.playNext(player.currentPosition) }, modifier = buttonModifier) {
                             Text(stringResource(R.string.player_next_episode))
