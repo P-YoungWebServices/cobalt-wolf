@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -85,10 +86,7 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(
                             painter = painterResource(R.drawable.ic_launcher_foreground),
                             contentDescription = null,
@@ -98,6 +96,9 @@ fun HomeScreen(
                             stringResource(R.string.app_name),
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
+                            // The icon vector has ~14dp of transparent padding on each side at this
+                            // size — pull the title in past it so it sits next to the wolf head.
+                            modifier = Modifier.offset(x = (-12).dp),
                         )
                     }
                 },
