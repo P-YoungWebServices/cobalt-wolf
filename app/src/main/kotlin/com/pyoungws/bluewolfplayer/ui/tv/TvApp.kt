@@ -289,7 +289,7 @@ private fun TvTopBar(
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 TvMenuItem(R.string.discover_my_requests) { menuOpen = false; onSelect(TvSection.MyRequests) }
                 // Servers and Settings live on the dashboard now.
-                TvMenuItem(R.string.admin_dashboard_title) { menuOpen = false; onOpenRoute(Route.Dashboard) }
+                TvMenuItem(R.string.home_dashboard) { menuOpen = false; onOpenRoute(Route.Dashboard) }
                 TvMenuItem(R.string.home_sign_out) { menuOpen = false; onSignOut() }
             }
         }

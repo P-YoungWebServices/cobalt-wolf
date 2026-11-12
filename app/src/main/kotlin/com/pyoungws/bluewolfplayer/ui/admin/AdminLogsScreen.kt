@@ -38,6 +38,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.AdminLogsUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminLogsViewModel
 import com.pyoungws.bluewolfplayer.ui.common.ErrorBox
 import com.pyoungws.bluewolfplayer.ui.common.LoadingBox
+import com.pyoungws.bluewolfplayer.ui.common.tvListScroll
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -135,7 +136,7 @@ private fun LogLines(state: AdminLogsUiState) {
         if (lines.isNotEmpty()) listState.scrollToItem(lines.lastIndex)
     }
 
-    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize().tvListScroll(listState)) {
         items(lines) { line ->
             Text(
                 line.text,

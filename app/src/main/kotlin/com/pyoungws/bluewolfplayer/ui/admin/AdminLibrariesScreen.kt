@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +33,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.AdminLibrariesUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminLibrariesViewModel
 import com.pyoungws.bluewolfplayer.ui.common.ErrorBox
 import com.pyoungws.bluewolfplayer.ui.common.LoadingBox
+import com.pyoungws.bluewolfplayer.ui.common.tvListScroll
 import org.koin.compose.viewmodel.koinViewModel
 
 /** Library details: the server's virtual folders, their paths and current scan state. */
@@ -67,7 +69,8 @@ fun AdminLibrariesScreen(
 
 @Composable
 private fun LibraryList(state: AdminLibrariesUiState) {
-    LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val listState = rememberLazyListState()
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize().tvListScroll(listState), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(state.libraries, key = { it.id }) { library -> LibraryCard(library) }
     }
 }
