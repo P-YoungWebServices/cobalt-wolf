@@ -27,7 +27,45 @@ class QBittorrentRepositoryTest {
         val state = (result as Outcome.Success).value
         assertEquals(listOf("a", "b"), state.torrents.map { it.hash })
         assertEquals(5_000_000, state.totalDownloadSpeedBps)
-        assertEquals(listOf("torrents", "transferInfo"), dataSource.calls.sorted())
+        assertEquals(listOf("speedLimitsMode", "torrents", "transferInfo"), dataSource.calls.sorted())
+    }
+
+    @Test
+    fun `downloads reports the alternative speed mode`() = runTest {
+        val dataSource = FakeQBittorrentDataSource().apply { altSpeedLimits = true }
+
+        val state = (repository(dataSource).downloads() as Outcome.Success).value
+
+        assertEquals(true, state.alternativeSpeedLimits)
+    }
+
+    @Test
+    fun `start and stop forward the torrent hash`() = runTest {
+        val dataSource = FakeQBittorrentDataSource()
+        val repository = repository(dataSource)
+
+        assertIs<Outcome.Success<Unit>>(repository.startTorrent("abc"))
+        assertIs<Outcome.Success<Unit>>(repository.stopTorrent("abc"))
+        assertEquals(listOf("start(abc)", "stop(abc)"), dataSource.calls)
+    }
+
+    @Test
+    fun `a torrent action re-logs in on an expired session`() = runTest {
+        val dataSource = FakeQBittorrentDataSource().apply { failOnce = SessionExpiredException() }
+
+        val result = repository(dataSource).startTorrent("abc")
+
+        assertIs<Outcome.Success<Unit>>(result)
+        assertEquals(1, dataSource.calls.count { it.startsWith("login(") })
+        assertEquals("start(abc)", dataSource.calls.last())
+    }
+
+    @Test
+    fun `toggleAlternativeSpeeds calls the toggle endpoint`() = runTest {
+        val dataSource = FakeQBittorrentDataSource()
+
+        assertIs<Outcome.Success<Unit>>(repository(dataSource).toggleAlternativeSpeeds())
+        assertEquals(listOf("toggleSpeedLimitsMode"), dataSource.calls)
     }
 
     @Test

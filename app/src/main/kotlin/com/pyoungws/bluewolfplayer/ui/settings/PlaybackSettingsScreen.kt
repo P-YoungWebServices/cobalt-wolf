@@ -37,6 +37,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.DecodingPreference
 import com.pyoungws.bluewolfplayer.shared.playback.DeviceCapabilities
 import com.pyoungws.bluewolfplayer.shared.playback.FrameRateMatching
 import com.pyoungws.bluewolfplayer.shared.playback.HdrPreference
+import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.LOCAL_DECODE_MAX_HEIGHT
 import com.pyoungws.bluewolfplayer.shared.playback.LOCAL_DECODE_MAX_WIDTH
 import com.pyoungws.bluewolfplayer.shared.playback.VideoCodec
@@ -108,6 +109,18 @@ private fun Overrides(state: PlaybackSettingsUiState, viewModel: PlaybackSetting
             FrameRateMatching.Auto to R.string.playback_frame_rate_auto,
             FrameRateMatching.SeamlessOnly to R.string.playback_frame_rate_seamless,
             FrameRateMatching.Off to R.string.playback_frame_rate_off,
+        )
+        Choice(
+            R.string.playback_max_bitrate, settings.maxBitrate, viewModel::setMaxBitrate,
+            StreamBitrate.Auto to R.string.playback_bitrate_auto,
+            StreamBitrate.Mbps120 to R.string.playback_bitrate_120,
+            StreamBitrate.Mbps80 to R.string.playback_bitrate_80,
+            StreamBitrate.Mbps60 to R.string.playback_bitrate_60,
+            StreamBitrate.Mbps40 to R.string.playback_bitrate_40,
+            StreamBitrate.Mbps20 to R.string.playback_bitrate_20,
+            StreamBitrate.Mbps10 to R.string.playback_bitrate_10,
+            StreamBitrate.Mbps5 to R.string.playback_bitrate_5,
+            StreamBitrate.Mbps2 to R.string.playback_bitrate_2,
         )
         Toggle(R.string.playback_styled_subtitles, R.string.playback_styled_subtitles_summary, settings.styledSubtitles, viewModel::setStyledSubtitles)
         Toggle(R.string.playback_show_stats, R.string.playback_show_stats_summary, settings.showStats, viewModel::setShowStats)

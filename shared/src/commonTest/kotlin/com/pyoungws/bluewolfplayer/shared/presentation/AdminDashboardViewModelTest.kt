@@ -3,13 +3,21 @@ package com.pyoungws.bluewolfplayer.shared.presentation
 import com.pyoungws.bluewolfplayer.shared.admin.AdminRepository
 import com.pyoungws.bluewolfplayer.shared.admin.FakeAdminDataSource
 import com.pyoungws.bluewolfplayer.shared.admin.playingSession
+import com.pyoungws.bluewolfplayer.shared.arrs.ArrService
+import com.pyoungws.bluewolfplayer.shared.arrs.ArrSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.arrs.InMemoryArrSettingsStore
 import com.pyoungws.bluewolfplayer.shared.auth.AuthRepository
 import com.pyoungws.bluewolfplayer.shared.auth.FakeAuthDataSource
 import com.pyoungws.bluewolfplayer.shared.auth.InMemorySessionStore
+import com.pyoungws.bluewolfplayer.shared.bazarr.BazarrRepository
+import com.pyoungws.bluewolfplayer.shared.bazarr.FakeBazarrDataSource
 import com.pyoungws.bluewolfplayer.shared.library.SESSION
 import com.pyoungws.bluewolfplayer.shared.library.SessionGuard
 import com.pyoungws.bluewolfplayer.shared.library.movie
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
+import com.pyoungws.bluewolfplayer.shared.prowlarr.FakeProwlarrDataSource
+import com.pyoungws.bluewolfplayer.shared.prowlarr.ProwlarrIndexer
+import com.pyoungws.bluewolfplayer.shared.prowlarr.ProwlarrRepository
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,10 +50,18 @@ class AdminDashboardViewModelTest {
      */
     private suspend fun withViewModel(
         dataSource: FakeAdminDataSource,
+        bazarr: FakeBazarrDataSource = FakeBazarrDataSource(),
+        prowlarr: FakeProwlarrDataSource = FakeProwlarrDataSource(),
+        configureServices: ArrSettingsRepository.() -> Unit = {},
         body: suspend (AdminDashboardViewModel) -> Unit,
     ) {
         val auth = AuthRepository(FakeAuthDataSource(), InMemorySessionStore(SESSION)).apply { restoreSession() }
-        val viewModel = AdminDashboardViewModel(AdminRepository(dataSource, SessionGuard(auth)))
+        val settings = ArrSettingsRepository(InMemoryArrSettingsStore()).apply(configureServices)
+        val viewModel = AdminDashboardViewModel(
+            AdminRepository(dataSource, SessionGuard(auth)),
+            BazarrRepository(bazarr, settings),
+            ProwlarrRepository(prowlarr, settings),
+        )
         try {
             body(viewModel)
         } finally {
@@ -128,6 +144,65 @@ class AdminDashboardViewModelTest {
             val state = it.uiState.value
             assertEquals(listOf("s1"), state.sessions.map { s -> s.id })
             assertEquals(LoadError.Unexpected("Invalid HTTP status in response: 500"), state.error)
+        }
+    }
+
+    @Test
+    fun `unconfigured services report an unconfigured badge`() = runTest {
+        withViewModel(FakeAdminDataSource()) { viewModel ->
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertEquals(false, state.bazarr.configured)
+            assertNull(state.bazarr.count)
+            assertEquals(false, state.prowlarr.configured)
+            assertNull(state.prowlarr.count)
+        }
+    }
+
+    @Test
+    fun `configured services report their counts`() = runTest {
+        val bazarr = FakeBazarrDataSource().apply {
+            movies = listOf(com.pyoungws.bluewolfplayer.shared.bazarr.WantedMovie("Film", emptyList()))
+            episodes = listOf(com.pyoungws.bluewolfplayer.shared.bazarr.WantedEpisode("Show", "S01E01", null, emptyList()))
+        }
+        val prowlarr = FakeProwlarrDataSource().apply {
+            indexers = listOf(ProwlarrIndexer(1, "IndexOne", "torrent", true), ProwlarrIndexer(2, "IndexTwo", "usenet", true))
+            healthIssues = listOf(com.pyoungws.bluewolfplayer.shared.prowlarr.ProwlarrHealthIssue("IndexerFail", "warning", "down"))
+        }
+        withViewModel(
+            FakeAdminDataSource(),
+            bazarr = bazarr,
+            prowlarr = prowlarr,
+            configureServices = {
+                update(ArrService.Bazarr, "https://bazarr.example.com", "key")
+                update(ArrService.Prowlarr, "https://prowlarr.example.com", "key")
+            },
+        ) { viewModel ->
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertEquals(true, state.bazarr.configured)
+            assertEquals(2, state.bazarr.count)
+            assertEquals(true, state.prowlarr.configured)
+            assertEquals(2, state.prowlarr.count)
+            assertEquals(1, state.prowlarr.issues)
+        }
+    }
+
+    @Test
+    fun `a failing service keeps its configured badge without a count`() = runTest {
+        val bazarr = FakeBazarrDataSource().apply { error = InvalidStatusException(500) }
+        withViewModel(
+            FakeAdminDataSource(),
+            bazarr = bazarr,
+            configureServices = { update(ArrService.Bazarr, "https://bazarr.example.com", "key") },
+        ) { viewModel ->
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertEquals(true, state.bazarr.configured)
+            assertNull(state.bazarr.count)
         }
     }
 

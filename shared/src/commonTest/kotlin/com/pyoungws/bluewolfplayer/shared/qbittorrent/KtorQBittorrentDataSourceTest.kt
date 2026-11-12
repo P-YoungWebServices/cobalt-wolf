@@ -136,4 +136,44 @@ class KtorQBittorrentDataSourceTest {
 
         assertFailsWith<SessionExpiredException> { dataSource().torrents(settings) }
     }
+
+    @Test
+    fun `start posts the hashes to the start verb`() = runTest {
+        responses["/api/v2/torrents/start"] = json("")
+
+        dataSource().startTorrents(settings, listOf("h1", "h2"))
+
+        val request = sent.single()
+        assertEquals(HttpMethod.Post, request.method)
+        assertTrue("hashes=h1%7Ch2" in request.bodyText() || "hashes=h1|h2" in request.bodyText())
+    }
+
+    @Test
+    fun `stop falls back to the legacy pause verb on an old server`() = runTest {
+        responses["/api/v2/torrents/pause"] = json("")
+        // No "/api/v2/torrents/stop" response registered -> MockEngine answers 404.
+
+        dataSource().stopTorrents(settings, listOf("h1"))
+
+        assertEquals(listOf("/api/v2/torrents/stop", "/api/v2/torrents/pause"), sent.map { it.url.encodedPath })
+    }
+
+    @Test
+    fun `speedLimitsMode maps the plain-text flag`() = runTest {
+        responses["/api/v2/transfer/speedLimitsMode"] = json("1")
+
+        assertTrue(dataSource().speedLimitsMode(settings))
+        assertEquals("/api/v2/transfer/speedLimitsMode", sent.single().url.encodedPath)
+    }
+
+    @Test
+    fun `toggleSpeedLimitsMode posts to the toggle endpoint`() = runTest {
+        responses["/api/v2/transfer/toggleSpeedLimitsMode"] = json("")
+
+        dataSource().toggleSpeedLimitsMode(settings)
+
+        val request = sent.single()
+        assertEquals(HttpMethod.Post, request.method)
+        assertEquals("/api/v2/transfer/toggleSpeedLimitsMode", request.url.encodedPath)
+    }
 }

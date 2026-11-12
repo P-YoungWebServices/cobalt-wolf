@@ -15,6 +15,7 @@ class FakeQBittorrentDataSource : QBittorrentDataSource {
     val calls = mutableListOf<String>()
     var torrentsResult: List<Torrent> = emptyList()
     var speeds: TransferSpeeds = TransferSpeeds(0, 0)
+    var altSpeedLimits = false
     var loginResult = true
     /** Thrown by the next [torrents]/[transferInfo] call; [SessionExpiredException] triggers re-login. */
     var failOnce: Throwable? = null
@@ -37,6 +38,33 @@ class FakeQBittorrentDataSource : QBittorrentDataSource {
         failOnce?.let { failOnce = null; throw it }
         error?.let { throw it }
         return speeds
+    }
+
+    private fun failIfNeeded() {
+        failOnce?.let { failOnce = null; throw it }
+        error?.let { throw it }
+    }
+
+    override suspend fun startTorrents(settings: QBittorrentSettings, hashes: List<String>) {
+        calls += "start(${hashes.joinToString("|")})"
+        failIfNeeded()
+    }
+
+    override suspend fun stopTorrents(settings: QBittorrentSettings, hashes: List<String>) {
+        calls += "stop(${hashes.joinToString("|")})"
+        failIfNeeded()
+    }
+
+    override suspend fun speedLimitsMode(settings: QBittorrentSettings): Boolean {
+        calls += "speedLimitsMode"
+        failIfNeeded()
+        return altSpeedLimits
+    }
+
+    override suspend fun toggleSpeedLimitsMode(settings: QBittorrentSettings) {
+        calls += "toggleSpeedLimitsMode"
+        failIfNeeded()
+        altSpeedLimits = !altSpeedLimits
     }
 }
 

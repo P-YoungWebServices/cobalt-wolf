@@ -27,7 +27,7 @@ import org.jellyfin.sdk.model.api.SubtitleDeliveryMethod
 /** Jellyfin playback calls. Implementations throw the SDK's `ApiClientException` subtypes on failure. */
 interface JellyfinPlaybackDataSource {
     /** [profile] tells the server what the device plays itself; [forceTranscode] skips direct play regardless. */
-    suspend fun getPlaybackSource(session: Session, itemId: String, startPositionTicks: Long, profile: DeviceProfile, forceTranscode: Boolean): PlaybackSource
+    suspend fun getPlaybackSource(session: Session, itemId: String, startPositionTicks: Long, profile: DeviceProfile, forceTranscode: Boolean, maxBitrate: Int? = null): PlaybackSource
     /** Whether the server re-encodes video for this user; false when their policy disables video transcoding. */
     suspend fun canTranscodeVideo(session: Session): Boolean
     suspend fun reportStart(session: Session, report: PlaybackReport)
@@ -51,6 +51,7 @@ class SdkJellyfinPlaybackDataSource(
         startPositionTicks: Long,
         profile: DeviceProfile,
         forceTranscode: Boolean,
+        maxBitrate: Int?,
     ) = call(session) {
         val id = UUID.fromString(itemId)
         val response = mediaInfoApi.getPostedPlaybackInfo(
@@ -59,6 +60,7 @@ class SdkJellyfinPlaybackDataSource(
                 userId = UUID.fromString(session.userId),
                 startTimeTicks = startPositionTicks.takeIf { it > 0 },
                 deviceProfile = profile,
+                maxStreamingBitrate = maxBitrate,
                 enableDirectPlay = !forceTranscode,
                 enableDirectStream = !forceTranscode,
                 enableTranscoding = true,

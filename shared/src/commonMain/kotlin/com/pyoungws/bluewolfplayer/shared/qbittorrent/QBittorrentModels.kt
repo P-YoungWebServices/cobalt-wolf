@@ -66,11 +66,16 @@ data class Torrent(
     /** Seconds to completion, or null when unknown/infinite. */
     val etaSeconds: Long?,
     val category: String?,
-)
+) {
+    /** True when the torrent sits in a paused/stopped state (old and new state names). */
+    val isPaused: Boolean get() = state.startsWith("paused") || state.startsWith("stopped")
+}
 
 /** The torrent list plus the client's global transfer rates. */
 data class DownloadState(
     val torrents: List<Torrent>,
     val totalDownloadSpeedBps: Long,
     val totalUploadSpeedBps: Long,
+    /** True while alternative ("turtle") speed limits are active. */
+    val alternativeSpeedLimits: Boolean = false,
 )

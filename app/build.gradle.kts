@@ -42,6 +42,10 @@ android {
             buildConfigField("String", "DEV_QBITTORRENT_URL", "\"${cred("qbittorrent.url")}\"")
             buildConfigField("String", "DEV_QBITTORRENT_USERNAME", "\"${cred("qbittorrent.username")}\"")
             buildConfigField("String", "DEV_QBITTORRENT_PASSWORD", "\"${cred("qbittorrent.password")}\"")
+            buildConfigField("String", "DEV_BAZARR_URL", "\"${cred("bazarr.url")}\"")
+            buildConfigField("String", "DEV_BAZARR_APIKEY", "\"${cred("bazarr.apikey")}\"")
+            buildConfigField("String", "DEV_PROWLARR_URL", "\"${cred("prowlarr.url")}\"")
+            buildConfigField("String", "DEV_PROWLARR_APIKEY", "\"${cred("prowlarr.apikey")}\"")
         }
     }
 

@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.runTest
 import org.jellyfin.sdk.api.client.exception.InvalidStatusException
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class PlaybackRepositoryTest {
     private val library = FakeLibraryDataSource()
@@ -53,6 +54,21 @@ class PlaybackRepositoryTest {
         repository(TV_CAPABILITIES).prepare(item)
 
         assertEquals(buildDeviceProfile(TV_CAPABILITIES, PlaybackSettings()), playback.profiles.single())
+    }
+
+    @Test
+    fun `a bitrate cap reaches the device profile and the playback info request`() = runTest {
+        repository(settings = PlaybackSettings(maxBitrate = StreamBitrate.Mbps20)).prepare(item)
+
+        assertEquals(20_000_000, playback.profiles.single().maxStreamingBitrate)
+        assertEquals(20_000_000, playback.bitrates.single())
+    }
+
+    @Test
+    fun `the auto bitrate sends no cap on the request`() = runTest {
+        repository().prepare(item)
+
+        assertNull(playback.bitrates.single())
     }
 
     @Test

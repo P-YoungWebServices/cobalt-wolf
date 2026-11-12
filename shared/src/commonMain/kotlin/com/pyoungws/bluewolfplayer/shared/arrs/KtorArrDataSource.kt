@@ -19,7 +19,7 @@ class KtorArrDataSource(
 ) : ArrDataSource {
 
     override suspend fun status(service: ArrService, settings: ArrServiceSettings) = call {
-        client.get("${settings.serverUrl}/api/v3/system/status") { apiKey(settings) }
+        client.get("${settings.serverUrl}${service.statusPath}") { apiKey(settings) }
         Unit
     }
 
@@ -42,12 +42,23 @@ class KtorArrDataSource(
                 parameter("end", end.toString())
                 parameter("includeSeries", true)
             }.body<List<SonarrCalendarDto>>().mapNotNull { it.toItem(settings.serverUrl.orEmpty()) }
+
+            // Only media services publish a calendar; the repository never asks for the others.
+            else -> emptyList()
         }
     }
 
     private fun HttpRequestBuilder.apiKey(settings: ArrServiceSettings) {
         header("X-Api-Key", settings.apiKey)
     }
+
+    /** The status probe each service answers with its own API versioning. */
+    private val ArrService.statusPath: String
+        get() = when (this) {
+            ArrService.Radarr, ArrService.Sonarr -> "/api/v3/system/status"
+            ArrService.Prowlarr -> "/api/v1/system/status"
+            ArrService.Bazarr -> "/api/system/status"
+        }
 
     private suspend fun <T> call(block: suspend () -> T): T = withContext(ioDispatcher) { block() }
 }

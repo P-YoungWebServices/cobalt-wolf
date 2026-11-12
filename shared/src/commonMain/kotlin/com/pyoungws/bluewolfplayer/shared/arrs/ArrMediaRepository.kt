@@ -17,7 +17,9 @@ class ArrMediaRepository(
 ) {
     val settings: StateFlow<ArrSettings> = settingsRepository.settings
 
-    val configuredServices: List<ArrService> get() = settingsRepository.configuredServices
+    /** The media services with a usable configuration; Bazarr/Prowlarr never appear here. */
+    val configuredServices: List<ArrService>
+        get() = settingsRepository.configuredServices.filter { it.managesMedia }
 
     fun isConfigured(service: ArrService): Boolean = settingsRepository.serviceSettings(service) != null
 
@@ -58,6 +60,7 @@ class ArrMediaRepository(
         when (service) {
             ArrService.Radarr -> dataSource.movieFiles(it, itemId)
             ArrService.Sonarr -> dataSource.episodeFiles(it, itemId)
+            else -> emptyList()
         }
     }
 

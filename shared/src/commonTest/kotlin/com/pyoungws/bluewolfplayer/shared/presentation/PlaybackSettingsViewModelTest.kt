@@ -11,6 +11,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.InMemoryPlaybackSettingsStore
 import com.pyoungws.bluewolfplayer.shared.playback.PHONE_CAPABILITIES
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.TV_CAPABILITIES
 import com.pyoungws.bluewolfplayer.shared.playback.VideoCodec
 import com.pyoungws.bluewolfplayer.shared.playback.VideoRange
@@ -56,6 +57,14 @@ class PlaybackSettingsViewModelTest {
         assertEquals(expected, repository.settings.value)
         assertEquals(DecodePath.Local, audio(AudioCodec.TrueHd))
         assertEquals(HdrOutput.Hdr10, hdr(VideoRange.DolbyVisionWithHdr10))
+    }
+
+    @Test
+    fun `the bitrate cap is saved`() {
+        viewModel.setMaxBitrate(StreamBitrate.Mbps20)
+
+        assertEquals(StreamBitrate.Mbps20, state().settings.maxBitrate)
+        assertEquals(StreamBitrate.Mbps20, store.saved.maxBitrate)
     }
 
     @Test

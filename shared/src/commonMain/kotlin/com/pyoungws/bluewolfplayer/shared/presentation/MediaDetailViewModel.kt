@@ -158,6 +158,7 @@ class MediaDetailViewModel(
                 ArrService.Sonarr -> repository.updateSeries(
                     ArrSeriesEdit(itemId, form.monitored, form.qualityProfileId, rootFolderOrNull(form), form.tagIds.toList(), currentSeasons()),
                 )
+                else -> error("Media management is not available for $service")
             }
         }
     }
@@ -418,6 +419,7 @@ class MediaDetailViewModel(
         when (service) {
             ArrService.Radarr -> loadMovie()
             ArrService.Sonarr -> loadSeries()
+            else -> Unit
         }
     }
 

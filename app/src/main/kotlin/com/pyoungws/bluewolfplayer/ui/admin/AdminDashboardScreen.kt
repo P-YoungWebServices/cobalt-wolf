@@ -31,6 +31,7 @@ import com.pyoungws.bluewolfplayer.shared.admin.MANAGEMENT_DESTINATIONS
 import com.pyoungws.bluewolfplayer.shared.admin.NavDestination
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminDashboardUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminDashboardViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.ServiceBadge
 import com.pyoungws.bluewolfplayer.ui.common.CardRow
 import com.pyoungws.bluewolfplayer.ui.common.ErrorBox
 import com.pyoungws.bluewolfplayer.ui.common.LoadingBox
@@ -78,19 +79,35 @@ private fun DashboardContent(
 ) {
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item(key = "actions") {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DashboardActionCard(
-                    title = stringResource(R.string.admin_active_sessions),
-                    subtitle = pluralStringResource(R.plurals.admin_session_count, state.sessions.size, state.sessions.size),
-                    onClick = onOpenSessions,
-                    modifier = Modifier.weight(1f),
-                )
-                DashboardActionCard(
-                    title = stringResource(R.string.home_downloads),
-                    subtitle = stringResource(R.string.admin_manage_downloads_subtitle),
-                    onClick = { onOpenManage(NavDestination.Downloads) },
-                    modifier = Modifier.weight(1f),
-                )
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DashboardActionCard(
+                        title = stringResource(R.string.admin_active_sessions),
+                        subtitle = pluralStringResource(R.plurals.admin_session_count, state.sessions.size, state.sessions.size),
+                        onClick = onOpenSessions,
+                        modifier = Modifier.weight(1f),
+                    )
+                    DashboardActionCard(
+                        title = stringResource(R.string.home_downloads),
+                        subtitle = stringResource(R.string.admin_manage_downloads_subtitle),
+                        onClick = { onOpenManage(NavDestination.Downloads) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DashboardActionCard(
+                        title = stringResource(R.string.bazarr_title),
+                        subtitle = bazarrSubtitle(state.bazarr),
+                        onClick = { onOpenManage(NavDestination.Bazarr) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    DashboardActionCard(
+                        title = stringResource(R.string.prowlarr_title),
+                        subtitle = prowlarrSubtitle(state.prowlarr),
+                        onClick = { onOpenManage(NavDestination.Prowlarr) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
         if (state.recentlyAdded.isNotEmpty()) {
@@ -100,7 +117,7 @@ private fun DashboardContent(
             }
         }
         item(key = "manage-title") { SectionTitle(stringResource(R.string.admin_manage_title)) }
-        items(MANAGEMENT_DESTINATIONS.filter { it != NavDestination.Downloads }, key = { "manage-${it.name}" }) { destination ->
+        items(MANAGEMENT_DESTINATIONS.filter { it !in DASHBOARD_CARD_DESTINATIONS }, key = { "manage-${it.name}" }) { destination ->
             Card(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(8.dp)).clickable { onOpenManage(destination) },
                 shape = RoundedCornerShape(8.dp),
@@ -115,6 +132,31 @@ private fun DashboardContent(
                 }
             }
         }
+    }
+}
+
+/** Management entries that already have an action card at the top of the dashboard. */
+private val DASHBOARD_CARD_DESTINATIONS = setOf(NavDestination.Downloads, NavDestination.Bazarr, NavDestination.Prowlarr)
+
+@Composable
+private fun bazarrSubtitle(badge: ServiceBadge): String {
+    val count = badge.count
+    return when {
+        !badge.configured -> stringResource(R.string.service_card_not_configured)
+        count != null -> pluralStringResource(R.plurals.bazarr_wanted_count, count, count)
+        else -> stringResource(R.string.bazarr_card_subtitle)
+    }
+}
+
+@Composable
+private fun prowlarrSubtitle(badge: ServiceBadge): String {
+    val count = badge.count
+    return when {
+        !badge.configured -> stringResource(R.string.service_card_not_configured)
+        count != null -> pluralStringResource(R.plurals.prowlarr_indexer_count, count, count).let { line ->
+            badge.issues?.let { line + " · " + pluralStringResource(R.plurals.prowlarr_issue_count, it, it) } ?: line
+        }
+        else -> stringResource(R.string.prowlarr_card_subtitle)
     }
 }
 

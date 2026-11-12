@@ -45,15 +45,32 @@ class QBittorrentRepository(
      * The torrent list plus global transfer rates. An expired session (403) triggers one
      * automatic login and retry before the call fails.
      */
-    suspend fun downloads(): Outcome<DownloadState> {
+    suspend fun downloads(): Outcome<DownloadState> = withSessionRetry { fetch(it) }
+
+    /** Starts (resumes) one torrent. */
+    suspend fun startTorrent(hash: String): Outcome<Unit> =
+        withSessionRetry { dataSource.startTorrents(it, listOf(hash)) }
+
+    /** Stops (pauses) one torrent. */
+    suspend fun stopTorrent(hash: String): Outcome<Unit> =
+        withSessionRetry { dataSource.stopTorrents(it, listOf(hash)) }
+
+    /** Flips the alternative speed limits; the next poll reports the new mode. */
+    suspend fun toggleAlternativeSpeeds(): Outcome<Unit> =
+        withSessionRetry { dataSource.toggleSpeedLimitsMode(it) }
+
+    /**
+     * Runs [block] against the saved connection, re-logging once when the SID cookie has expired.
+     */
+    private suspend fun <T> withSessionRetry(block: suspend (QBittorrentSettings) -> T): Outcome<T> {
         val settings = settingsRepository.serviceSettings()
             ?: return Outcome.Failure(LoadError.Unexpected("qBittorrent is not configured"))
         return try {
-            Outcome.Success(fetch(settings))
+            Outcome.Success(block(settings))
         } catch (e: SessionExpiredException) {
             try {
                 if (!dataSource.login(settings)) return Outcome.Failure(LoadError.Forbidden)
-                Outcome.Success(fetch(settings))
+                Outcome.Success(block(settings))
             } catch (retryError: Exception) {
                 if (retryError is kotlinx.coroutines.CancellationException) throw retryError
                 Outcome.Failure(retryError.toLoadError())
@@ -67,7 +84,8 @@ class QBittorrentRepository(
     private suspend fun fetch(settings: QBittorrentSettings): DownloadState = coroutineScope {
         val torrents = async { dataSource.torrents(settings) }
         val speeds = async { dataSource.transferInfo(settings) }
+        val altSpeeds = async { dataSource.speedLimitsMode(settings) }
         val transfer = speeds.await()
-        DownloadState(torrents.await(), transfer.downloadBps, transfer.uploadBps)
+        DownloadState(torrents.await(), transfer.downloadBps, transfer.uploadBps, altSpeeds.await())
     }
 }

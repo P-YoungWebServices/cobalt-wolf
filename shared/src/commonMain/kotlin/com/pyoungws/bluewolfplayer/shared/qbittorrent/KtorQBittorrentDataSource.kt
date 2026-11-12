@@ -5,6 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import io.ktor.http.parameters
@@ -41,6 +42,42 @@ class KtorQBittorrentDataSource(
             .body<TransferInfoDto>().let { TransferSpeeds(it.downloadBps, it.uploadBps) }
     }
 
+    override suspend fun startTorrents(settings: QBittorrentSettings, hashes: List<String>) = call {
+        torrentAction(settings, hashes, verb = "start", legacyVerb = "resume")
+    }
+
+    override suspend fun stopTorrents(settings: QBittorrentSettings, hashes: List<String>) = call {
+        torrentAction(settings, hashes, verb = "stop", legacyVerb = "pause")
+    }
+
+    override suspend fun speedLimitsMode(settings: QBittorrentSettings): Boolean = call {
+        client.get("${settings.serverUrl}/api/v2/transfer/speedLimitsMode").bodyAsText().trim() == "1"
+    }
+
+    override suspend fun toggleSpeedLimitsMode(settings: QBittorrentSettings) {
+        call { client.post("${settings.serverUrl}/api/v2/transfer/toggleSpeedLimitsMode") }
+    }
+
+    /**
+     * qBittorrent renamed `pause`/`resume` to `stop`/`start` in Web API 2.8.4 (qBittorrent 4.5);
+     * older servers only know the legacy verbs, so a 404 retries the old name.
+     */
+    private suspend fun torrentAction(settings: QBittorrentSettings, hashes: List<String>, verb: String, legacyVerb: String) {
+        try {
+            postHashes(settings, verb, hashes)
+        } catch (e: ClientRequestException) {
+            if (e.response.status.value != HTTP_NOT_FOUND) throw e
+            postHashes(settings, legacyVerb, hashes)
+        }
+    }
+
+    private suspend fun postHashes(settings: QBittorrentSettings, verb: String, hashes: List<String>) {
+        client.submitForm(
+            url = "${settings.serverUrl}/api/v2/torrents/$verb",
+            formParameters = parameters { append("hashes", hashes.joinToString("|")) },
+        )
+    }
+
     /** The Web UI answers 403 for a missing or expired SID cookie; surface it uniformly. */
     private suspend fun <T> call(block: suspend () -> T): T = withContext(ioDispatcher) {
         try {
@@ -52,6 +89,7 @@ class KtorQBittorrentDataSource(
 
     private companion object {
         const val HTTP_FORBIDDEN = 403
+        const val HTTP_NOT_FOUND = 404
     }
 }
 

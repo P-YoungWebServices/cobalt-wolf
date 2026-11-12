@@ -6,6 +6,7 @@ import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
 import com.pyoungws.bluewolfplayer.shared.qbittorrent.DownloadState
 import com.pyoungws.bluewolfplayer.shared.qbittorrent.QBittorrentRepository
+import com.pyoungws.bluewolfplayer.shared.qbittorrent.Torrent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +34,10 @@ class DownloadsViewModel(
     private val _uiState = MutableStateFlow<DownloadsUiState>(DownloadsUiState.Loading)
     val uiState = _uiState.asStateFlow()
 
+    /** Set when a start/stop/toggle action fails; cleared once the UI has shown it. */
+    private val _actionError = MutableStateFlow<LoadError?>(null)
+    val actionError = _actionError.asStateFlow()
+
     init {
         viewModelScope.launch {
             while (isActive) {
@@ -45,6 +50,27 @@ class DownloadsViewModel(
 
     fun refresh() {
         viewModelScope.launch { loadOnce() }
+    }
+
+    /** Starts a paused torrent; pauses a running one. The 3 s poll picks up the new state. */
+    fun toggle(torrent: Torrent) = act {
+        if (torrent.isPaused) repository.startTorrent(torrent.hash) else repository.stopTorrent(torrent.hash)
+    }
+
+    /** Flips the client's alternative speed limits on/off. */
+    fun toggleAlternativeSpeeds() = act { repository.toggleAlternativeSpeeds() }
+
+    fun consumeActionError() {
+        _actionError.value = null
+    }
+
+    private fun act(block: suspend () -> Outcome<Unit>) {
+        viewModelScope.launch {
+            when (val outcome = block()) {
+                is Outcome.Success -> loadOnce()
+                is Outcome.Failure -> _actionError.value = outcome.error
+            }
+        }
     }
 
     private suspend fun loadOnce() {

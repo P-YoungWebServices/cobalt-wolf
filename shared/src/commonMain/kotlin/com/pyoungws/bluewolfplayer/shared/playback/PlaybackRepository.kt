@@ -42,6 +42,7 @@ class PlaybackRepository(
                 val source = playbackDataSource.getPlaybackSource(
                     session, target.itemId, startTicks, buildDeviceProfile(capabilities, settings, serverTranscodesVideo),
                     forceTranscode = forceTranscode || settings.decoding == DecodingPreference.AlwaysTranscode,
+                    maxBitrate = settings.maxBitrate.bps,
                 )
                 PlaybackRequest(
                     item, source, startTicks / TICKS_PER_MILLISECOND, target.startPaused, initialDecodePlan(settings),

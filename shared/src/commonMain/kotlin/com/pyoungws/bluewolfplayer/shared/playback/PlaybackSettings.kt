@@ -36,6 +36,20 @@ enum class FrameRateMatching {
     Off,
 }
 
+/** Cap on the bitrate the server may send; a source above it is transcoded down. */
+enum class StreamBitrate(val bps: Int?) {
+    /** No cap beyond the device's own profile; the server direct-plays what the profile accepts. */
+    Auto(null),
+    Mbps120(120_000_000),
+    Mbps80(80_000_000),
+    Mbps60(60_000_000),
+    Mbps40(40_000_000),
+    Mbps20(20_000_000),
+    Mbps10(10_000_000),
+    Mbps5(5_000_000),
+    Mbps2(2_000_000),
+}
+
 /** The user's playback overrides. The defaults pick the best path automatically. */
 data class PlaybackSettings(
     val decoding: DecodingPreference = DecodingPreference.Auto,
@@ -44,6 +58,8 @@ data class PlaybackSettings(
     val dolbyVision: Boolean = true,
     val audioOutput: AudioOutputPreference = AudioOutputPreference.Auto,
     val frameRateMatching: FrameRateMatching = FrameRateMatching.Auto,
+    /** Maximum bitrate the server may stream; media above it is transcoded down. */
+    val maxBitrate: StreamBitrate = StreamBitrate.Auto,
     /** Render ASS/SSA subtitles with libass (full styling) instead of the basic text renderer. */
     val styledSubtitles: Boolean = true,
     val showStats: Boolean = false,

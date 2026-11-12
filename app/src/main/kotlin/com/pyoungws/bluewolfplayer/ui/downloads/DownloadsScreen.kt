@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pyoungws.bluewolfplayer.R
+import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.presentation.DownloadsUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.DownloadsViewModel
 import com.pyoungws.bluewolfplayer.shared.qbittorrent.Torrent
@@ -42,6 +43,7 @@ fun DownloadsScreen(
     viewModel: DownloadsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val actionError by viewModel.actionError.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -60,7 +62,13 @@ fun DownloadsScreen(
                 DownloadsUiState.Loading -> LoadingBox()
                 DownloadsUiState.NotConfigured -> NotConfigured(onSettings)
                 is DownloadsUiState.Error -> ErrorBox(current.error, onRetry = viewModel::refresh)
-                is DownloadsUiState.Ready -> DownloadList(current)
+                is DownloadsUiState.Ready -> DownloadList(
+                    current,
+                    actionError = actionError,
+                    onDismissActionError = viewModel::consumeActionError,
+                    onToggleTorrent = viewModel::toggle,
+                    onToggleAltSpeeds = viewModel::toggleAlternativeSpeeds,
+                )
             }
         }
     }
@@ -85,20 +93,53 @@ private fun NotConfigured(onSettings: () -> Unit) {
 }
 
 @Composable
-private fun DownloadList(state: DownloadsUiState.Ready) {
+private fun DownloadList(
+    state: DownloadsUiState.Ready,
+    actionError: LoadError?,
+    onDismissActionError: () -> Unit,
+    onToggleTorrent: (Torrent) -> Unit,
+    onToggleAltSpeeds: () -> Unit,
+) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                Text(
-                    "↓ ${formatSpeed(state.downloads.totalDownloadSpeedBps)}   ↑ ${formatSpeed(state.downloads.totalUploadSpeedBps)}",
-                    style = MaterialTheme.typography.titleSmall,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "↓ ${formatSpeed(state.downloads.totalDownloadSpeedBps)}   ↑ ${formatSpeed(state.downloads.totalUploadSpeedBps)}",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onToggleAltSpeeds) {
+                        Text(
+                            stringResource(
+                                if (state.downloads.alternativeSpeedLimits) R.string.downloads_alt_speeds_on
+                                else R.string.downloads_alt_speeds_off,
+                            ),
+                        )
+                    }
+                }
                 if (state.stale) {
                     Text(
                         stringResource(R.string.downloads_stale),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
+                }
+            }
+        }
+        actionError?.let { error ->
+            item(key = "action-error") {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        error.toString(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onDismissActionError) { Text(stringResource(R.string.downloads_dismiss)) }
                 }
             }
         }
@@ -113,13 +154,13 @@ private fun DownloadList(state: DownloadsUiState.Ready) {
             }
         }
         items(state.downloads.torrents, key = { it.hash }) { torrent ->
-            TorrentRow(torrent)
+            TorrentRow(torrent, onToggle = { onToggleTorrent(torrent) })
         }
     }
 }
 
 @Composable
-private fun TorrentRow(torrent: Torrent) {
+private fun TorrentRow(torrent: Torrent, onToggle: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(torrent.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
         LinearProgressIndicator(
@@ -128,13 +169,17 @@ private fun TorrentRow(torrent: Torrent) {
         )
         val stateLabel = torrentStateRes(torrent.state)?.let { stringResource(it) } ?: torrent.state
         val eta = stringResource(R.string.downloads_eta, formatEta(torrent.etaSeconds))
-        Row {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 torrent.detailLine(stateLabel, eta),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
+                modifier = Modifier.weight(1f),
             )
+            TextButton(onClick = onToggle) {
+                Text(stringResource(if (torrent.isPaused) R.string.downloads_resume else R.string.downloads_pause))
+            }
         }
     }
 }

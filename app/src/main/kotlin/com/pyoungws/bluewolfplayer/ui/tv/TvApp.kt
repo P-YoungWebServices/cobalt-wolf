@@ -58,11 +58,13 @@ import com.pyoungws.bluewolfplayer.ui.admin.AdminTasksScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminUsersScreen
 import com.pyoungws.bluewolfplayer.ui.arrmedia.MediaDetailScreen
 import com.pyoungws.bluewolfplayer.ui.arrmedia.MediaManagerScreen
+import com.pyoungws.bluewolfplayer.ui.bazarr.BazarrScreen
 import com.pyoungws.bluewolfplayer.ui.navigation.Route
 import com.pyoungws.bluewolfplayer.ui.navigation.decodeRoute
 import com.pyoungws.bluewolfplayer.ui.navigation.encode
 import com.pyoungws.bluewolfplayer.ui.navigation.isAllowedFor
 import com.pyoungws.bluewolfplayer.ui.navigation.managementRoute
+import com.pyoungws.bluewolfplayer.ui.prowlarr.ProwlarrScreen
 import com.pyoungws.bluewolfplayer.ui.settings.PlaybackSettingsActivity
 import com.pyoungws.bluewolfplayer.ui.tv.channels.TvHomeChannels
 import kotlinx.coroutines.Dispatchers
@@ -118,7 +120,8 @@ private fun decodeTvRoute(value: String): Route? = when (val route = decodeRoute
     is Route.LibraryRoute, is Route.Detail, is Route.SeerrDetail, is Route.SyncPlay,
     Route.Dashboard, Route.Sessions, Route.AdminRequests, Route.AdminUsers, Route.AdminDevices,
     Route.AdminLibraries, Route.AdminTasks, Route.AdminLogs, Route.AdminSystem,
-    Route.MediaManager, is Route.MediaDetail, Route.ArrSettings, Route.Downloads -> route
+    Route.MediaManager, is Route.MediaDetail, Route.ArrSettings, Route.Downloads,
+    Route.Bazarr, Route.Prowlarr -> route
     else -> null
 }
 
@@ -214,6 +217,8 @@ private fun TvSignedInNavigation(
                 is Route.MediaDetail -> MediaDetailScreen(route.service, route.itemId, onBack = pop)
                 Route.ArrSettings -> TvServiceSettings(onDone = pop)
                 Route.Downloads -> TvDownloadsScreen()
+                Route.Bazarr -> BazarrScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
+                Route.Prowlarr -> ProwlarrScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
                 null -> when (tvSection(section)) {
                     TvSection.Home -> TvHomeScreen(
                         feedViewModel = feedViewModel,

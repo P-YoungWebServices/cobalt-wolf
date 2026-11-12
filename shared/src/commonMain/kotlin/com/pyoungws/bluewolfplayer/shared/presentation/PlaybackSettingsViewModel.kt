@@ -12,6 +12,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.HdrOutput
 import com.pyoungws.bluewolfplayer.shared.playback.HdrPreference
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.VideoCodec
 import com.pyoungws.bluewolfplayer.shared.playback.VideoRange
 import com.pyoungws.bluewolfplayer.shared.playback.VideoSupport
@@ -55,6 +56,7 @@ class PlaybackSettingsViewModel(
     fun setDolbyVision(enabled: Boolean) = update { it.copy(dolbyVision = enabled) }
     fun setAudioOutput(value: AudioOutputPreference) = update { it.copy(audioOutput = value) }
     fun setFrameRateMatching(value: FrameRateMatching) = update { it.copy(frameRateMatching = value) }
+    fun setMaxBitrate(value: StreamBitrate) = update { it.copy(maxBitrate = value) }
     fun setStyledSubtitles(enabled: Boolean) = update { it.copy(styledSubtitles = enabled) }
     fun setShowStats(enabled: Boolean) = update { it.copy(showStats = enabled) }
 

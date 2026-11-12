@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -69,10 +70,20 @@ fun TvDownloadsScreen(
             is DownloadsUiState.Ready -> {
                 item(key = "totals") {
                     Column {
-                        Text(
-                            "↓ ${formatSpeed(current.downloads.totalDownloadSpeedBps)}   ↑ ${formatSpeed(current.downloads.totalUploadSpeedBps)}",
-                            style = MaterialTheme.typography.titleSmall,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                "↓ ${formatSpeed(current.downloads.totalDownloadSpeedBps)}   ↑ ${formatSpeed(current.downloads.totalUploadSpeedBps)}",
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                            OutlinedButton(onClick = viewModel::toggleAlternativeSpeeds) {
+                                Text(
+                                    stringResource(
+                                        if (current.downloads.alternativeSpeedLimits) R.string.downloads_alt_speeds_on
+                                        else R.string.downloads_alt_speeds_off,
+                                    ),
+                                )
+                            }
+                        }
                         if (current.stale) {
                             Text(
                                 stringResource(R.string.downloads_stale),
@@ -99,11 +110,16 @@ fun TvDownloadsScreen(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         )
                         val stateLabel = torrentStateRes(torrent.state)?.let { stringResource(it) } ?: torrent.state
-                        Text(
-                            torrent.detailLine(stateLabel, stringResource(R.string.downloads_eta, formatEta(torrent.etaSeconds))),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                torrent.detailLine(stateLabel, stringResource(R.string.downloads_eta, formatEta(torrent.etaSeconds))),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            OutlinedButton(onClick = { viewModel.toggle(torrent) }) {
+                                Text(stringResource(if (torrent.isPaused) R.string.downloads_resume else R.string.downloads_pause))
+                            }
+                        }
                     }
                 }
             }

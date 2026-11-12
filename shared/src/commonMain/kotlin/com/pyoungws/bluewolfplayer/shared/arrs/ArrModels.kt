@@ -6,8 +6,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.datetime.LocalDate
 
-/** The supported *arr services. */
-enum class ArrService { Radarr, Sonarr }
+/**
+ * The supported *arr-family services. [managesMedia] marks the two whose libraries the app
+ * reads calendars from and edits; Bazarr and Prowlarr are connection-only companions.
+ */
+enum class ArrService {
+    Radarr, Sonarr, Bazarr, Prowlarr;
+
+    val managesMedia: Boolean get() = this == Radarr || this == Sonarr
+}
 
 /** Connection details for one service; both fields are required before it counts as configured. */
 data class ArrServiceSettings(
@@ -18,6 +25,8 @@ data class ArrServiceSettings(
 data class ArrSettings(
     val radarr: ArrServiceSettings = ArrServiceSettings(),
     val sonarr: ArrServiceSettings = ArrServiceSettings(),
+    val bazarr: ArrServiceSettings = ArrServiceSettings(),
+    val prowlarr: ArrServiceSettings = ArrServiceSettings(),
 )
 
 /** Persists [ArrSettings]. Platform implementations must protect the API keys. */
@@ -56,6 +65,8 @@ class ArrSettingsRepository(private val store: ArrSettingsStore) {
         _settings.value = when (service) {
             ArrService.Radarr -> _settings.value.copy(radarr = updated)
             ArrService.Sonarr -> _settings.value.copy(sonarr = updated)
+            ArrService.Bazarr -> _settings.value.copy(bazarr = updated)
+            ArrService.Prowlarr -> _settings.value.copy(prowlarr = updated)
         }
         store.save(_settings.value)
     }
@@ -64,6 +75,8 @@ class ArrSettingsRepository(private val store: ArrSettingsStore) {
 fun ArrSettings.forService(service: ArrService): ArrServiceSettings = when (service) {
     ArrService.Radarr -> radarr
     ArrService.Sonarr -> sonarr
+    ArrService.Bazarr -> bazarr
+    ArrService.Prowlarr -> prowlarr
 }
 
 /** One entry on an *arr calendar: an upcoming episode (Sonarr) or movie release (Radarr). */
