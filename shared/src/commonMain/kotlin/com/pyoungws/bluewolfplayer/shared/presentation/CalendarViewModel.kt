@@ -38,7 +38,7 @@ class CalendarViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            if (repository.configuredServices.isEmpty()) {
+            if (repository.configuredServices.none { it.managesMedia }) {
                 _uiState.value = CalendarUiState.NotConfigured
                 return@launch
             }

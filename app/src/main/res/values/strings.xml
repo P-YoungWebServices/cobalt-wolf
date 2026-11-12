@@ -419,6 +419,16 @@
     <string name="playback_frame_rate_auto">Automatic: switch display mode on TV</string>
     <string name="playback_frame_rate_seamless">Only seamless switches</string>
     <string name="playback_frame_rate_off">Off</string>
+    <string name="playback_max_bitrate">Maximum stream bitrate</string>
+    <string name="playback_bitrate_auto">Auto (device profile limit)</string>
+    <string name="playback_bitrate_120">120 Mbps</string>
+    <string name="playback_bitrate_80">80 Mbps</string>
+    <string name="playback_bitrate_60">60 Mbps</string>
+    <string name="playback_bitrate_40">40 Mbps</string>
+    <string name="playback_bitrate_20">20 Mbps</string>
+    <string name="playback_bitrate_10">10 Mbps</string>
+    <string name="playback_bitrate_5">5 Mbps</string>
+    <string name="playback_bitrate_2">2 Mbps</string>
     <string name="playback_styled_subtitles">Styled ASS/SSA subtitles</string>
     <string name="playback_styled_subtitles_summary">Render with libass: fonts, positioning and effects</string>
     <string name="playback_show_stats">Show stats overlay</string>
@@ -438,6 +448,8 @@
     <string name="calendar_downloaded">Downloaded</string>
     <string name="arr_service_radarr">Radarr</string>
     <string name="arr_service_sonarr">Sonarr</string>
+    <string name="arr_service_bazarr">Bazarr</string>
+    <string name="arr_service_prowlarr">Prowlarr</string>
     <string name="arr_settings_title">Services</string>
     <string name="arr_field_url">Server URL</string>
     <string name="arr_field_api_key">API key</string>
@@ -524,6 +536,45 @@
     <string name="qbittorrent_title">qBittorrent</string>
     <string name="qbit_field_username">Username</string>
     <string name="qbit_field_password">Password</string>
+    <string name="bazarr_title">Bazarr</string>
+    <string name="bazarr_card_subtitle">Wanted subtitles</string>
+    <plurals name="bazarr_wanted_count">
+        <item quantity="one">%d wanted</item>
+        <item quantity="other">%d wanted</item>
+    </plurals>
+    <string name="bazarr_not_configured">Add your Bazarr server to see wanted subtitles.</string>
+    <string name="bazarr_movies">Movies</string>
+    <string name="bazarr_episodes">Episodes</string>
+    <string name="bazarr_nothing_wanted">Nothing wanted — every subtitle has been downloaded</string>
+    <string name="bazarr_missing">Missing: %1$s</string>
+    <string name="bazarr_search">Search</string>
+    <string name="bazarr_searching">Searching…</string>
+    <string name="bazarr_search_downloaded">Downloaded %1$d subtitle(s)</string>
+    <string name="bazarr_search_none">No subtitles found</string>
+    <string name="bazarr_search_failed">Search failed: %1$s</string>
+    <string name="prowlarr_title">Prowlarr</string>
+    <string name="prowlarr_card_subtitle">Indexers</string>
+    <plurals name="prowlarr_indexer_count">
+        <item quantity="one">%d indexer</item>
+        <item quantity="other">%d indexers</item>
+    </plurals>
+    <plurals name="prowlarr_issue_count">
+        <item quantity="one">%d issue</item>
+        <item quantity="other">%d issues</item>
+    </plurals>
+    <string name="prowlarr_not_configured">Add your Prowlarr server to monitor indexers.</string>
+    <string name="prowlarr_indexers">Indexers</string>
+    <string name="prowlarr_health">Health issues</string>
+    <string name="prowlarr_no_indexers">No indexers configured in Prowlarr</string>
+    <string name="prowlarr_disabled">disabled</string>
+    <string name="prowlarr_throttled">auto-disabled</string>
+    <string name="prowlarr_stats_line">%1$d queries · %2$d grabs · %3$d ms avg</string>
+    <string name="prowlarr_retest">Retest</string>
+    <string name="prowlarr_testing">Testing…</string>
+    <string name="prowlarr_test_all">Test all</string>
+    <string name="prowlarr_test_passed">Test passed</string>
+    <string name="prowlarr_test_failed">Test failed: %1$s</string>
+    <string name="service_card_not_configured">Not configured</string>
     <string name="torrent_state_downloading">Downloading</string>
     <string name="torrent_state_stalled">Stalled</string>
     <string name="torrent_state_queued">Queued</string>
@@ -532,6 +583,11 @@
     <string name="torrent_state_checking">Checking</string>
     <string name="torrent_state_moving">Moving</string>
     <string name="torrent_state_error">Error</string>
+    <string name="downloads_resume">Resume</string>
+    <string name="downloads_pause">Pause</string>
+    <string name="downloads_alt_speeds_on">Turtle mode: on</string>
+    <string name="downloads_alt_speeds_off">Turtle mode: off</string>
+    <string name="downloads_dismiss">Dismiss</string>
 
     <!-- Home-screen sessions widget -->
     <string name="widget_sessions_name">Cobalt Wolf sessions</string>

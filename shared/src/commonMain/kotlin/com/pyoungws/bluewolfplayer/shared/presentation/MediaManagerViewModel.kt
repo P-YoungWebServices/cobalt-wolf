@@ -107,6 +107,7 @@ class MediaManagerViewModel(
                     return
                 }
             }
+            else -> emptyList()
         }
         _uiState.update { it.copy(isLoading = false, rows = rows, error = null) }
     }

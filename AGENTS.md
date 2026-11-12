@@ -53,7 +53,8 @@ Conventions and rules for contributing to Cobalt Wolf.
 - `dev.credentials.properties` (repo root, gitignored) holds test credentials:
   Jellyfin `server`/`username`/`password`, `firestick.adb`, `seerr.server`,
   `syncplay.username`/`syncplay.password`, `radarr.url`/`radarr.apikey`,
-  `sonarr.url`/`sonarr.apikey`, `qbittorrent.url`/`username`/`password`.
+  `sonarr.url`/`sonarr.apikey`, `qbittorrent.url`/`username`/`password`,
+  `bazarr.url`/`bazarr.apikey`, `prowlarr.url`/`prowlarr.apikey`.
   `app/build.gradle.kts` reads it at build time into debug-only `BuildConfig`
   fields; `app/src/debug/.../DevSeed.kt` consumes them to seed service settings
   and sign into Jellyfin + Seerr on every debug start so test installs are
@@ -204,11 +205,29 @@ Conventions and rules for contributing to Cobalt Wolf.
   password settings (password encrypted via `KeystoreCipher`), SID-cookie auth
   (`QBittorrentCookieStorage` + `KeystoreQBittorrentSessionStore`), automatic
   re-login when the cookie expires, and `DownloadsViewModel` polling
-  `torrents/info` + `transfer/info` every 3 s while the screen is open. The
+  `torrents/info` + `transfer/info` every 3 s while the screen is open.
+  Torrents can be paused/resumed (`torrents/start|stop`, falling back to
+  `resume|pause` on pre-v5 qBittorrent) and the alternative speed limits
+  toggled (`transfer/speedLimitsMode` + `toggleSpeedLimitsMode`) from the
+  downloads screens. The
   phone screen is `ui/downloads/`; on TV it is the pushed
   `Route.Downloads` from the dashboard (admin-only). The credentials form
   is `ui/calendar/ArrSettingsScreen.kt` on phone and
   `ui/tv/TvServiceSettings.kt` on TV.
+- `shared/.../bazarr/` and `shared/.../prowlarr/` are the Bazarr and Prowlarr
+  integrations. Both are `ArrService` members (`managesMedia == false`, so
+  they reuse `ArrServiceSettings` + the encrypted API-key store but stay out
+  of the calendar/media-manager paths). Bazarr uses `/api` and its wanted
+  endpoints answer a `{data,total}` envelope; the wanted screen
+  (`ui/bazarr`, `NavDestination.Bazarr`) can search providers and download a
+  subtitle via `/api/providers/movies|episodes`. Prowlarr uses `/api/v1`;
+  its screen (`ui/prowlarr`, `NavDestination.Prowlarr`) merges indexers,
+  stats, auto-disable status and health into `ProwlarrOverview`, and the
+  indexer endpoints (`indexer/{id}` fetch + `indexer/test`,
+  `indexer/testall`) power per-indexer retest and test-all. A failed test
+  answers 400 with validation errors in the body, which `testIndexer`
+  parses — `expectSuccess` is disabled on that one request. Both screens
+  get dashboard cards with live badge counts (`AdminDashboardViewModel`).
 - SyncPlay ("watch together") lives in `shared/.../syncplay`
   (`SyncPlayDataSource` over the SDK's `syncPlayApi` + `apiClient.webSocket`,
   `SyncPlayRepository`, models, `SyncPlayEchoGate`) with

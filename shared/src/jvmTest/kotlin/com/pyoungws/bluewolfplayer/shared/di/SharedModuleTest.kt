@@ -27,11 +27,13 @@ import com.pyoungws.bluewolfplayer.shared.presentation.AdminTasksViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminUsersViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ArrSettingsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.BazarrViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.CalendarViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.DiscoverViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.DownloadsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MyRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.ProwlarrViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.HomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
@@ -124,5 +126,7 @@ class SharedModuleTest {
         assertNotNull(koin.get<ArrSettingsViewModel>())
         assertNotNull(koin.get<DownloadsViewModel>())
         assertNotNull(koin.get<QBittorrentSettingsViewModel>())
+        assertNotNull(koin.get<BazarrViewModel>())
+        assertNotNull(koin.get<ProwlarrViewModel>())
     }
 }

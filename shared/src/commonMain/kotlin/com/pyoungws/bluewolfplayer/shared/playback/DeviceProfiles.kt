@@ -73,7 +73,7 @@ fun buildDeviceProfile(capabilities: DeviceCapabilities, settings: PlaybackSetti
         codecProfiles = if (serverTranscodesVideo) video.map { it.toCodecProfile() } else emptyList(),
         subtitleProfiles = EMBEDDED_SUBTITLES.map { SubtitleProfile(format = it, method = SubtitleDeliveryMethod.EMBED) } +
             EXTERNAL_SUBTITLES.map { SubtitleProfile(format = it, method = SubtitleDeliveryMethod.EXTERNAL) },
-        maxStreamingBitrate = 200_000_000,
+        maxStreamingBitrate = settings.maxBitrate.bps ?: 200_000_000,
     )
 }
 

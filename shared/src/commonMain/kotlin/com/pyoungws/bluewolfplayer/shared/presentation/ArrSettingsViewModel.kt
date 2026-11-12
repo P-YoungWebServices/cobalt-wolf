@@ -26,14 +26,18 @@ data class ArrServiceForm(
 data class ArrSettingsUiState(
     val radarr: ArrServiceForm = ArrServiceForm(),
     val sonarr: ArrServiceForm = ArrServiceForm(),
+    val bazarr: ArrServiceForm = ArrServiceForm(),
+    val prowlarr: ArrServiceForm = ArrServiceForm(),
 ) {
     fun form(service: ArrService): ArrServiceForm = when (service) {
         ArrService.Radarr -> radarr
         ArrService.Sonarr -> sonarr
+        ArrService.Bazarr -> bazarr
+        ArrService.Prowlarr -> prowlarr
     }
 }
 
-/** URL + API-key settings for Radarr and Sonarr, with save and connection test per service. */
+/** URL + API-key settings for the *arr services, with save and connection test per service. */
 class ArrSettingsViewModel(
     private val repository: ArrRepository,
 ) : ViewModel() {
@@ -41,6 +45,8 @@ class ArrSettingsViewModel(
         ArrSettingsUiState(
             radarr = repository.settings.value.radarr.toForm(),
             sonarr = repository.settings.value.sonarr.toForm(),
+            bazarr = repository.settings.value.bazarr.toForm(),
+            prowlarr = repository.settings.value.prowlarr.toForm(),
         ),
     )
     val uiState = _uiState.asStateFlow()
@@ -75,6 +81,8 @@ class ArrSettingsViewModel(
             when (service) {
                 ArrService.Radarr -> state.copy(radarr = transform(state.radarr))
                 ArrService.Sonarr -> state.copy(sonarr = transform(state.sonarr))
+                ArrService.Bazarr -> state.copy(bazarr = transform(state.bazarr))
+                ArrService.Prowlarr -> state.copy(prowlarr = transform(state.prowlarr))
             }
         }
     }

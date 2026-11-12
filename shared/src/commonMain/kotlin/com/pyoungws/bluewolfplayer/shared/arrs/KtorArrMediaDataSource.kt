@@ -159,6 +159,7 @@ class KtorArrMediaDataSource(
         val resource = when (service) {
             ArrService.Radarr -> "moviefile"
             ArrService.Sonarr -> "episodefile"
+            else -> error("$service has no file resources")
         }
         client.delete("${settings.serverUrl}/api/v3/$resource/$fileId") { apiKey(settings) }.bodyAsText()
         Unit
@@ -173,6 +174,7 @@ class KtorArrMediaDataSource(
         val resource = when (service) {
             ArrService.Radarr -> "movie"
             ArrService.Sonarr -> "series"
+            else -> error("$service has no media items")
         }
         client.delete("${settings.serverUrl}/api/v3/$resource/$itemId") {
             apiKey(settings)
@@ -191,6 +193,7 @@ class KtorArrMediaDataSource(
             when (service) {
                 ArrService.Radarr -> parameter("movieId", itemId)
                 ArrService.Sonarr -> parameter("seriesId", itemId)
+                else -> error("$service has no media items")
             }
         }.body<List<RenamePreviewDto>>().map {
             ArrRenamePreview(it.movieFileId ?: it.episodeFileId ?: 0, it.existingPath, it.newPath)
@@ -208,6 +211,7 @@ class KtorArrMediaDataSource(
             when (service) {
                 ArrService.Radarr -> put("movieId", itemId)
                 ArrService.Sonarr -> put("seriesId", itemId)
+                else -> error("$service has no media items")
             }
             putJsonArray("files") { fileIds.forEach(::add) }
         })
@@ -287,6 +291,7 @@ class KtorArrMediaDataSource(
             when (service) {
                 ArrService.Radarr -> parameter("movieId", itemId)
                 ArrService.Sonarr -> parameter("seriesId", itemId)
+                else -> error("$service has no media items")
             }
         }.body<List<ManualImportRowDto>>().map { it.toModel() }
     }
@@ -311,6 +316,7 @@ class KtorArrMediaDataSource(
                                 put("seriesId", file.matchedItemId ?: itemId)
                                 putJsonArray("episodeIds") { file.episodeIds.forEach(::add) }
                             }
+                            else -> error("$service has no media items")
                         }
                         file.qualityId?.let { id ->
                             putJsonObject("quality") {

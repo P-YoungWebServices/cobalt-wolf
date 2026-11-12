@@ -29,12 +29,14 @@ import com.pyoungws.bluewolfplayer.ui.admin.AdminTasksScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminUsersScreen
 import com.pyoungws.bluewolfplayer.ui.arrmedia.MediaDetailScreen
 import com.pyoungws.bluewolfplayer.ui.arrmedia.MediaManagerScreen
+import com.pyoungws.bluewolfplayer.ui.bazarr.BazarrScreen
 import com.pyoungws.bluewolfplayer.ui.detail.DetailScreen
 import com.pyoungws.bluewolfplayer.ui.discover.DiscoverScreen
 import com.pyoungws.bluewolfplayer.ui.discover.MyRequestsScreen
 import com.pyoungws.bluewolfplayer.ui.discover.SeerrDetailScreen
 import com.pyoungws.bluewolfplayer.ui.home.HomeScreen
 import com.pyoungws.bluewolfplayer.ui.library.LibraryScreen
+import com.pyoungws.bluewolfplayer.ui.prowlarr.ProwlarrScreen
 import com.pyoungws.bluewolfplayer.ui.search.SearchScreen
 import com.pyoungws.bluewolfplayer.ui.calendar.ArrSettingsScreen
 import com.pyoungws.bluewolfplayer.ui.calendar.CalendarScreen
@@ -55,6 +57,8 @@ internal sealed interface Route {
     data object Calendar : Route
     data object ArrSettings : Route
     data object Downloads : Route
+    data object Bazarr : Route
+    data object Prowlarr : Route
     data object Dashboard : Route
     data object AdminRequests : Route
     data object AdminUsers : Route
@@ -80,6 +84,8 @@ internal fun Route.encode(): String = when (this) {
     Route.Calendar -> "calendar"
     Route.ArrSettings -> "arrsettings"
     Route.Downloads -> "downloads"
+    Route.Bazarr -> "bazarr"
+    Route.Prowlarr -> "prowlarr"
     Route.Dashboard -> "dashboard"
     Route.AdminRequests -> "adminrequests"
     Route.AdminUsers -> "adminusers"
@@ -107,6 +113,8 @@ internal fun decodeRoute(value: String): Route? {
         "calendar" -> Route.Calendar
         "arrsettings" -> Route.ArrSettings
         "downloads" -> Route.Downloads
+        "bazarr" -> Route.Bazarr
+        "prowlarr" -> Route.Prowlarr
         "dashboard" -> Route.Dashboard
         "adminrequests" -> Route.AdminRequests
         "adminusers" -> Route.AdminUsers
@@ -117,8 +125,9 @@ internal fun decodeRoute(value: String): Route? {
         "adminsystem" -> Route.AdminSystem
         "sessions" -> Route.Sessions
         "mediamanager" -> Route.MediaManager
-        "mediadetail" -> parts.getOrNull(2)?.toIntOrNull()?.let {
-            Route.MediaDetail(ArrService.valueOf(parts[1]), it)
+        "mediadetail" -> parts.getOrNull(2)?.toIntOrNull()?.let { itemId ->
+            ArrService.entries.firstOrNull { it.name == parts[1] && it.managesMedia }
+                ?.let { Route.MediaDetail(it, itemId) }
         }
         "seerr" -> parts.getOrNull(2)?.toIntOrNull()?.let { Route.SeerrDetail(SeerrMediaType.valueOf(parts[1]), it) }
         "library" -> parts.getOrNull(3)?.let { name ->
@@ -143,6 +152,8 @@ internal fun Route.adminDestination(): NavDestination? = when (this) {
     Route.AdminSystem -> NavDestination.SystemInfo
     Route.MediaManager, is Route.MediaDetail -> NavDestination.MediaManager
     Route.Downloads -> NavDestination.Downloads
+    Route.Bazarr -> NavDestination.Bazarr
+    Route.Prowlarr -> NavDestination.Prowlarr
     Route.ArrSettings -> NavDestination.Services
     else -> null
 }
@@ -158,6 +169,8 @@ internal fun managementRoute(destination: NavDestination): Route? = when (destin
     NavDestination.RequestQueue -> Route.AdminRequests
     NavDestination.MediaManager -> Route.MediaManager
     NavDestination.Downloads -> Route.Downloads
+    NavDestination.Bazarr -> Route.Bazarr
+    NavDestination.Prowlarr -> Route.Prowlarr
     NavDestination.Services -> Route.ArrSettings
     NavDestination.Users -> Route.AdminUsers
     NavDestination.Devices -> Route.AdminDevices
@@ -214,6 +227,8 @@ fun SignedInNavigation() {
         )
         Route.ArrSettings -> ArrSettingsScreen(onBack = pop)
         Route.Downloads -> DownloadsScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
+        Route.Bazarr -> BazarrScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
+        Route.Prowlarr -> ProwlarrScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
         Route.Dashboard -> AdminDashboardScreen(
             onBack = pop,
             onOpenItem = { push(Route.Detail(it)) },

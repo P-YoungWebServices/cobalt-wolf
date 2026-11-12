@@ -15,6 +15,9 @@ import com.pyoungws.bluewolfplayer.shared.admin.SdkJellyfinAdminDataSource
 import com.pyoungws.bluewolfplayer.shared.auth.AuthRepository
 import com.pyoungws.bluewolfplayer.shared.auth.JellyfinAuthDataSource
 import com.pyoungws.bluewolfplayer.shared.auth.SdkJellyfinAuthDataSource
+import com.pyoungws.bluewolfplayer.shared.bazarr.BazarrDataSource
+import com.pyoungws.bluewolfplayer.shared.bazarr.BazarrRepository
+import com.pyoungws.bluewolfplayer.shared.bazarr.KtorBazarrDataSource
 import com.pyoungws.bluewolfplayer.shared.library.JellyfinLibraryDataSource
 import com.pyoungws.bluewolfplayer.shared.library.LibraryRepository
 import com.pyoungws.bluewolfplayer.shared.library.SdkJellyfinLibraryDataSource
@@ -26,6 +29,9 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.playback.SdkJellyfinPlaybackDataSource
+import com.pyoungws.bluewolfplayer.shared.prowlarr.KtorProwlarrDataSource
+import com.pyoungws.bluewolfplayer.shared.prowlarr.ProwlarrDataSource
+import com.pyoungws.bluewolfplayer.shared.prowlarr.ProwlarrRepository
 import com.pyoungws.bluewolfplayer.shared.qbittorrent.KtorQBittorrentDataSource
 import com.pyoungws.bluewolfplayer.shared.qbittorrent.QBittorrentDataSource
 import com.pyoungws.bluewolfplayer.shared.qbittorrent.QBittorrentRepository
@@ -47,10 +53,12 @@ import com.pyoungws.bluewolfplayer.shared.presentation.DownloadsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.BazarrViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MediaDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MediaManagerViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MyRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.ProwlarrViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.QBittorrentSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SearchViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.SeerrDetailViewModel
@@ -117,6 +125,10 @@ val sharedModule = module {
     single { ArrSettingsRepository(get()) }
     single { ArrRepository(get(), get()) }
     single { ArrMediaRepository(get(), get()) }
+    single<BazarrDataSource> { KtorBazarrDataSource(arrHttpClient()) }
+    single { BazarrRepository(get(), get()) }
+    single<ProwlarrDataSource> { KtorProwlarrDataSource(arrHttpClient()) }
+    single { ProwlarrRepository(get(), get()) }
 
     single<QBittorrentDataSource> { KtorQBittorrentDataSource(qbittorrentHttpClient(get())) }
     single { QBittorrentSettingsRepository(get()) }
@@ -151,4 +163,6 @@ val sharedModule = module {
     viewModel { (service: ArrService, itemId: Int) -> MediaDetailViewModel(service, itemId, get()) }
     viewModelOf(::DownloadsViewModel)
     viewModelOf(::QBittorrentSettingsViewModel)
+    viewModelOf(::BazarrViewModel)
+    viewModelOf(::ProwlarrViewModel)
 }

@@ -14,6 +14,8 @@ class SharedPreferencesArrSettingsStore(context: Context) : ArrSettingsStore {
     override fun load() = ArrSettings(
         radarr = service(KEY_RADARR_URL, KEY_RADARR_KEY),
         sonarr = service(KEY_SONARR_URL, KEY_SONARR_KEY),
+        bazarr = service(KEY_BAZARR_URL, KEY_BAZARR_KEY),
+        prowlarr = service(KEY_PROWLARR_URL, KEY_PROWLARR_KEY),
     )
 
     override fun save(settings: ArrSettings) {
@@ -22,6 +24,10 @@ class SharedPreferencesArrSettingsStore(context: Context) : ArrSettingsStore {
             .putString(KEY_RADARR_KEY, encrypt(settings.radarr.apiKey))
             .putString(KEY_SONARR_URL, settings.sonarr.serverUrl)
             .putString(KEY_SONARR_KEY, encrypt(settings.sonarr.apiKey))
+            .putString(KEY_BAZARR_URL, settings.bazarr.serverUrl)
+            .putString(KEY_BAZARR_KEY, encrypt(settings.bazarr.apiKey))
+            .putString(KEY_PROWLARR_URL, settings.prowlarr.serverUrl)
+            .putString(KEY_PROWLARR_KEY, encrypt(settings.prowlarr.apiKey))
             .apply()
     }
 
@@ -43,5 +49,9 @@ class SharedPreferencesArrSettingsStore(context: Context) : ArrSettingsStore {
         const val KEY_RADARR_KEY = "radarr_api_key"
         const val KEY_SONARR_URL = "sonarr_url"
         const val KEY_SONARR_KEY = "sonarr_api_key"
+        const val KEY_BAZARR_URL = "bazarr_url"
+        const val KEY_BAZARR_KEY = "bazarr_api_key"
+        const val KEY_PROWLARR_URL = "prowlarr_url"
+        const val KEY_PROWLARR_KEY = "prowlarr_api_key"
     }
 }

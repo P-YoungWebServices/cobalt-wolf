@@ -14,6 +14,7 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             dolbyVision = preferences.getBoolean(KEY_DOLBY_VISION, defaults.dolbyVision),
             audioOutput = enum(KEY_AUDIO_OUTPUT, defaults.audioOutput),
             frameRateMatching = enum(KEY_FRAME_RATE, defaults.frameRateMatching),
+            maxBitrate = enum(KEY_MAX_BITRATE, defaults.maxBitrate),
             styledSubtitles = preferences.getBoolean(KEY_STYLED_SUBTITLES, defaults.styledSubtitles),
             showStats = preferences.getBoolean(KEY_SHOW_STATS, defaults.showStats),
         )
@@ -26,6 +27,7 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             .putBoolean(KEY_DOLBY_VISION, settings.dolbyVision)
             .putString(KEY_AUDIO_OUTPUT, settings.audioOutput.name)
             .putString(KEY_FRAME_RATE, settings.frameRateMatching.name)
+            .putString(KEY_MAX_BITRATE, settings.maxBitrate.name)
             .putBoolean(KEY_STYLED_SUBTITLES, settings.styledSubtitles)
             .putBoolean(KEY_SHOW_STATS, settings.showStats)
             .apply()
@@ -40,6 +42,7 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
         const val KEY_DOLBY_VISION = "dolby_vision"
         const val KEY_AUDIO_OUTPUT = "audio_output"
         const val KEY_FRAME_RATE = "frame_rate_matching"
+        const val KEY_MAX_BITRATE = "max_bitrate"
         const val KEY_STYLED_SUBTITLES = "styled_subtitles"
         const val KEY_SHOW_STATS = "show_stats"
     }

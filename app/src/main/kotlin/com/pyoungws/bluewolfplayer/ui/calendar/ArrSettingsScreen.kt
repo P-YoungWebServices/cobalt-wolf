@@ -57,10 +57,10 @@ fun ArrSettingsScreen(
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
         ) {
-            ServiceCard(ArrService.Radarr, state.radarr, viewModel)
-            Spacer(Modifier.height(24.dp))
-            ServiceCard(ArrService.Sonarr, state.sonarr, viewModel)
-            Spacer(Modifier.height(24.dp))
+            ArrService.entries.forEach { service ->
+                ServiceCard(service, state.form(service), viewModel)
+                Spacer(Modifier.height(24.dp))
+            }
             QBittorrentCard(qbittorrent, qbittorrentViewModel)
         }
     }

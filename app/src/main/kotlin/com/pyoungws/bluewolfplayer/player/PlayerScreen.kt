@@ -404,7 +404,9 @@ private fun PlayerContent(
                 TextButton(onClick = { dialog = TrackDialog.Audio }) { Text(stringResource(R.string.player_audio), color = Color.White) }
                 TextButton(onClick = { dialog = TrackDialog.Subtitles }) { Text(stringResource(R.string.player_subtitles), color = Color.White) }
                 TextButton(onClick = { showStats = !showStats }) { Text(stringResource(R.string.player_stats), color = Color.White) }
-                TextButton(onClick = onEnterPip) { Text(stringResource(R.string.player_pip), color = Color.White) }
+                if (!isTv) {
+                    TextButton(onClick = onEnterPip) { Text(stringResource(R.string.player_pip), color = Color.White) }
+                }
                 TextButton(onClick = onClose) { Text(stringResource(R.string.player_close), color = Color.White) }
             }
         }

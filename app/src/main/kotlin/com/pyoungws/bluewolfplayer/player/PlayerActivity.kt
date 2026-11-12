@@ -30,6 +30,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.FrameRateMatching
 import com.pyoungws.bluewolfplayer.shared.playback.HdrPreference
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
+import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
 import org.koin.android.ext.android.get
 import com.pyoungws.bluewolfplayer.ui.theme.BlueWolfTheme
@@ -163,7 +164,8 @@ class PlayerActivity : ComponentActivity() {
 
     /**
      * Debug only: `--es decoding Auto|PreferLocal|AlwaysTranscode`, `--es audio_output Auto|PcmOnly`,
-     * `--es hdr Auto|SdrOnly`, `--ez dolby_vision`, `--ez styled_subtitles` and `--ez stats` change the
+     * `--es hdr Auto|SdrOnly`, `--es max_bitrate Auto|Mbps120|...`, `--ez dolby_vision`,
+     * `--ez styled_subtitles` and `--ez stats` change the
      * saved Playback settings before playing, and the detected capabilities are logged.
      */
     private fun applyDebugOverrides(intent: Intent) {
@@ -176,6 +178,7 @@ class PlayerActivity : ComponentActivity() {
                 dolbyVision = if (extras?.containsKey("dolby_vision") == true) extras.getBoolean("dolby_vision") else settings.dolbyVision,
                 styledSubtitles = if (extras?.containsKey("styled_subtitles") == true) extras.getBoolean("styled_subtitles") else settings.styledSubtitles,
                 frameRateMatching = extras?.getString("frame_rate")?.let(FrameRateMatching::valueOf) ?: settings.frameRateMatching,
+                maxBitrate = extras?.getString("max_bitrate")?.let(StreamBitrate::valueOf) ?: settings.maxBitrate,
                 showStats = if (extras?.containsKey("stats") == true) extras.getBoolean("stats") else settings.showStats,
             )
         }

@@ -159,6 +159,8 @@ private fun UpcomingRow(item: UpcomingItem) {
 internal fun ArrService.labelRes(): Int = when (this) {
     ArrService.Radarr -> R.string.arr_service_radarr
     ArrService.Sonarr -> R.string.arr_service_sonarr
+    ArrService.Bazarr -> R.string.arr_service_bazarr
+    ArrService.Prowlarr -> R.string.arr_service_prowlarr
 }
 
 private val dayFormatter: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)

@@ -58,7 +58,7 @@ class ArrRepository(
      * configured service fails the whole call fails with the first error.
      */
     suspend fun calendar(): Outcome<ArrCalendar> {
-        val configured = ArrService.entries.mapNotNull { service ->
+        val configured = ArrService.entries.filter { it.managesMedia }.mapNotNull { service ->
             settingsRepository.serviceSettings(service)?.let { service to it }
         }
         val today = clock.todayIn(timeZone)

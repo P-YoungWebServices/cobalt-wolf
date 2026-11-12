@@ -4,10 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pyoungws.bluewolfplayer.shared.admin.ActiveSession
 import com.pyoungws.bluewolfplayer.shared.admin.AdminRepository
+import com.pyoungws.bluewolfplayer.shared.bazarr.BazarrRepository
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
+import com.pyoungws.bluewolfplayer.shared.prowlarr.ProwlarrRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +28,16 @@ sealed interface MessageStatus {
     data class Failed(val sessionId: String, val error: LoadError) : MessageStatus
 }
 
+/** One-line status for a service action card on the dashboard. */
+data class ServiceBadge(
+    /** False until the service has a usable URL + API key; the card then invites setup. */
+    val configured: Boolean = false,
+    /** The headline count (wanted subtitles, indexers); null while loading or after a failure. */
+    val count: Int? = null,
+    /** Secondary count when the service reports problems (Prowlarr health issues). */
+    val issues: Int? = null,
+)
+
 data class AdminDashboardUiState(
     val isLoading: Boolean = true,
     val sessions: List<ActiveSession> = emptyList(),
@@ -32,10 +46,16 @@ data class AdminDashboardUiState(
     val error: LoadError? = null,
     val refreshSeconds: Int = AdminDashboardViewModel.DEFAULT_REFRESH_SECONDS,
     val message: MessageStatus? = null,
+    val bazarr: ServiceBadge = ServiceBadge(),
+    val prowlarr: ServiceBadge = ServiceBadge(),
 )
 
 /** Admin dashboard: sessions and recently added media, re-fetched every [AdminDashboardUiState.refreshSeconds]. */
-class AdminDashboardViewModel(private val repository: AdminRepository) : ViewModel() {
+class AdminDashboardViewModel(
+    private val repository: AdminRepository,
+    private val bazarrRepository: BazarrRepository,
+    private val prowlarrRepository: ProwlarrRepository,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(AdminDashboardUiState())
     val uiState: StateFlow<AdminDashboardUiState> = _uiState.asStateFlow()
 
@@ -43,6 +63,9 @@ class AdminDashboardViewModel(private val repository: AdminRepository) : ViewMod
 
     init {
         restartPolling()
+        // The badge counts change slowly; they are fetched once up front and on refresh(),
+        // not on every poll like the sessions list.
+        viewModelScope.launch { loadBadges() }
     }
 
     /** Changes the auto-refresh interval and applies it right away (the next poll uses it). */
@@ -55,7 +78,10 @@ class AdminDashboardViewModel(private val repository: AdminRepository) : ViewMod
 
     /** One-off reload, e.g. pull-to-refresh; the poll loop keeps its own schedule. */
     fun refresh() {
-        viewModelScope.launch { loadOnce() }
+        viewModelScope.launch {
+            loadOnce()
+            loadBadges()
+        }
     }
 
     fun sendMessage(sessionId: String, text: String) {
@@ -95,6 +121,29 @@ class AdminDashboardViewModel(private val repository: AdminRepository) : ViewMod
             }
             is Outcome.Failure -> _uiState.update { it.copy(isLoading = false, error = result.error) }
         }
+    }
+
+    /** Bazarr wanted count and Prowlarr indexer/health counts for the action cards. */
+    private suspend fun loadBadges() = coroutineScope {
+        val bazarr = async {
+            if (!bazarrRepository.isConfigured) ServiceBadge()
+            else ServiceBadge(
+                configured = true,
+                count = (bazarrRepository.wanted() as? Outcome.Success)?.value?.total,
+            )
+        }
+        val prowlarr = async {
+            if (!prowlarrRepository.isConfigured) ServiceBadge()
+            else when (val outcome = prowlarrRepository.overview()) {
+                is Outcome.Success -> ServiceBadge(
+                    configured = true,
+                    count = outcome.value.indexers.size,
+                    issues = outcome.value.health.size.takeIf { it > 0 },
+                )
+                is Outcome.Failure -> ServiceBadge(configured = true)
+            }
+        }
+        _uiState.update { it.copy(bazarr = bazarr.await(), prowlarr = prowlarr.await()) }
     }
 
     companion object {

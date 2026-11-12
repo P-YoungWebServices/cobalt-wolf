@@ -59,6 +59,12 @@ object DevSeed {
         if (BuildConfig.DEV_SONARR_URL.isNotBlank()) {
             koin.get<ArrSettingsRepository>().update(ArrService.Sonarr, BuildConfig.DEV_SONARR_URL, BuildConfig.DEV_SONARR_APIKEY)
         }
+        if (BuildConfig.DEV_BAZARR_URL.isNotBlank()) {
+            koin.get<ArrSettingsRepository>().update(ArrService.Bazarr, BuildConfig.DEV_BAZARR_URL, BuildConfig.DEV_BAZARR_APIKEY)
+        }
+        if (BuildConfig.DEV_PROWLARR_URL.isNotBlank()) {
+            koin.get<ArrSettingsRepository>().update(ArrService.Prowlarr, BuildConfig.DEV_PROWLARR_URL, BuildConfig.DEV_PROWLARR_APIKEY)
+        }
         if (BuildConfig.DEV_QBITTORRENT_URL.isNotBlank()) {
             koin.get<QBittorrentSettingsRepository>().update(
                 BuildConfig.DEV_QBITTORRENT_URL,

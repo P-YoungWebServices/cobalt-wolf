@@ -81,8 +81,18 @@ class FakePlaybackDataSource : JellyfinPlaybackDataSource {
         if (force) DIRECT_SOURCE.copy(method = PlaybackMethod.Transcode, url = "https://jellyfin.example.com/hls") else DIRECT_SOURCE
     }
 
-    override suspend fun getPlaybackSource(session: Session, itemId: String, startPositionTicks: Long, profile: DeviceProfile, forceTranscode: Boolean): PlaybackSource {
+    val bitrates = mutableListOf<Int?>()
+
+    override suspend fun getPlaybackSource(
+        session: Session,
+        itemId: String,
+        startPositionTicks: Long,
+        profile: DeviceProfile,
+        forceTranscode: Boolean,
+        maxBitrate: Int?,
+    ): PlaybackSource {
         profiles += profile
+        bitrates += maxBitrate
         sourceRequests += Triple(itemId, startPositionTicks, forceTranscode)
         return source(forceTranscode)
     }
