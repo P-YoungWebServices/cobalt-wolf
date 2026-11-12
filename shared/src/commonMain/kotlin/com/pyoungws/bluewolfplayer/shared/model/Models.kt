@@ -29,11 +29,26 @@ data class Session(
     val accessToken: String,
 )
 
-enum class MediaKind { Movie, Series, Season, Episode, Other }
+enum class MediaKind { Movie, Series, Season, Episode, MusicVideo, Other }
 
-enum class LibraryType { Movies, TvShows, Other }
+enum class StreamKind { Video, Audio, Subtitle }
 
-/** A top-level library (Jellyfin "user view"). Only movie and series libraries can be browsed so far. */
+/** One media stream of an item's primary media source: codec, resolution/HDR for video, layout for audio. */
+data class MediaStreamInfo(
+    val kind: StreamKind,
+    val codec: String? = null,
+    val width: Int? = null,
+    val height: Int? = null,
+    val videoRange: String? = null,
+    val channels: Int? = null,
+    val channelLayout: String? = null,
+    val profile: String? = null,
+    val language: String? = null,
+)
+
+enum class LibraryType { Movies, TvShows, MusicVideos, Other }
+
+/** A top-level library (Jellyfin "user view"). Movie, series and music video libraries are browsable. */
 data class Library(
     val id: String,
     val name: String,
@@ -66,8 +81,9 @@ data class MediaItem(
     val posterUrl: String? = null,
     val landscapeUrl: String? = null,
     val backdropUrl: String? = null,
+    val streams: List<MediaStreamInfo> = emptyList(),
 ) {
-    val isPlayable: Boolean get() = kind == MediaKind.Movie || kind == MediaKind.Episode
+    val isPlayable: Boolean get() = kind == MediaKind.Movie || kind == MediaKind.Episode || kind == MediaKind.MusicVideo
     val hasProgress: Boolean get() = positionTicks > 0 && !isPlayed
 
     /** Progress through the item in 0..1, or null if not started. */
@@ -78,6 +94,36 @@ data class MediaItem(
 /** "S1:E3" style label for an episode, or null if the numbers are unknown. */
 fun MediaItem.episodeLabel(): String? =
     if (kind == MediaKind.Episode && episodeNumber != null) "S${seasonNumber ?: 0}:E$episodeNumber" else null
+
+/** "2160p HEVC HDR10" style summary of the item's video stream, or null when unknown. */
+fun MediaItem.videoStreamSummary(): String? {
+    val video = streams.firstOrNull { it.kind == StreamKind.Video } ?: return null
+    val resolution = video.height?.let { height ->
+        when {
+            height >= 2160 -> "2160p"
+            height >= 1080 -> "1080p"
+            height >= 720 -> "720p"
+            else -> "${height}p"
+        }
+    } ?: video.width?.let { if (it >= 3800) "4K" else null }
+    return listOfNotNull(resolution, video.codec?.uppercase(), video.videoRange)
+        .joinToString(" ").takeIf { it.isNotBlank() }
+}
+
+private val AUDIO_CODEC_LABELS = mapOf(
+    "truehd" to "TrueHD", "dca" to "DTS", "dts" to "DTS", "eac3" to "E-AC-3", "ac3" to "AC-3",
+    "aac" to "AAC", "flac" to "FLAC", "opus" to "Opus", "mp3" to "MP3", "mp2" to "MP2",
+    "pcm" to "PCM", "vorbis" to "Vorbis",
+)
+
+/** "TrueHD Atmos 7.1" style summary per audio stream. */
+fun MediaItem.audioStreamSummaries(): List<String> = streams.filter { it.kind == StreamKind.Audio }.map { stream ->
+    val codec = stream.codec?.let { AUDIO_CODEC_LABELS[it.lowercase()] ?: it.uppercase() }
+    val layout = stream.channelLayout?.takeIf { it.matches(Regex("^\\d+\\.\\d+")) }
+        ?: stream.channels?.let { count -> if (count > 0) "$count ch" else null }
+    val atmos = if (stream.profile?.contains("Atmos", ignoreCase = true) == true) "Atmos" else null
+    listOfNotNull(codec, atmos, layout, stream.language).joinToString(" ")
+}
 
 data class Page<T>(val items: List<T>, val totalCount: Int)
 

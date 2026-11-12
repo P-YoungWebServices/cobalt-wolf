@@ -77,7 +77,7 @@ fun Artwork(url: String?, aspectRatio: Float, modifier: Modifier = Modifier) {
 /** Title shown under a card: the name, or "Series - S1:E2" style context for episodes. */
 fun MediaItem.cardSubtitle(): String? = when (kind) {
     MediaKind.Episode -> listOfNotNull(episodeLabel(), name).joinToString(" ")
-    MediaKind.Movie, MediaKind.Series -> year?.toString()
+    MediaKind.Movie, MediaKind.Series, MediaKind.MusicVideo -> year?.toString()
     else -> null
 }
 

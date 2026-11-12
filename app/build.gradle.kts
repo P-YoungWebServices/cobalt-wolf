@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -20,6 +21,27 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+        }
+        debug {
+            // Dev builds only: bake the local dev credentials into BuildConfig so
+            // DevSeed can provision a fresh install. The file is gitignored; nothing
+            // is ever written back or committed.
+            val credFile = rootProject.file("dev.credentials.properties")
+            val creds = Properties()
+            if (credFile.exists()) credFile.inputStream().use { creds.load(it) }
+            fun cred(key: String): String =
+                creds.getProperty(key, "").replace("\\", "\\\\").replace("\"", "\\\"")
+            buildConfigField("String", "DEV_SERVER", "\"${cred("server")}\"")
+            buildConfigField("String", "DEV_USERNAME", "\"${cred("username")}\"")
+            buildConfigField("String", "DEV_PASSWORD", "\"${cred("password")}\"")
+            buildConfigField("String", "DEV_SEERR_SERVER", "\"${cred("seerr.server")}\"")
+            buildConfigField("String", "DEV_RADARR_URL", "\"${cred("radarr.url")}\"")
+            buildConfigField("String", "DEV_RADARR_APIKEY", "\"${cred("radarr.apikey")}\"")
+            buildConfigField("String", "DEV_SONARR_URL", "\"${cred("sonarr.url")}\"")
+            buildConfigField("String", "DEV_SONARR_APIKEY", "\"${cred("sonarr.apikey")}\"")
+            buildConfigField("String", "DEV_QBITTORRENT_URL", "\"${cred("qbittorrent.url")}\"")
+            buildConfigField("String", "DEV_QBITTORRENT_USERNAME", "\"${cred("qbittorrent.username")}\"")
+            buildConfigField("String", "DEV_QBITTORRENT_PASSWORD", "\"${cred("qbittorrent.password")}\"")
         }
     }
 

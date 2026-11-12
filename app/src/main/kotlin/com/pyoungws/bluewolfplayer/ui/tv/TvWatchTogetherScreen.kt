@@ -30,6 +30,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun TvWatchTogetherScreen(
     onWatch: (String) -> Unit,
+    queueItemId: String? = null,
     viewModel: SyncPlayViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -61,6 +62,11 @@ fun TvWatchTogetherScreen(
                                 member.playingItem?.let { item ->
                                     Button(onClick = { onWatch(item.itemId) }) { Text(stringResource(R.string.syncplay_watch)) }
                                 }
+                                queueItemId?.takeIf { member.playingItem?.itemId != it }?.let { itemId ->
+                                    OutlinedButton(onClick = { viewModel.queueItem(itemId) }, enabled = !current.busy) {
+                                        Text(stringResource(R.string.syncplay_queue_item))
+                                    }
+                                }
                                 OutlinedButton(onClick = viewModel::leave, enabled = !current.busy) {
                                     Text(stringResource(R.string.syncplay_leave))
                                 }
@@ -77,7 +83,7 @@ fun TvWatchTogetherScreen(
                     return@LazyColumn
                 }
                 item(key = "create") {
-                    Button(onClick = { viewModel.createAndJoin("") }, enabled = !current.busy) {
+                    Button(onClick = { viewModel.createAndJoin("", queueItemId) }, enabled = !current.busy) {
                         Text(stringResource(R.string.syncplay_create))
                     }
                 }
@@ -91,7 +97,7 @@ fun TvWatchTogetherScreen(
                     }
                 }
                 items(current.groups, key = { it.id }) { group ->
-                    TvGroupRow(group, busy = current.busy, onJoin = { viewModel.join(group) })
+                    TvGroupRow(group, busy = current.busy, onJoin = { viewModel.join(group, queueItemId) })
                 }
             }
         }

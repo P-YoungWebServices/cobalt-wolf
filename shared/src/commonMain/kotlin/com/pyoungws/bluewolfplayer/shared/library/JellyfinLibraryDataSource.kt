@@ -4,8 +4,10 @@ import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.LibraryType
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.MediaKind
+import com.pyoungws.bluewolfplayer.shared.model.MediaStreamInfo
 import com.pyoungws.bluewolfplayer.shared.model.Page
 import com.pyoungws.bluewolfplayer.shared.model.Session
+import com.pyoungws.bluewolfplayer.shared.model.StreamKind
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -22,7 +24,9 @@ import org.jellyfin.sdk.model.api.CollectionType
 import org.jellyfin.sdk.model.api.ImageType
 import org.jellyfin.sdk.model.api.ItemFields
 import org.jellyfin.sdk.model.api.ItemSortBy
+import org.jellyfin.sdk.model.api.MediaStreamType
 import org.jellyfin.sdk.model.api.SortOrder
+import org.jellyfin.sdk.model.api.VideoRangeType
 import org.jellyfin.sdk.model.api.request.GetEpisodesRequest
 import org.jellyfin.sdk.model.api.request.GetLatestMediaRequest
 import org.jellyfin.sdk.model.api.request.GetNextUpRequest
@@ -97,7 +101,13 @@ class SdkJellyfinLibraryDataSource(
             userId = session.userId.toUuid(),
             parentId = library.id.toUuid(),
             recursive = true,
-            includeItemTypes = listOf(if (library.type == LibraryType.TvShows) BaseItemKind.SERIES else BaseItemKind.MOVIE),
+            includeItemTypes = listOf(
+                when (library.type) {
+                    LibraryType.TvShows -> BaseItemKind.SERIES
+                    LibraryType.MusicVideos -> BaseItemKind.MUSIC_VIDEO
+                    else -> BaseItemKind.MOVIE
+                },
+            ),
             sortBy = listOf(ItemSortBy.SORT_NAME),
             sortOrder = listOf(SortOrder.ASCENDING),
             startIndex = startIndex,
@@ -141,7 +151,7 @@ class SdkJellyfinLibraryDataSource(
             userId = session.userId.toUuid(),
             searchTerm = term,
             recursive = true,
-            includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES, BaseItemKind.EPISODE),
+            includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES, BaseItemKind.EPISODE, BaseItemKind.MUSIC_VIDEO),
             limit = limit,
             fields = ITEM_FIELDS,
             enableUserData = true,
@@ -150,7 +160,7 @@ class SdkJellyfinLibraryDataSource(
 
     private companion object {
         const val ROW_LIMIT = 20
-        val ITEM_FIELDS = listOf(ItemFields.OVERVIEW, ItemFields.GENRES)
+        val ITEM_FIELDS = listOf(ItemFields.OVERVIEW, ItemFields.GENRES, ItemFields.MEDIA_STREAMS)
     }
 }
 
@@ -162,6 +172,7 @@ internal fun BaseItemDto.toLibrary(serverAddress: String) = Library(
     type = when (collectionType) {
         CollectionType.MOVIES -> LibraryType.Movies
         CollectionType.TVSHOWS -> LibraryType.TvShows
+        CollectionType.MUSICVIDEOS -> LibraryType.MusicVideos
         else -> LibraryType.Other
     },
     imageUrl = imageTags?.get(ImageType.PRIMARY)?.let { imageUrl(serverAddress, id.toString(), ImageType.PRIMARY, it, LANDSCAPE_WIDTH) },
@@ -174,7 +185,33 @@ internal fun BaseItemDto.toMediaItem(serverAddress: String): MediaItem {
         BaseItemKind.SERIES -> MediaKind.Series
         BaseItemKind.SEASON -> MediaKind.Season
         BaseItemKind.EPISODE -> MediaKind.Episode
+        BaseItemKind.MUSIC_VIDEO -> MediaKind.MusicVideo
         else -> MediaKind.Other
+    }
+    val streams = mediaStreams.orEmpty().map { stream ->
+        MediaStreamInfo(
+            kind = when (stream.type) {
+                MediaStreamType.VIDEO -> StreamKind.Video
+                MediaStreamType.AUDIO -> StreamKind.Audio
+                else -> StreamKind.Subtitle
+            },
+            codec = stream.codec,
+            width = stream.width,
+            height = stream.height,
+            videoRange = when (stream.videoRangeType) {
+                VideoRangeType.HDR10 -> "HDR10"
+                VideoRangeType.HDR10_PLUS -> "HDR10+"
+                VideoRangeType.HLG -> "HLG"
+                VideoRangeType.DOVI, VideoRangeType.DOVI_WITH_HDR10, VideoRangeType.DOVI_WITH_HLG,
+                VideoRangeType.DOVI_WITH_SDR, VideoRangeType.DOVI_WITH_EL, VideoRangeType.DOVI_WITH_HDR10_PLUS,
+                VideoRangeType.DOVI_WITH_ELHDR10_PLUS, VideoRangeType.DOVI_INVALID -> "Dolby Vision"
+                else -> null
+            },
+            channels = stream.channels,
+            channelLayout = stream.channelLayout,
+            profile = stream.profile,
+            language = stream.language,
+        )
     }
     val primaryTag = imageTags?.get(ImageType.PRIMARY)
     val backdropTag = backdropImageTags?.firstOrNull()
@@ -226,6 +263,7 @@ internal fun BaseItemDto.toMediaItem(serverAddress: String): MediaItem {
         posterUrl = posterUrl,
         landscapeUrl = landscapeUrl,
         backdropUrl = backdropUrl,
+        streams = streams,
     )
 }
 

@@ -1,7 +1,9 @@
 package com.pyoungws.bluewolfplayer.ui.tv
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.darkColorScheme
 import com.pyoungws.bluewolfplayer.ui.theme.BlueWolfTheme
@@ -39,6 +41,10 @@ private val TvColors = darkColorScheme(
 @Composable
 fun CobaltWolfTvTheme(content: @Composable () -> Unit) {
     BlueWolfTheme(darkTheme = true) {
-        MaterialTheme(colorScheme = TvColors, content = content)
+        MaterialTheme(colorScheme = TvColors) {
+            // tv-material3 leaves LocalContentColor at its black default; provide ours so
+            // unstyled Text is light on the navy background.
+            CompositionLocalProvider(LocalContentColor provides TvColors.onBackground, content = content)
+        }
     }
 }

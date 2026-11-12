@@ -37,7 +37,9 @@ import coil3.compose.AsyncImage
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.MediaKind
+import com.pyoungws.bluewolfplayer.shared.model.audioStreamSummaries
 import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
+import com.pyoungws.bluewolfplayer.shared.model.videoStreamSummary
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.ui.common.Artwork
@@ -111,6 +113,9 @@ private fun DetailContent(
                             Text(listOfNotNull(it, item.episodeLabel()).joinToString(" "), style = MaterialTheme.typography.titleSmall)
                         }
                         Text(metaLine(item), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        streamLine(item)?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         if (item.genres.isNotEmpty()) {
                             Text(item.genres.joinToString(", "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -202,6 +207,11 @@ private fun metaLine(item: MediaItem): String = listOfNotNull(
     item.runtimeMinutes?.let { stringResource(R.string.detail_runtime_minutes, it) },
     item.communityRating?.let { "★ %.1f".format(it) },
 ).joinToString(" · ")
+
+private fun streamLine(item: MediaItem): String? = listOfNotNull(
+    item.videoStreamSummary(),
+    item.audioStreamSummaries().joinToString(" · ").takeIf { it.isNotBlank() },
+).joinToString(" · ").takeIf { it.isNotBlank() }
 
 @Composable
 private fun playLabel(item: MediaItem, target: MediaItem): String = when {

@@ -11,6 +11,11 @@ import com.pyoungws.bluewolfplayer.shared.library.series
 import com.pyoungws.bluewolfplayer.shared.library.signedInAuthRepository
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.Page
+import com.pyoungws.bluewolfplayer.shared.seerr.FakeSeerrDataSource
+import com.pyoungws.bluewolfplayer.shared.seerr.SeerrSettings
+import com.pyoungws.bluewolfplayer.shared.seerr.pageOf
+import com.pyoungws.bluewolfplayer.shared.seerr.seerrMovie
+import com.pyoungws.bluewolfplayer.shared.seerr.seerrRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -32,6 +37,7 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class BrowseViewModelsTest {
     private val dataSource = FakeLibraryDataSource()
+    private val seerrDataSource = FakeSeerrDataSource()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
@@ -40,6 +46,9 @@ class BrowseViewModelsTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private suspend fun repository() = LibraryRepository(dataSource, SessionGuard(signedInAuthRepository()))
+
+    private suspend fun TestScope.seerrRepo(settings: SeerrSettings = SeerrSettings(com.pyoungws.bluewolfplayer.shared.seerr.SEERR_URL)) =
+        seerrRepository(seerrDataSource, signedInAuthRepository(), settings = settings, scope = TestScope(testScheduler))
 
     @Test
     fun `home loads the feed`() = runTest {
@@ -198,7 +207,7 @@ class BrowseViewModelsTest {
     @Test
     fun `search debounces typing and only queries the final term`() = runTest {
         dataSource.search = { listOf(movie(it)) }
-        val viewModel = SearchViewModel(repository())
+        val viewModel = SearchViewModel(repository(), seerrRepo())
         advanceUntilIdle()
 
         viewModel.onQueryChange("w")
@@ -215,7 +224,7 @@ class BrowseViewModelsTest {
 
     @Test
     fun `search reports no results and errors, and clears on an empty query`() = runTest {
-        val viewModel = SearchViewModel(repository())
+        val viewModel = SearchViewModel(repository(), seerrRepo())
         advanceUntilIdle()
 
         viewModel.onQueryChange("zzz")
@@ -236,5 +245,38 @@ class BrowseViewModelsTest {
         advanceUntilIdle()
         assertTrue(viewModel.uiState.value.results.isEmpty())
         assertEquals(false, viewModel.uiState.value.showNoResults)
+    }
+
+    @Test
+    fun `search shows local and seerr results together`() = runTest {
+        dataSource.search = { listOf(movie(it)) }
+        seerrDataSource.search = { pageOf(listOf(seerrMovie(7))) }
+        val viewModel = SearchViewModel(repository(), seerrRepo())
+        advanceUntilIdle()
+
+        viewModel.onQueryChange("wolf")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(1, state.results.size)
+        assertEquals(listOf(7), state.seerrResults.map { it.tmdbId })
+        assertNull(state.seerrError)
+        assertEquals(listOf("me", "search(wolf)"), seerrDataSource.calls)
+    }
+
+    @Test
+    fun `search skips seerr when no server is configured`() = runTest {
+        dataSource.search = { listOf(movie(it)) }
+        val viewModel = SearchViewModel(repository(), seerrRepo(SeerrSettings()))
+        advanceUntilIdle()
+
+        viewModel.onQueryChange("wolf")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(1, state.results.size)
+        assertTrue(state.seerrResults.isEmpty())
+        assertNull(state.seerrError)
+        assertTrue(seerrDataSource.calls.isEmpty())
     }
 }

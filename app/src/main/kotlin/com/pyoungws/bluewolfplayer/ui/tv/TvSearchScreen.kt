@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,12 +21,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.shared.presentation.SearchViewModel
+import com.pyoungws.bluewolfplayer.shared.seerr.SeerrMediaType
 import com.pyoungws.bluewolfplayer.ui.common.cardTitle
+import com.pyoungws.bluewolfplayer.ui.message
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -35,19 +37,21 @@ import org.koin.compose.viewmodel.koinViewModel
  * results are a poster grid below it.
  */
 @Composable
-fun TvSearchScreen(onOpenItem: (String) -> Unit, viewModel: SearchViewModel = koinViewModel()) {
+fun TvSearchScreen(
+    onOpenItem: (String) -> Unit,
+    onOpenTitle: (SeerrMediaType, Int) -> Unit,
+    viewModel: SearchViewModel = koinViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Column(Modifier.fillMaxSize()) {
-        OutlinedTextField(
+        TvSearchField(
             value = state.query,
             onValueChange = viewModel::onQueryChange,
-            singleLine = true,
             placeholder = { androidx.compose.material3.Text(stringResource(R.string.search_hint)) },
             modifier = Modifier
-                .fillMaxWidth()
                 .padding(horizontal = TvContentPadding, vertical = 8.dp)
                 .focusRequester(focusRequester),
         )
@@ -67,8 +71,27 @@ fun TvSearchScreen(onOpenItem: (String) -> Unit, viewModel: SearchViewModel = ko
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    items(state.results.size, key = { state.results[it].id }) {
-                        TvPosterCard(state.results[it], onClick = { onOpenItem(state.results[it].id) })
+                    if (state.results.isNotEmpty()) {
+                        item(key = "header-local", span = { GridItemSpan(maxLineSpan) }) {
+                            TvSectionTitle(stringResource(R.string.search_on_server))
+                        }
+                        items(state.results.size, key = { state.results[it].id }) {
+                            TvPosterCard(state.results[it], onClick = { onOpenItem(state.results[it].id) })
+                        }
+                    }
+                    if (state.seerrResults.isNotEmpty() || state.seerrError != null) {
+                        item(key = "header-seerr", span = { GridItemSpan(maxLineSpan) }) {
+                            TvSectionTitle(stringResource(R.string.search_on_seerr))
+                        }
+                        items(state.seerrResults.size, key = { "seerr-${state.seerrResults[it].type}-${state.seerrResults[it].tmdbId}" }) {
+                            val title = state.seerrResults[it]
+                            TvSeerrCard(title, onClick = { onOpenTitle(title.type, title.tmdbId) })
+                        }
+                        state.seerrError?.let { error ->
+                            item(key = "seerr-error", span = { GridItemSpan(maxLineSpan) }) {
+                                Text(error.message(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
                     }
                 }
             }

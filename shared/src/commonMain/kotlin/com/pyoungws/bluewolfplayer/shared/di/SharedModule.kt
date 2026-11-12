@@ -104,8 +104,7 @@ val sharedModule = module {
     // Outlives screens so the final "playback stopped" report is not cancelled when the player closes.
     single { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
-    single { seerrHttpClient(get()) }
-    single<SeerrDataSource> { KtorSeerrDataSource(get()) }
+    single<SeerrDataSource> { KtorSeerrDataSource(seerrHttpClient(get())) }
     single { SeerrSettingsRepository(get()) }
     single { SeerrRepository(get(), get(), get(), get(), get()) }
     single { RequestWatcher(get(), get()) }
@@ -113,21 +112,19 @@ val sharedModule = module {
     single<SyncPlayDataSource> { SdkSyncPlayDataSource(get()) }
     single { SyncPlayRepository(get(), get(), get(), get()) }
 
-    single { arrHttpClient() }
-    single<ArrDataSource> { KtorArrDataSource(get()) }
-    single<ArrMediaDataSource> { KtorArrMediaDataSource(get()) }
+    single<ArrDataSource> { KtorArrDataSource(arrHttpClient()) }
+    single<ArrMediaDataSource> { KtorArrMediaDataSource(arrHttpClient()) }
     single { ArrSettingsRepository(get()) }
     single { ArrRepository(get(), get()) }
     single { ArrMediaRepository(get(), get()) }
 
-    single { qbittorrentHttpClient(get()) }
-    single<QBittorrentDataSource> { KtorQBittorrentDataSource(get()) }
+    single<QBittorrentDataSource> { KtorQBittorrentDataSource(qbittorrentHttpClient(get())) }
     single { QBittorrentSettingsRepository(get()) }
     single { QBittorrentRepository(get(), get()) }
 
     viewModelOf(::AppViewModel)
     viewModelOf(::LibraryHomeViewModel)
-    viewModel { SearchViewModel(get()) }
+    viewModel { SearchViewModel(get(), get()) }
     viewModel { (library: Library) -> LibraryViewModel(library, get()) }
     viewModel { (itemId: String) -> ItemDetailViewModel(itemId, get()) }
     viewModel { (target: PlaybackTarget) -> PlayerViewModel(target, get(), get(), get()) }

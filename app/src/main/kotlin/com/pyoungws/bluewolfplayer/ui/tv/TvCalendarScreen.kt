@@ -27,10 +27,11 @@ import com.pyoungws.bluewolfplayer.shared.presentation.CalendarViewModel
 import com.pyoungws.bluewolfplayer.ui.calendar.labelRes
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Upcoming Radarr/Sonarr releases on TV; the "Services" button swaps the list for the settings form. */
+/** Upcoming Radarr/Sonarr releases on TV; admins get a "Services" button that swaps the list for the settings form. */
 @Composable
 fun TvCalendarScreen(
     viewModel: CalendarViewModel = koinViewModel(),
+    canConfigureServices: Boolean = false,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showSettings by rememberSaveable { mutableStateOf(false) }
@@ -51,7 +52,9 @@ fun TvCalendarScreen(
         item(key = "title") { TvSectionTitle(stringResource(R.string.calendar_title)) }
         item(key = "actions") {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = { showSettings = true }) { Text(stringResource(R.string.calendar_settings)) }
+                if (canConfigureServices) {
+                    OutlinedButton(onClick = { showSettings = true }) { Text(stringResource(R.string.calendar_settings)) }
+                }
                 OutlinedButton(onClick = viewModel::refresh) { Text(stringResource(R.string.admin_refresh)) }
             }
         }

@@ -108,12 +108,11 @@ private fun TvQBittorrentCard(form: QBittorrentSettingsUiState, viewModel: QBitt
 
 @Composable
 private fun TvField(value: String, onChange: (String) -> Unit, labelRes: Int, masked: Boolean = false) {
-    OutlinedTextField(
+    TvTextField(
         value = value,
         onValueChange = onChange,
         label = { androidx.compose.material3.Text(stringResource(labelRes)) },
         modifier = Modifier.fillMaxWidth(0.6f),
-        singleLine = true,
         visualTransformation = if (masked) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
     )
 }

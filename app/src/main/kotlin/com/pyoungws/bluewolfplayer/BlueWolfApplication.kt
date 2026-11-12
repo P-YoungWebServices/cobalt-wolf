@@ -20,5 +20,6 @@ class BlueWolfApplication : Application() {
             )
         }.koin
         RequestNotifier(this, koin.get<RequestWatcher>(), koin.get<CoroutineScope>()).start()
+        DevSeed.maybeStart(this, koin)
     }
 }

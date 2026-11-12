@@ -33,7 +33,9 @@ import coil3.compose.AsyncImage
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.MediaKind
+import com.pyoungws.bluewolfplayer.shared.model.audioStreamSummaries
 import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
+import com.pyoungws.bluewolfplayer.shared.model.videoStreamSummary
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.ui.common.Artwork
@@ -42,7 +44,7 @@ import org.koin.core.parameter.parametersOf
 
 /** TV detail: backdrop, meta and a Play/Resume button; series get a season picker and episode cards. */
 @Composable
-fun TvDetailScreen(itemId: String, onPlay: (String) -> Unit, onOpenItem: (String) -> Unit) {
+fun TvDetailScreen(itemId: String, onPlay: (String) -> Unit, onOpenItem: (String) -> Unit, onWatchTogether: (String) -> Unit) {
     val viewModel: ItemDetailViewModel = koinViewModel(key = "detail-$itemId", parameters = { parametersOf(itemId) })
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -55,7 +57,7 @@ fun TvDetailScreen(itemId: String, onPlay: (String) -> Unit, onOpenItem: (String
         when (val current = state) {
             ItemDetailUiState.Loading -> TvLoadingBox()
             is ItemDetailUiState.Error -> TvErrorBox(current.error, onRetry = viewModel::load)
-            is ItemDetailUiState.Loaded -> TvDetailContent(current, viewModel, onPlay, onOpenItem)
+            is ItemDetailUiState.Loaded -> TvDetailContent(current, viewModel, onPlay, onOpenItem, onWatchTogether)
         }
     }
 }
@@ -66,6 +68,7 @@ private fun TvDetailContent(
     viewModel: ItemDetailViewModel,
     onPlay: (String) -> Unit,
     onOpenItem: (String) -> Unit,
+    onWatchTogether: (String) -> Unit,
 ) {
     val item = state.item
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 48.dp)) {
@@ -88,6 +91,9 @@ private fun TvDetailContent(
                         Text(listOfNotNull(it, item.episodeLabel()).joinToString(" "), style = MaterialTheme.typography.titleMedium)
                     }
                     Text(tvMetaLine(item), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    tvStreamLine(item)?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     if (item.genres.isNotEmpty()) {
                         Text(item.genres.joinToString(", "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -103,6 +109,7 @@ private fun TvDetailContent(
             Row(Modifier.padding(horizontal = TvContentPadding, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 state.playTarget?.let { target ->
                     Button(onClick = { onPlay(target.id) }) { Text(tvPlayLabel(item, target)) }
+                    OutlinedButton(onClick = { onWatchTogether(target.id) }) { Text(stringResource(R.string.syncplay_title)) }
                 }
                 item.seriesId?.takeIf { item.kind == MediaKind.Episode }?.let { seriesId ->
                     OutlinedButton(onClick = { onOpenItem(seriesId) }) { Text(stringResource(R.string.detail_view_series)) }
@@ -153,6 +160,11 @@ private fun tvMetaLine(item: MediaItem): String = listOfNotNull(
     item.runtimeMinutes?.let { stringResource(R.string.detail_runtime_minutes, it) },
     item.communityRating?.let { "★ %.1f".format(it) },
 ).joinToString(" · ")
+
+private fun tvStreamLine(item: MediaItem): String? = listOfNotNull(
+    item.videoStreamSummary(),
+    item.audioStreamSummaries().joinToString(" · ").takeIf { it.isNotBlank() },
+).joinToString(" · ").takeIf { it.isNotBlank() }
 
 @Composable
 private fun tvPlayLabel(item: MediaItem, target: MediaItem): String = when {

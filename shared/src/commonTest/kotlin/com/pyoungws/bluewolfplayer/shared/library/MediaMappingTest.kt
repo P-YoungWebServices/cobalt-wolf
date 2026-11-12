@@ -2,13 +2,18 @@ package com.pyoungws.bluewolfplayer.shared.library
 
 import com.pyoungws.bluewolfplayer.shared.model.LibraryType
 import com.pyoungws.bluewolfplayer.shared.model.MediaKind
+import com.pyoungws.bluewolfplayer.shared.model.audioStreamSummaries
 import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
+import com.pyoungws.bluewolfplayer.shared.model.videoStreamSummary
 import org.jellyfin.sdk.model.UUID
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.CollectionType
 import org.jellyfin.sdk.model.api.ImageType
+import org.jellyfin.sdk.model.api.MediaStream
+import org.jellyfin.sdk.model.api.MediaStreamType
 import org.jellyfin.sdk.model.api.UserItemDataDto
+import org.jellyfin.sdk.model.api.VideoRangeType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -83,7 +88,57 @@ class MediaMappingTest {
 
         assertEquals(LibraryType.Movies, library(CollectionType.MOVIES).type)
         assertEquals(LibraryType.TvShows, library(CollectionType.TVSHOWS).type)
+        assertEquals(LibraryType.MusicVideos, library(CollectionType.MUSICVIDEOS).type)
+        assertTrue(library(CollectionType.MUSICVIDEOS).isBrowsable)
         assertEquals(LibraryType.Other, library(CollectionType.MUSIC).type)
         assertFalse(library(null).isBrowsable)
     }
+
+    @Test
+    fun `music videos map to a playable kind`() {
+        val item = BaseItemDto(id = id, type = BaseItemKind.MUSIC_VIDEO, name = "Video").toMediaItem(server)
+
+        assertEquals(MediaKind.MusicVideo, item.kind)
+        assertTrue(item.isPlayable)
+    }
+
+    @Test
+    fun `media streams map into video and audio summaries`() {
+        val dto = BaseItemDto(
+            id = id, type = BaseItemKind.MOVIE, name = "M",
+            mediaStreams = listOf(
+                stream(index = 0, type = MediaStreamType.VIDEO, codec = "hevc",
+                    width = 3840, height = 2160, videoRangeType = VideoRangeType.DOVI_WITH_HDR10),
+                stream(index = 1, type = MediaStreamType.AUDIO, codec = "truehd",
+                    channelLayout = "7.1", channels = 8, profile = "Dolby TrueHD + Dolby Atmos", language = "eng"),
+                stream(index = 2, type = MediaStreamType.AUDIO, codec = "eac3", channels = 6, language = "deu"),
+                stream(index = 3, type = MediaStreamType.SUBTITLE, codec = "PGSSUB", language = "eng"),
+            ),
+        )
+
+        val item = dto.toMediaItem(server)
+
+        assertEquals("2160p HEVC Dolby Vision", item.videoStreamSummary())
+        assertEquals(listOf("TrueHD Atmos 7.1 eng", "E-AC-3 6 ch deu"), item.audioStreamSummaries())
+    }
+
+    private fun stream(
+        index: Int,
+        type: MediaStreamType,
+        codec: String? = null,
+        width: Int? = null,
+        height: Int? = null,
+        videoRangeType: VideoRangeType = VideoRangeType.SDR,
+        channelLayout: String? = null,
+        channels: Int? = null,
+        profile: String? = null,
+        language: String? = null,
+    ) = MediaStream(
+        index = index, type = type, codec = codec,
+        width = width, height = height, videoRangeType = videoRangeType,
+        channelLayout = channelLayout, channels = channels, profile = profile, language = language,
+        isInterlaced = false, isDefault = false, isForced = false,
+        isHearingImpaired = false, isOriginal = false, isExternal = false,
+        isTextSubtitleStream = false, supportsExternalStream = false,
+    )
 }

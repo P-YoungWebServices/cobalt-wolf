@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -67,10 +66,9 @@ private fun TvSetupForm(state: DiscoverUiState, viewModel: DiscoverViewModel) {
     TvForm {
         Text(stringResource(R.string.seerr_setup_title), style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.seerr_setup_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedTextField(
+        TvTextField(
             value = state.serverUrl,
             onValueChange = viewModel::onServerUrlChange,
-            singleLine = true,
             isError = state.urlError != null,
             label = { androidx.compose.material3.Text(stringResource(R.string.seerr_url_label)) },
             placeholder = { androidx.compose.material3.Text(stringResource(R.string.seerr_url_hint)) },
@@ -109,10 +107,9 @@ private fun TvSeerrSignInForm(state: DiscoverUiState, viewModel: DiscoverViewMod
             Text(error.message(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             OutlinedButton(onClick = viewModel::retry) { Text(stringResource(R.string.home_retry)) }
         }
-        OutlinedTextField(
+        TvTextField(
             value = state.password,
             onValueChange = viewModel::onPasswordChange,
-            singleLine = true,
             label = { androidx.compose.material3.Text(stringResource(R.string.sign_in_password)) },
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -134,10 +131,9 @@ private fun TvDiscoverContent(
     onOpenTitle: (SeerrMediaType, Int) -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
-        OutlinedTextField(
+        TvTextField(
             value = state.query,
             onValueChange = viewModel::onQueryChange,
-            singleLine = true,
             placeholder = { androidx.compose.material3.Text(stringResource(R.string.seerr_search_hint)) },
             modifier = Modifier.fillMaxWidth().padding(horizontal = TvContentPadding, vertical = 8.dp),
         )

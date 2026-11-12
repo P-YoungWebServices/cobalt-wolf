@@ -23,6 +23,7 @@ import com.pyoungws.bluewolfplayer.ui.admin.AdminDevicesScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminLibrariesScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminLogsScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminRequestsScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminSessionsScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminSystemInfoScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminTasksScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminUsersScreen
@@ -62,6 +63,7 @@ internal sealed interface Route {
     data object AdminTasks : Route
     data object AdminLogs : Route
     data object AdminSystem : Route
+    data object Sessions : Route
     data object MediaManager : Route
     data class MediaDetail(val service: ArrService, val itemId: Int) : Route
     data class SeerrDetail(val type: SeerrMediaType, val tmdbId: Int) : Route
@@ -86,6 +88,7 @@ internal fun Route.encode(): String = when (this) {
     Route.AdminTasks -> "admintasks"
     Route.AdminLogs -> "adminlogs"
     Route.AdminSystem -> "adminsystem"
+    Route.Sessions -> "sessions"
     Route.MediaManager -> "mediamanager"
     is Route.MediaDetail -> listOf("mediadetail", service.name, itemId).joinToString(SEPARATOR)
     is Route.SeerrDetail -> listOf("seerr", type.name, tmdbId).joinToString(SEPARATOR)
@@ -112,6 +115,7 @@ internal fun decodeRoute(value: String): Route? {
         "admintasks" -> Route.AdminTasks
         "adminlogs" -> Route.AdminLogs
         "adminsystem" -> Route.AdminSystem
+        "sessions" -> Route.Sessions
         "mediamanager" -> Route.MediaManager
         "mediadetail" -> parts.getOrNull(2)?.toIntOrNull()?.let {
             Route.MediaDetail(ArrService.valueOf(parts[1]), it)
@@ -128,8 +132,8 @@ internal fun decodeRoute(value: String): Route? {
 private const val SEPARATOR = "\u001F"
 
 /** The [NavDestination] an admin-only route is gated by, or null for routes everyone may see. */
-private fun Route.adminDestination(): NavDestination? = when (this) {
-    Route.Dashboard -> NavDestination.Dashboard
+internal fun Route.adminDestination(): NavDestination? = when (this) {
+    Route.Dashboard, Route.Sessions -> NavDestination.Dashboard
     Route.AdminRequests -> NavDestination.RequestQueue
     Route.AdminUsers -> NavDestination.Users
     Route.AdminDevices -> NavDestination.Devices
@@ -147,10 +151,10 @@ private fun Route.adminDestination(): NavDestination? = when (this) {
  * Admin-only routes stay off the stack for viewers: even if an admin entry survived in the
  * saved back stack (e.g. an admin signed out and a viewer signed in), it is never rendered.
  */
-private fun Route.isAllowedFor(user: UserProfile?): Boolean =
+internal fun Route.isAllowedFor(user: UserProfile?): Boolean =
     adminDestination()?.let { user?.canNavigateTo(it) == true } ?: true
 
-private fun managementRoute(destination: NavDestination): Route? = when (destination) {
+internal fun managementRoute(destination: NavDestination): Route? = when (destination) {
     NavDestination.RequestQueue -> Route.AdminRequests
     NavDestination.MediaManager -> Route.MediaManager
     NavDestination.Downloads -> Route.Downloads
@@ -176,7 +180,7 @@ fun SignedInNavigation() {
     val pop = { stack = stack.dropLast(1) }
     val play = { itemId: String -> context.startActivity(PlayerActivity.intent(context, itemId)) }
 
-    BackHandler(enabled = routes.isNotEmpty()) { pop() }
+    BackHandler(enabled = stack.isNotEmpty()) { pop() }
 
     when (val route = routes.lastOrNull()) {
         null -> HomeScreen(
@@ -190,7 +194,11 @@ fun SignedInNavigation() {
             isAdmin = user?.canNavigateTo(NavDestination.Dashboard) == true,
             onDashboard = { push(Route.Dashboard) },
         )
-        Route.Search -> SearchScreen(onBack = pop, onOpenItem = { push(Route.Detail(it)) })
+        Route.Search -> SearchScreen(
+            onBack = pop,
+            onOpenItem = { push(Route.Detail(it)) },
+            onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) },
+        )
         Route.Discover -> DiscoverScreen(
             onBack = pop,
             onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) },
@@ -210,7 +218,9 @@ fun SignedInNavigation() {
             onBack = pop,
             onOpenItem = { push(Route.Detail(it)) },
             onOpenManage = { destination -> managementRoute(destination)?.let(push) },
+            onOpenSessions = { push(Route.Sessions) },
         )
+        Route.Sessions -> AdminSessionsScreen(onBack = pop)
         Route.AdminRequests -> AdminRequestsScreen(onBack = pop)
         Route.AdminUsers -> AdminUsersScreen(onBack = pop)
         Route.AdminDevices -> AdminDevicesScreen(onBack = pop)

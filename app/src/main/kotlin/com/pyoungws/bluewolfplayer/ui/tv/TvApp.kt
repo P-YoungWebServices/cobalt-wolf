@@ -2,6 +2,7 @@ package com.pyoungws.bluewolfplayer.ui.tv
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,19 +10,24 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,6 +37,8 @@ import androidx.tv.material3.Text
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.isTelevision
 import com.pyoungws.bluewolfplayer.player.PlayerActivity
+import com.pyoungws.bluewolfplayer.shared.admin.NavDestination
+import com.pyoungws.bluewolfplayer.shared.admin.canNavigateTo
 import com.pyoungws.bluewolfplayer.shared.auth.SessionState
 import com.pyoungws.bluewolfplayer.shared.model.ServerInfo
 import com.pyoungws.bluewolfplayer.shared.presentation.AppViewModel
@@ -39,9 +47,22 @@ import com.pyoungws.bluewolfplayer.shared.presentation.HomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
 import com.pyoungws.bluewolfplayer.supportsHomeScreenChannels
+import com.pyoungws.bluewolfplayer.ui.admin.AdminDashboardScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminDevicesScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminLibrariesScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminLogsScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminRequestsScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminSessionsScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminSystemInfoScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminTasksScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminUsersScreen
+import com.pyoungws.bluewolfplayer.ui.arrmedia.MediaDetailScreen
+import com.pyoungws.bluewolfplayer.ui.arrmedia.MediaManagerScreen
+import com.pyoungws.bluewolfplayer.ui.navigation.Route
 import com.pyoungws.bluewolfplayer.ui.navigation.decodeRoute
 import com.pyoungws.bluewolfplayer.ui.navigation.encode
-import com.pyoungws.bluewolfplayer.ui.navigation.Route
+import com.pyoungws.bluewolfplayer.ui.navigation.isAllowedFor
+import com.pyoungws.bluewolfplayer.ui.navigation.managementRoute
 import com.pyoungws.bluewolfplayer.ui.settings.PlaybackSettingsActivity
 import com.pyoungws.bluewolfplayer.ui.tv.channels.TvHomeChannels
 import kotlinx.coroutines.Dispatchers
@@ -86,11 +107,18 @@ private fun TvSignedOutFlow(lastServerAddress: String?) {
     }
 }
 
-private enum class TvSection { Home, Search, Requests, MyRequests, WatchTogether, Servers, Calendar, Downloads }
+private enum class TvSection { Home, Search, Requests, MyRequests, Servers, Calendar }
+
+/** Section for a saved name, tolerating entries removed in newer versions. */
+private fun tvSection(name: String): TvSection =
+    TvSection.entries.firstOrNull { it.name == name } ?: TvSection.Home
 
 /** Routes that can be pushed over the current section. */
 private fun decodeTvRoute(value: String): Route? = when (val route = decodeRoute(value)) {
-    is Route.LibraryRoute, is Route.Detail, is Route.SeerrDetail -> route
+    is Route.LibraryRoute, is Route.Detail, is Route.SeerrDetail, is Route.SyncPlay,
+    Route.Dashboard, Route.Sessions, Route.AdminRequests, Route.AdminUsers, Route.AdminDevices,
+    Route.AdminLibraries, Route.AdminTasks, Route.AdminLogs, Route.AdminSystem,
+    Route.MediaManager, is Route.MediaDetail, Route.ArrSettings, Route.Downloads -> route
     else -> null
 }
 
@@ -109,7 +137,7 @@ private fun TvSignedInNavigation(
     var section by rememberSaveable { mutableStateOf(TvSection.Home.name) }
     var stack by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var confirmSignOut by rememberSaveable { mutableStateOf(false) }
-    val routes = stack.mapNotNull(::decodeTvRoute)
+    val routes = stack.mapNotNull(::decodeTvRoute).filter { it.isAllowedFor(user) }
     val push = { route: Route -> stack = stack + route.encode() }
     val pop = { stack = stack.dropLast(1) }
     val play = { itemId: String -> context.startActivity(PlayerActivity.intent(context, itemId)) }
@@ -134,38 +162,74 @@ private fun TvSignedInNavigation(
         }
     }
 
-    BackHandler(enabled = routes.isNotEmpty()) { pop() }
+    // Back unwinds pushed routes, then returns to Home before leaving the app.
+    BackHandler(enabled = routes.isNotEmpty() || tvSection(section) != TvSection.Home) {
+        if (routes.isNotEmpty()) pop() else section = TvSection.Home.name
+    }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TvTopBar(
-            section = TvSection.valueOf(section),
+            section = tvSection(section),
             userName = user?.name,
+            isAdmin = user?.canNavigateTo(NavDestination.Dashboard) == true,
             isSigningOut = isSigningOut,
             onSelect = { selected ->
                 if (routes.isNotEmpty()) stack = emptyList()
                 section = selected.name
             },
+            onOpenRoute = push,
             onSettings = { context.startActivity(PlaybackSettingsActivity.intent(context)) },
             onSignOut = { confirmSignOut = true },
         )
         Box(Modifier.weight(1f)) {
             when (val route = routes.lastOrNull()) {
                 is Route.LibraryRoute -> TvLibraryScreen(route.library, onOpenItem = { push(Route.Detail(it)) })
-                is Route.Detail -> TvDetailScreen(route.itemId, onPlay = play, onOpenItem = { push(Route.Detail(it)) })
+                is Route.Detail -> TvDetailScreen(
+                    route.itemId,
+                    onPlay = play,
+                    onOpenItem = { push(Route.Detail(it)) },
+                    onWatchTogether = { push(Route.SyncPlay(it)) },
+                )
                 is Route.SeerrDetail -> TvSeerrDetailScreen(route.type, route.tmdbId)
-                null -> when (TvSection.valueOf(section)) {
+                is Route.SyncPlay -> TvWatchTogetherScreen(onWatch = play, queueItemId = route.itemId)
+                Route.Dashboard -> AdminDashboardScreen(
+                    onBack = pop,
+                    onOpenItem = { push(Route.Detail(it)) },
+                    onOpenManage = { destination -> managementRoute(destination)?.let(push) },
+                    onOpenSessions = { push(Route.Sessions) },
+                )
+                Route.Sessions -> AdminSessionsScreen(onBack = pop)
+                Route.AdminRequests -> AdminRequestsScreen(onBack = pop)
+                Route.AdminUsers -> AdminUsersScreen(onBack = pop)
+                Route.AdminDevices -> AdminDevicesScreen(onBack = pop)
+                Route.AdminLibraries -> AdminLibrariesScreen(onBack = pop)
+                Route.AdminTasks -> AdminTasksScreen(onBack = pop)
+                Route.AdminLogs -> AdminLogsScreen(onBack = pop)
+                Route.AdminSystem -> AdminSystemInfoScreen(onBack = pop)
+                Route.MediaManager -> MediaManagerScreen(
+                    onBack = pop,
+                    onOpenItem = { service, itemId -> push(Route.MediaDetail(service, itemId)) },
+                    onSettings = { push(Route.ArrSettings) },
+                )
+                is Route.MediaDetail -> MediaDetailScreen(route.service, route.itemId, onBack = pop)
+                Route.ArrSettings -> TvServiceSettings(onDone = pop)
+                Route.Downloads -> TvDownloadsScreen()
+                null -> when (tvSection(section)) {
                     TvSection.Home -> TvHomeScreen(
                         feedViewModel = feedViewModel,
                         onOpenLibrary = { push(Route.LibraryRoute(it)) },
                         onOpenItem = { push(Route.Detail(it)) },
                     )
-                    TvSection.Search -> TvSearchScreen(onOpenItem = { push(Route.Detail(it)) })
+                    TvSection.Search -> TvSearchScreen(
+                        onOpenItem = { push(Route.Detail(it)) },
+                        onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) },
+                    )
                     TvSection.Requests -> TvDiscoverScreen(onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) })
                     TvSection.MyRequests -> TvMyRequestsScreen(onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) })
-                    TvSection.WatchTogether -> TvWatchTogetherScreen(onWatch = play)
                     TvSection.Servers -> TvServersScreen()
-                    TvSection.Calendar -> TvCalendarScreen()
-                    TvSection.Downloads -> TvDownloadsScreen()
+                    TvSection.Calendar -> TvCalendarScreen(
+                        canConfigureServices = user?.canNavigateTo(NavDestination.Services) == true,
+                    )
                 }
                 else -> Unit
             }
@@ -195,37 +259,58 @@ private fun TvSignedInNavigation(
 private fun TvTopBar(
     section: TvSection,
     userName: String?,
+    isAdmin: Boolean,
     isSigningOut: Boolean,
     onSelect: (TvSection) -> Unit,
+    onOpenRoute: (Route) -> Unit,
     onSettings: () -> Unit,
     onSignOut: () -> Unit,
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = TvContentPadding, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            stringResource(R.string.app_name),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(end = 12.dp),
+        Image(
+            painter = painterResource(R.drawable.ic_launcher_foreground),
+            contentDescription = stringResource(R.string.app_name),
+            modifier = Modifier.height(72.dp).padding(end = 8.dp),
         )
         TvNavButton(stringResource(R.string.tv_nav_home), selected = section == TvSection.Home) { onSelect(TvSection.Home) }
         TvNavButton(stringResource(R.string.home_search), selected = section == TvSection.Search) { onSelect(TvSection.Search) }
-        TvNavButton(stringResource(R.string.home_requests), selected = section == TvSection.Requests) { onSelect(TvSection.Requests) }
-        TvNavButton(stringResource(R.string.discover_my_requests), selected = section == TvSection.MyRequests) { onSelect(TvSection.MyRequests) }
-        TvNavButton(stringResource(R.string.home_watch_together), selected = section == TvSection.WatchTogether) { onSelect(TvSection.WatchTogether) }
-        TvNavButton(stringResource(R.string.servers_title), selected = section == TvSection.Servers) { onSelect(TvSection.Servers) }
+        TvNavButton(stringResource(R.string.tv_nav_seerr), selected = section == TvSection.Requests) { onSelect(TvSection.Requests) }
         TvNavButton(stringResource(R.string.home_calendar), selected = section == TvSection.Calendar) { onSelect(TvSection.Calendar) }
-        TvNavButton(stringResource(R.string.home_downloads), selected = section == TvSection.Downloads) { onSelect(TvSection.Downloads) }
+        Box {
+            TvNavButton(stringResource(R.string.home_more), selected = section in TvMoreSections) { menuOpen = true }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                TvMenuItem(R.string.discover_my_requests) { menuOpen = false; onSelect(TvSection.MyRequests) }
+                TvMenuItem(R.string.servers_title) { menuOpen = false; onSelect(TvSection.Servers) }
+                TvMenuItem(R.string.tv_nav_settings) { menuOpen = false; onSettings() }
+                if (isAdmin) {
+                    TvMenuItem(R.string.admin_dashboard_title) { menuOpen = false; onOpenRoute(Route.Dashboard) }
+                }
+                TvMenuItem(R.string.home_sign_out) { menuOpen = false; onSignOut() }
+            }
+        }
         Box(Modifier.weight(1f))
         if (userName != null) {
             Text(userName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        TvNavButton(stringResource(R.string.tv_nav_settings), selected = false, onClick = onSettings)
-        TvNavButton(stringResource(R.string.home_sign_out), selected = false, onClick = onSignOut)
+        if (isSigningOut) {
+            androidx.compose.material3.CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp)
+        }
     }
+}
+
+private val TvMoreSections = setOf(TvSection.MyRequests, TvSection.Servers)
+
+@Composable
+private fun TvMenuItem(labelRes: Int, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = { androidx.compose.material3.Text(stringResource(labelRes)) },
+        onClick = onClick,
+    )
 }
 
 @Composable

@@ -11,7 +11,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,13 +56,12 @@ fun TvServerConnectScreen(
     TvFormColumn {
         Text(stringResource(R.string.connect_title), style = MaterialTheme.typography.headlineMedium)
         Text(stringResource(R.string.connect_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedTextField(
+        TvTextField(
             value = state.address,
             onValueChange = viewModel::onAddressChange,
             modifier = Modifier.fillMaxWidth(),
             label = { androidx.compose.material3.Text(stringResource(R.string.connect_address_label)) },
             placeholder = { androidx.compose.material3.Text(stringResource(R.string.connect_address_hint)) },
-            singleLine = true,
             enabled = !state.isValidating,
             isError = state.error != null,
             supportingText = state.error?.let { error -> { androidx.compose.material3.Text(error.message()) } },
@@ -153,22 +151,20 @@ private fun TvCredentialsForm(state: SignInUiState, viewModel: SignInViewModel) 
     if (selected != null) {
         Text(selected.name, style = MaterialTheme.typography.titleLarge)
     } else {
-        OutlinedTextField(
+        TvTextField(
             value = state.username,
             onValueChange = viewModel::onUsernameChange,
             modifier = Modifier.fillMaxWidth(),
             label = { androidx.compose.material3.Text(stringResource(R.string.sign_in_username)) },
-            singleLine = true,
             enabled = !state.isBusy,
             keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Next),
         )
     }
-    OutlinedTextField(
+    TvTextField(
         value = state.password,
         onValueChange = viewModel::onPasswordChange,
         modifier = Modifier.fillMaxWidth(),
         label = { androidx.compose.material3.Text(stringResource(R.string.sign_in_password)) },
-        singleLine = true,
         enabled = !state.isBusy,
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),

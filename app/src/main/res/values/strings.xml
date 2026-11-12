@@ -84,10 +84,14 @@
     <string name="kind_movie">Movie</string>
     <string name="kind_series">Series</string>
     <string name="kind_episode">Episode</string>
+    <string name="kind_music_video">Music video</string>
+    <string name="search_on_server">On this server</string>
+    <string name="search_on_seerr">Seerr</string>
     <string name="search_prompt">Type to search your libraries.</string>
 
     <!-- Seerr: discover, request, my requests -->
     <string name="home_requests">Requests</string>
+    <string name="tv_nav_seerr">Seerr</string>
     <string name="discover_title">Discover</string>
     <string name="discover_my_requests">My requests</string>
     <string name="seerr_setup_title">Connect to Seerr</string>
@@ -150,6 +154,10 @@
     <string name="admin_refresh_every">Every %1$d s</string>
     <string name="admin_refresh_seconds">%1$d seconds</string>
     <string name="admin_active_sessions">Active sessions</string>
+    <plurals name="admin_session_count">
+        <item quantity="one">%1$d session</item>
+        <item quantity="other">%1$d sessions</item>
+    </plurals>
     <string name="admin_no_sessions">Nobody is connected right now.</string>
     <string name="admin_recently_added">Recently added</string>
     <string name="admin_session_user_device">%1$s on %2$s</string>

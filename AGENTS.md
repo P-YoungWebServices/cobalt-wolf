@@ -50,10 +50,15 @@ Conventions and rules for contributing to Cobalt Wolf.
 
 ## Local test credentials
 
-- `dev.credentials.properties` (repo root, gitignored) holds a test Jellyfin
-  `server`, `username` and `password` for manual testing on a device. The app
-  never reads it; it is only for developers and agents driving the app by hand
-  (e.g. via `adb`) or calling the Jellyfin API.
+- `dev.credentials.properties` (repo root, gitignored) holds test credentials:
+  Jellyfin `server`/`username`/`password`, `firestick.adb`, `seerr.server`,
+  `syncplay.username`/`syncplay.password`, `radarr.url`/`radarr.apikey`,
+  `sonarr.url`/`sonarr.apikey`, `qbittorrent.url`/`username`/`password`.
+  `app/build.gradle.kts` reads it at build time into debug-only `BuildConfig`
+  fields; `app/src/debug/.../DevSeed.kt` consumes them to seed service settings
+  and sign into Jellyfin + Seerr on every debug start so test installs are
+  usable immediately. The release stub (`app/src/release/.../DevSeed.kt`) is a
+  no-op. Release builds contain no credentials.
 - **Never commit it, copy its values into code, tests, docs, logs or PR text, or
   print the password.** Read values from the file in shell commands only.
 - If the file is missing or still has placeholder values, ask the user to fill it
@@ -103,23 +108,40 @@ Conventions and rules for contributing to Cobalt Wolf.
   profiles; `switchTo` swaps the active session without a sign-out and
   `removeProfile`/`signOut`/`invalidateSession` drop profiles — the
   `ServersViewModel`-backed switcher is `ui/servers` (phone) and the Servers
-  top-bar section (TV).
+  entry in the TV "More" menu. `MediaItem.streams` carries `MediaStreamInfo`
+  (video/audio stream details mapped from the SDK's `MediaStream`); detail
+  pages render `videoQualityLabel`/`audioProfileLabel` summaries, and
+  `LibraryType.MusicVideos`/`MediaKind.MusicVideo` make music-video
+  libraries browsable like any other.
 - `app/`: Android app (`com.pyoungws.bluewolfplayer`, minSdk 24), Jetpack
   Compose + Material 3 UI only; no business logic. `player/` holds the Media3
   glue (`PlayerEngine`, stats collector, display mode controller).
 - `app/ui/tv/`: the Android TV / Fire TV experience (Compose for TV, always
-  dark). `MainActivity` picks it at runtime via `UiModeManager` when
-  `isTelevision()` (`DeviceInfo.kt`) is true; the phone/tablet UI is untouched.
-  A persistent top bar carries section navigation (Home, Search, Requests,
-  My Requests, Settings, sign out); pushed routes reuse `Route`/`decodeRoute`
-  from `ui/navigation`. TV screens reuse the shared ViewModels; lazy lists are
-  the standard `LazyColumn`/`LazyRow`/`LazyVerticalGrid` (the `TvLazy*`
-  components were removed in tv-foundation 1.0.0). `ui/tv/channels/` publishes
-  Android TV home screen channels (Continue Watching, Recently Added) via
-  androidx.tvprovider when `supportsHomeScreenChannels()` — skipped where the
-  TV provider does not exist (Fire TV). Programs deep-link `bluewolf://item/<id>`
-  into the item detail screen. The TV banner is `res/drawable-xhdpi/tv_banner.png`
-  (320x180, original wolf artwork + wordmark).
+  dark — `BlueWolfTheme` forces dark and never uses dynamic device colours;
+  tv-material3's `LocalContentColor` is provided from `TvColors` so text is
+  light on the navy palette). `MainActivity` picks it at runtime via
+  `UiModeManager` when `isTelevision()` (`DeviceInfo.kt`) is true.
+  The persistent top bar holds the wolf icon plus Home, Search, Seerr,
+  Calendar and a "More" overflow menu (My requests, Servers, Settings,
+  Server dashboard for admins, Sign out). Watch together is not a nav
+  item — it lives on detail pages. Downloads and service credentials are
+  admin-only pushed routes (`Route.Downloads`/`Route.ArrSettings`) opened
+  from the dashboard; pushed routes reuse `Route`/`decodeRoute` from
+  `ui/navigation`, including the phone admin screens which work on TV via
+  D-pad. Back pops pushed routes first, then returns to the Home section
+  before letting the app exit. `TvTextField` keeps text fields read-only
+  until focused + centre/enter pressed, then enables the IME — use it
+  instead of `OutlinedTextField`/`TextField` on TV screens. TV screens
+  reuse the shared ViewModels; lazy lists are the standard
+  `LazyColumn`/`LazyRow`/`LazyVerticalGrid` (the `TvLazy*` components were
+  removed in tv-foundation 1.0.0). `ui/tv/channels/` publishes Android TV
+  home screen channels (Continue Watching, Recently Added) via
+  androidx.tvprovider when `supportsHomeScreenChannels()` — skipped where
+  the TV provider does not exist (Fire TV). Programs deep-link
+  `bluewolf://item/<id>` into the item detail screen. The TV banner is
+  `res/drawable-xhdpi/tv_banner.png` (320x180, original wolf artwork +
+  wordmark). The phone top bar mirrors the same structure: Search,
+  Requests, More (Servers, Calendar, Playback, Dashboard, Sign out).
 - Player on TV: `PlayerScreen` gives the D-pad a focus target and focuses
   play/pause when controls show; `PlayerActivity.onKeyDown` maps remote
   transport keys (play/pause, fast-forward, rewind, stop). Frame rate matching
@@ -140,6 +162,12 @@ Conventions and rules for contributing to Cobalt Wolf.
   `AdminRequestsScreen` + `AdminRequestsViewModel`. Local notifications for
   request events come from `RequestWatcher` (shared, polls while signed in)
   feeding `RequestNotifier` (app module, posts via NotificationCompat).
+  `MANAGEMENT_DESTINATIONS` (in `AdminModels.kt`) also includes
+  `Downloads` and `Services` (the Radarr/Sonarr/qBittorrent credentials
+  screen) — both are admin-only even though their underlying screens are
+  general. The dashboard leads with "Active sessions" and "Downloads"
+  action cards; sessions live on their own page (`Route.Sessions`,
+  `AdminSessionsScreen`, gated by `NavDestination.Dashboard`).
 - `app/widget/` holds the Android home-screen widget (`SessionsWidget`, a
   Glance `GlanceAppWidget`) listing the server's active sessions via
   `AdminRepository.sessions()`; session→row mapping lives in `SessionRow.kt`
@@ -151,7 +179,18 @@ Conventions and rules for contributing to Cobalt Wolf.
   calendars, isolates per-service failures). API keys are encrypted at rest by
   `SharedPreferencesArrSettingsStore` via `KeystoreCipher`. `CalendarViewModel`
   and `ArrSettingsViewModel` drive `app/.../ui/calendar/` (phone) and
-  `ui/tv/TvCalendarScreen.kt`. `shared/.../net/` holds helpers shared by the
+  `ui/tv/TvCalendarScreen.kt`. `shared/.../seerr/` is the
+  Seerr/Jellyseerr integration: `SeerrRepository` (`authState` —
+  `Checking`/`SignedIn`/`SignedOut`/`NotConfigured` — backed by
+  `SeerrCookieStorage` + `KeystoreSeerrSessionStore`) and
+  `KtorSeerrDataSource`. In `SharedModule` every data source constructs its
+  own HTTP client inside its binding — do NOT register the `*HttpClient`
+  functions as bare `single { }`s producing `HttpClient`, or Koin hands the
+  last one to every consumer (this once made Seerr lose its cookie storage).
+  `SearchViewModel` runs Jellyfin and Seerr queries concurrently and waits
+  for `authState` to resolve before deciding; phone and TV search show
+  "On this server" / "From Seerr" sections on one page.
+  `shared/.../net/` holds helpers shared by the
   REST integrations (`normalizeServerUrl`, `Throwable.toLoadError`). The
   admin-only media manager builds on the same connection: `ArrMediaDataSource` /
   `KtorArrMediaDataSource` (edits fetch-and-PUT the raw resource so unmodelled
@@ -166,9 +205,10 @@ Conventions and rules for contributing to Cobalt Wolf.
   (`QBittorrentCookieStorage` + `KeystoreQBittorrentSessionStore`), automatic
   re-login when the cookie expires, and `DownloadsViewModel` polling
   `torrents/info` + `transfer/info` every 3 s while the screen is open. The
-  phone screen is `ui/downloads/`; TV has a section whose Services button
-  shares `ui/tv/TvServiceSettings.kt` with the calendar screen (the same form
-  backs `ui/calendar/ArrSettingsScreen.kt` on phone).
+  phone screen is `ui/downloads/`; on TV it is the pushed
+  `Route.Downloads` from the dashboard (admin-only). The credentials form
+  is `ui/calendar/ArrSettingsScreen.kt` on phone and
+  `ui/tv/TvServiceSettings.kt` on TV.
 - SyncPlay ("watch together") lives in `shared/.../syncplay`
   (`SyncPlayDataSource` over the SDK's `syncPlayApi` + `apiClient.webSocket`,
   `SyncPlayRepository`, models, `SyncPlayEchoGate`) with
@@ -177,9 +217,12 @@ Conventions and rules for contributing to Cobalt Wolf.
   attached player, and the `local*` functions report this device's transport
   back to the group. `PlayerScreen` applies `viewModel.commands` and reports
   local pause/seek/buffering; group screens are `ui/syncplay` (phone) and
-  `TvWatchTogetherScreen` (TV). In unit tests inject a `backgroundScope` into
-  the repository and pump with `runCurrent()` — `advanceUntilIdle()` does not
-  reach background-scope resumptions.
+  `TvWatchTogetherScreen` (TV). There is no nav entry — media detail pages
+  carry a "Watch together" button that opens `Route.SyncPlay(itemId)`; a
+  queued `itemId` is played for the group via
+  `SyncPlayRepository.playInGroup` after join/create. In unit tests inject a
+  `backgroundScope` into the repository and pump with `runCurrent()` —
+  `advanceUntilIdle()` does not reach background-scope resumptions.
 - Versions live in `gradle/libs.versions.toml`.
 
 ## Dependencies and licenses
