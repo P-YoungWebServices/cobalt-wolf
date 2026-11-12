@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +46,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.VideoSupport
 import com.pyoungws.bluewolfplayer.shared.presentation.HdrSelection
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
+import com.pyoungws.bluewolfplayer.ui.common.tvListScroll
 import org.koin.compose.viewmodel.koinViewModel
 import java.util.Locale
 
@@ -72,7 +74,8 @@ fun PlaybackSettingsScreen(onBack: () -> Unit, viewModel: PlaybackSettingsViewMo
             )
         },
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(bottom = 24.dp)) {
+        val listState = rememberLazyListState()
+        LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(padding).tvListScroll(listState), contentPadding = PaddingValues(bottom = 24.dp)) {
             item { Header(R.string.playback_section_overrides) }
             item { Overrides(state, viewModel) }
             item { Header(R.string.playback_section_detected) }
