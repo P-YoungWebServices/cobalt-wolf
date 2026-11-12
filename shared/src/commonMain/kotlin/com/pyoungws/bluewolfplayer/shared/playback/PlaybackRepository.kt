@@ -14,6 +14,11 @@ class PlaybackRepository(
     private val capabilityDetector: CapabilityDetector,
     private val settingsRepository: PlaybackSettingsRepository,
 ) {
+    /** The live playback settings — the player offers a bitrate override while playing. */
+    val settings = settingsRepository.settings
+
+    /** Persists a new bitrate cap; it applies the next time [prepare] runs. */
+    fun setMaxBitrate(bitrate: StreamBitrate) = settingsRepository.update { it.copy(maxBitrate = bitrate) }
     /**
      * Resolves what to play and where to resume. The device is probed each time, because the
      * connected display and receiver decide what can be played directly. [forceTranscode] skips

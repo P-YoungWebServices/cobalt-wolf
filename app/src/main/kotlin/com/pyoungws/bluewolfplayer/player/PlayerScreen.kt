@@ -18,8 +18,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.HighQuality
+import androidx.compose.material.icons.outlined.PictureInPictureAlt
+import androidx.compose.material.icons.outlined.QueryStats
+import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -38,6 +49,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -66,6 +78,7 @@ import com.pyoungws.bluewolfplayer.isTelevision
 import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackLevel
 import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
+import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.summary
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
@@ -88,6 +101,7 @@ internal fun PlayerScreen(
     debugPreferredAudioMimeType: String?,
     debugSubtitleMimeType: String?,
     debugMaxChannels: Int? = null,
+    debugShowStats: Boolean = false,
     onPlayerChanged: (ExoPlayer?) -> Unit,
     onPlayingChanged: (Boolean) -> Unit,
     onEnterPip: () -> Unit,
@@ -105,7 +119,7 @@ internal fun PlayerScreen(
                 Text(stringResource(R.string.player_error), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                 TextButton(onClick = onClose) { Text(stringResource(R.string.player_close)) }
             }
-            is PlayerUiState.Ready -> PlayerContent(current, viewModel, isInPip, displayModeController, debugPreferredAudioMimeType, debugSubtitleMimeType, debugMaxChannels, onPlayerChanged, onPlayingChanged, onEnterPip, onClose)
+            is PlayerUiState.Ready -> PlayerContent(current, viewModel, isInPip, displayModeController, debugPreferredAudioMimeType, debugSubtitleMimeType, debugMaxChannels, debugShowStats, onPlayerChanged, onPlayingChanged, onEnterPip, onClose)
         }
     }
 }
@@ -123,6 +137,7 @@ private fun PlayerContent(
     debugPreferredAudioMimeType: String?,
     debugSubtitleMimeType: String?,
     debugMaxChannels: Int?,
+    debugShowStats: Boolean,
     onPlayerChanged: (ExoPlayer?) -> Unit,
     onPlayingChanged: (Boolean) -> Unit,
     onEnterPip: () -> Unit,
@@ -139,7 +154,8 @@ private fun PlayerContent(
     var tracks by remember(player) { mutableStateOf(Tracks.EMPTY) }
     var controlsVisible by remember(player) { mutableStateOf(true) }
     var dialog by remember(player) { mutableStateOf<TrackDialog?>(null) }
-    var showStats by remember { mutableStateOf(request.settings.showStats) }
+    var showBitrateDialog by remember(player) { mutableStateOf(false) }
+    var showStats by remember { mutableStateOf(debugShowStats) }
     var displayMatched by remember(player) { mutableStateOf(false) }
 
     // Tell the user when a fallback replaced the first attempt.
@@ -401,13 +417,14 @@ private fun PlayerContent(
                         modifier = Modifier.padding(end = 8.dp),
                     )
                 }
-                TextButton(onClick = { dialog = TrackDialog.Audio }) { Text(stringResource(R.string.player_audio), color = Color.White) }
-                TextButton(onClick = { dialog = TrackDialog.Subtitles }) { Text(stringResource(R.string.player_subtitles), color = Color.White) }
-                TextButton(onClick = { showStats = !showStats }) { Text(stringResource(R.string.player_stats), color = Color.White) }
+                ControlButton(onClick = { dialog = TrackDialog.Audio }, icon = Icons.AutoMirrored.Outlined.VolumeUp, description = stringResource(R.string.player_audio))
+                ControlButton(onClick = { dialog = TrackDialog.Subtitles }, icon = Icons.Outlined.Subtitles, description = stringResource(R.string.player_subtitles))
+                ControlButton(onClick = { showBitrateDialog = true }, icon = Icons.Outlined.HighQuality, description = stringResource(R.string.player_bitrate))
+                ControlButton(onClick = { showStats = !showStats }, icon = Icons.Outlined.QueryStats, description = stringResource(R.string.player_stats))
                 if (!isTv) {
-                    TextButton(onClick = onEnterPip) { Text(stringResource(R.string.player_pip), color = Color.White) }
+                    ControlButton(onClick = onEnterPip, icon = Icons.Outlined.PictureInPictureAlt, description = stringResource(R.string.player_pip))
                 }
-                TextButton(onClick = onClose) { Text(stringResource(R.string.player_close), color = Color.White) }
+                ControlButton(onClick = onClose, icon = Icons.Outlined.Close, description = stringResource(R.string.player_close))
             }
         }
     }
@@ -421,6 +438,16 @@ private fun PlayerContent(
                 dialog = null
             },
             onDismiss = { dialog = null },
+        )
+    }
+    if (showBitrateDialog) {
+        BitrateDialog(
+            selected = request.settings.maxBitrate,
+            onSelect = { bitrate ->
+                viewModel.changeBitrate(bitrate, player.currentPosition)
+                showBitrateDialog = false
+            },
+            onDismiss = { showBitrateDialog = false },
         )
     }
 }
@@ -464,6 +491,43 @@ private fun selectTrack(player: Player, type: Int, option: TrackOption) {
 }
 
 @Composable
+private fun ControlButton(onClick: () -> Unit, icon: ImageVector, description: String) {
+    IconButton(onClick = onClick) { Icon(icon, contentDescription = description, tint = Color.White) }
+}
+
+@Composable
+private fun BitrateDialog(selected: StreamBitrate, onSelect: (StreamBitrate) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.player_bitrate)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                StreamBitrate.entries.forEach { bitrate ->
+                    Row(Modifier.fillMaxWidth().clickable { onSelect(bitrate) }, verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = bitrate == selected, onClick = { onSelect(bitrate) })
+                        Text(bitrateLabel(bitrate), style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.player_close)) } },
+    )
+}
+
+@Composable
+private fun bitrateLabel(bitrate: StreamBitrate): String = when (bitrate) {
+    StreamBitrate.Auto -> stringResource(R.string.playback_bitrate_auto)
+    StreamBitrate.Mbps120 -> stringResource(R.string.playback_bitrate_120)
+    StreamBitrate.Mbps80 -> stringResource(R.string.playback_bitrate_80)
+    StreamBitrate.Mbps60 -> stringResource(R.string.playback_bitrate_60)
+    StreamBitrate.Mbps40 -> stringResource(R.string.playback_bitrate_40)
+    StreamBitrate.Mbps20 -> stringResource(R.string.playback_bitrate_20)
+    StreamBitrate.Mbps10 -> stringResource(R.string.playback_bitrate_10)
+    StreamBitrate.Mbps5 -> stringResource(R.string.playback_bitrate_5)
+    StreamBitrate.Mbps2 -> stringResource(R.string.playback_bitrate_2)
+}
+
+@Composable
 private fun TrackSelectionDialog(title: String, options: List<TrackOption>, onSelect: (TrackOption) -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -472,7 +536,7 @@ private fun TrackSelectionDialog(title: String, options: List<TrackOption>, onSe
             if (options.isEmpty()) {
                 Text(stringResource(R.string.player_no_tracks))
             } else {
-                Column {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
                     options.forEach { option ->
                         Row(Modifier.fillMaxWidth().clickable { onSelect(option) }, verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(selected = option.selected, onClick = { onSelect(option) })

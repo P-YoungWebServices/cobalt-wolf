@@ -58,9 +58,8 @@ class PlaybackSettingsViewModel(
     fun setFrameRateMatching(value: FrameRateMatching) = update { it.copy(frameRateMatching = value) }
     fun setMaxBitrate(value: StreamBitrate) = update { it.copy(maxBitrate = value) }
     fun setStyledSubtitles(enabled: Boolean) = update { it.copy(styledSubtitles = enabled) }
-    fun setShowStats(enabled: Boolean) = update { it.copy(showStats = enabled) }
 
-    fun resetToAutomatic() = update { PlaybackSettings(showStats = it.showStats) }
+    fun resetToAutomatic() = update { PlaybackSettings() }
 
     private fun update(transform: (PlaybackSettings) -> PlaybackSettings) {
         repository.update(transform)

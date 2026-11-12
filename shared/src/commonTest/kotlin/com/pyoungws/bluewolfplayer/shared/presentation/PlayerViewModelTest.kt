@@ -17,6 +17,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlaybackLevel
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
 import com.pyoungws.bluewolfplayer.shared.playback.SourceMediaInfo
+import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.VideoRange
 import com.pyoungws.bluewolfplayer.shared.playback.VideoStreamInfo
 import com.pyoungws.bluewolfplayer.shared.playback.playbackRepository
@@ -161,6 +162,37 @@ class PlayerViewModelTest {
 
         assertFalse(viewModel.onPlayerError(50_000))
         assertEquals(PlayerUiState.PlaybackFailed, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `changing the bitrate re-requests the source and resumes in place`() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.onPlaybackStarted(0, isPaused = false)
+
+        viewModel.changeBitrate(StreamBitrate.Mbps10, 40_000)
+        advanceUntilIdle()
+
+        val ready = viewModel.uiState.value as PlayerUiState.Ready
+        assertEquals(2, ready.generation)
+        assertEquals(40_000L, ready.request.startPositionMs)
+        assertEquals(StreamBitrate.Mbps10, ready.request.settings.maxBitrate)
+        assertEquals(10_000_000, playback.bitrates.last())
+        // The first session was reported stopped at the resume point.
+        assertEquals(listOf("start", "stopped"), playback.reports)
+    }
+
+    @Test
+    fun `re-selecting the current bitrate does nothing`() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.changeBitrate(StreamBitrate.Auto, 5_000)
+        advanceUntilIdle()
+
+        val ready = viewModel.uiState.value as PlayerUiState.Ready
+        assertEquals(1, ready.generation)
+        assertEquals(1, playback.sourceRequests.size)
     }
 
     @Test

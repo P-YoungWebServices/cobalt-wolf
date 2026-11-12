@@ -123,7 +123,6 @@ private fun Overrides(state: PlaybackSettingsUiState, viewModel: PlaybackSetting
             StreamBitrate.Mbps2 to R.string.playback_bitrate_2,
         )
         Toggle(R.string.playback_styled_subtitles, R.string.playback_styled_subtitles_summary, settings.styledSubtitles, viewModel::setStyledSubtitles)
-        Toggle(R.string.playback_show_stats, R.string.playback_show_stats_summary, settings.showStats, viewModel::setShowStats)
         OutlinedButton(onClick = viewModel::resetToAutomatic, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(stringResource(R.string.playback_reset))
         }

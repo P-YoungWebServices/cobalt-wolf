@@ -257,7 +257,7 @@ All checked for GPL v3 compatibility:
 - Kotlin, kotlinx.coroutines, kotlinx.serialization, kotlinx.datetime: Apache-2.0
 - Ktor client (core, OkHttp engine, content negotiation, kotlinx-json; mock for
   tests): Apache-2.0. Used for the Seerr/Jellyseerr REST API in `shared/.../seerr`.
-- AndroidX (Compose, Material 3, Activity, Lifecycle, Core): Apache-2.0
+- AndroidX (Compose, Material 3, Material Icons Extended, Activity, Lifecycle, Core): Apache-2.0
 - Koin: Apache-2.0
 - AndroidX Media3 (ExoPlayer, HLS, UI): Apache-2.0
 - Coil 3 (image loading): Apache-2.0
