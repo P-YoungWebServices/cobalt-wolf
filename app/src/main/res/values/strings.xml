@@ -90,7 +90,7 @@
     <string name="search_prompt">Type to search your libraries.</string>
 
     <!-- Seerr: discover, request, my requests -->
-    <string name="home_requests">Requests</string>
+    <string name="home_requests">Seerr</string>
     <string name="tv_nav_seerr">Seerr</string>
     <string name="discover_title">Discover</string>
     <string name="discover_my_requests">My requests</string>
@@ -295,7 +295,6 @@
 
     <!-- Servers (multi-server switcher) -->
     <string name="home_more">More</string>
-    <string name="home_servers">Servers</string>
     <string name="servers_title">Servers</string>
     <string name="servers_add">Add server or account</string>
     <string name="servers_add_title">Add server</string>
@@ -462,6 +461,8 @@
     <string name="admin_manage_media">Media manager</string>
     <string name="admin_manage_media_subtitle">Edit, search, rename and delete Radarr and Sonarr media</string>
     <string name="admin_manage_downloads_subtitle">qBittorrent transfers</string>
+    <string name="admin_manage_servers_subtitle">Switch saved servers and accounts</string>
+    <string name="admin_manage_playback_subtitle">Quality, bitrate and overrides</string>
     <string name="admin_manage_services_subtitle">Radarr, Sonarr and qBittorrent connections</string>
     <string name="media_manager_title">Media manager</string>
     <string name="media_manager_not_configured">Add your Radarr or Sonarr server to manage media.</string>

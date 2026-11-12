@@ -47,6 +47,8 @@ fun AdminDashboardScreen(
     onOpenItem: (String) -> Unit,
     onOpenManage: (NavDestination) -> Unit,
     onOpenSessions: () -> Unit,
+    onOpenServers: () -> Unit,
+    onOpenPlayback: () -> Unit,
     viewModel: AdminDashboardViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -64,7 +66,14 @@ fun AdminDashboardScreen(
                 state.isLoading -> LoadingBox()
                 state.error != null && state.sessions.isEmpty() && state.recentlyAdded.isEmpty() ->
                     ErrorBox(state.error!!, onRetry = viewModel::refresh)
-                else -> DashboardContent(state, onOpenItem = onOpenItem, onOpenManage = onOpenManage, onOpenSessions = onOpenSessions)
+                else -> DashboardContent(
+                    state,
+                    onOpenItem = onOpenItem,
+                    onOpenManage = onOpenManage,
+                    onOpenSessions = onOpenSessions,
+                    onOpenServers = onOpenServers,
+                    onOpenPlayback = onOpenPlayback,
+                )
             }
         }
     }
@@ -76,6 +85,8 @@ private fun DashboardContent(
     onOpenItem: (String) -> Unit,
     onOpenManage: (NavDestination) -> Unit,
     onOpenSessions: () -> Unit,
+    onOpenServers: () -> Unit,
+    onOpenPlayback: () -> Unit,
 ) {
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item(key = "actions") {
@@ -105,6 +116,20 @@ private fun DashboardContent(
                         title = stringResource(R.string.prowlarr_title),
                         subtitle = prowlarrSubtitle(state.prowlarr),
                         onClick = { onOpenManage(NavDestination.Prowlarr) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DashboardActionCard(
+                        title = stringResource(R.string.servers_title),
+                        subtitle = stringResource(R.string.admin_manage_servers_subtitle),
+                        onClick = onOpenServers,
+                        modifier = Modifier.weight(1f),
+                    )
+                    DashboardActionCard(
+                        title = stringResource(R.string.home_playback_settings),
+                        subtitle = stringResource(R.string.admin_manage_playback_subtitle),
+                        onClick = onOpenPlayback,
                         modifier = Modifier.weight(1f),
                     )
                 }
