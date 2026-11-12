@@ -29,6 +29,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.playback.SdkJellyfinPlaybackDataSource
+import com.pyoungws.bluewolfplayer.shared.playback.playbackHttpClient
 import com.pyoungws.bluewolfplayer.shared.prowlarr.KtorProwlarrDataSource
 import com.pyoungws.bluewolfplayer.shared.prowlarr.ProwlarrDataSource
 import com.pyoungws.bluewolfplayer.shared.prowlarr.ProwlarrRepository
@@ -103,7 +104,7 @@ val sharedModule = module {
 
     single { SessionGuard(get()) }
     single<JellyfinLibraryDataSource> { SdkJellyfinLibraryDataSource(get()) }
-    single<JellyfinPlaybackDataSource> { SdkJellyfinPlaybackDataSource(get()) }
+    single<JellyfinPlaybackDataSource> { SdkJellyfinPlaybackDataSource(get(), playbackHttpClient()) }
     single<JellyfinAdminDataSource> { SdkJellyfinAdminDataSource(get()) }
     single { LibraryRepository(get(), get()) }
     single { AdminRepository(get(), get()) }

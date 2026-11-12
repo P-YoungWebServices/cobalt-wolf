@@ -61,6 +61,11 @@ data class PlaybackSource(
     /** Request headers (authorization) for [url] and [subtitles]. */
     val headers: Map<String, String>,
     val info: SourceMediaInfo? = null,
+    /**
+     * Matroska cue index probed for progressive streams whose own SeekHead never names the Cues
+     * element — the player injects it when the extractor reports the stream unseekable.
+     */
+    val cuePoints: List<MkvCuePoint>? = null,
 )
 
 /** Everything the player needs to start: the item, its source and where to resume. */
