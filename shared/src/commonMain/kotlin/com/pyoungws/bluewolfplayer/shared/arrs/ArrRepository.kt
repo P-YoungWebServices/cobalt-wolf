@@ -52,18 +52,19 @@ class ArrRepository(
     }
 
     /**
-     * The upcoming calendar for every configured service, from yesterday through the next
-     * [LOOKAHEAD_DAYS] days, merged and sorted by date. [ArrCalendar.failedServices] lists the
-     * services that failed so the caller can warn without hiding what did load. When every
-     * configured service fails the whole call fails with the first error.
+     * The upcoming calendar for every configured service between [start] and [end] inclusive —
+     * yesterday through the next [LOOKAHEAD_DAYS] days when no range is given — merged and
+     * sorted by date. [ArrCalendar.failedServices] lists the services that failed so the
+     * caller can warn without hiding what did load. When every configured service fails the
+     * whole call fails with the first error.
      */
-    suspend fun calendar(): Outcome<ArrCalendar> {
+    suspend fun calendar(start: LocalDate? = null, end: LocalDate? = null): Outcome<ArrCalendar> {
         val configured = ArrService.entries.filter { it.managesMedia }.mapNotNull { service ->
             settingsRepository.serviceSettings(service)?.let { service to it }
         }
         val today = clock.todayIn(timeZone)
-        val start = today.minus(1, DateTimeUnit.DAY)
-        val end = today.plus(LOOKAHEAD_DAYS, DateTimeUnit.DAY)
+        val rangeStart = start ?: today.minus(1, DateTimeUnit.DAY)
+        val rangeEnd = end ?: today.plus(LOOKAHEAD_DAYS, DateTimeUnit.DAY)
 
         data class ServiceResult(val service: ArrService, val items: List<UpcomingItem>?, val error: LoadError?)
 
@@ -71,7 +72,7 @@ class ArrRepository(
             configured.map { (service, serviceSettings) ->
                 async {
                     try {
-                        ServiceResult(service, dataSource.calendar(service, serviceSettings, start, end), null)
+                        ServiceResult(service, dataSource.calendar(service, serviceSettings, rangeStart, rangeEnd), null)
                     } catch (e: Exception) {
                         if (e is kotlinx.coroutines.CancellationException) throw e
                         ServiceResult(service, null, e.toLoadError())

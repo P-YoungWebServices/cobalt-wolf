@@ -52,6 +52,16 @@ class ArrRepositoryTest {
     }
 
     @Test
+    fun `an explicit range overrides the default window`() = runTest {
+        val dataSource = FakeArrDataSource()
+
+        repository(dataSource).calendar(LocalDate(2026, 11, 9), LocalDate(2026, 11, 15))
+
+        assertEquals(LocalDate(2026, 11, 9) to LocalDate(2026, 11, 15), dataSource.windows[ArrService.Radarr])
+        assertEquals(LocalDate(2026, 11, 9) to LocalDate(2026, 11, 15), dataSource.windows[ArrService.Sonarr])
+    }
+
+    @Test
     fun `a failing service does not hide the other's entries`() = runTest {
         val dataSource = FakeArrDataSource().apply {
             items = mapOf(ArrService.Sonarr to listOf(upcoming(ArrService.Sonarr, "Show")))

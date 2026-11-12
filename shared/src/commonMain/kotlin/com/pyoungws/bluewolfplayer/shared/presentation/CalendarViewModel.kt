@@ -8,6 +8,10 @@ import com.pyoungws.bluewolfplayer.shared.arrs.UpcomingItem
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
@@ -31,9 +35,24 @@ class CalendarViewModel(
     private val _uiState = MutableStateFlow<CalendarUiState>(CalendarUiState.Loading)
     val uiState = _uiState.asStateFlow()
 
+    /** Which layout the screen is showing; drives the fetched date range. */
+    private val _mode = MutableStateFlow(CalendarMode.List)
+    val mode = _mode.asStateFlow()
+
+    /** The week/month currently on screen. */
+    private val _anchor = MutableStateFlow(Clock.System.todayIn(TimeZone.currentSystemDefault()))
+    val anchor = _anchor.asStateFlow()
+
     init {
         refresh()
         viewModelScope.launch { repository.settings.drop(1).collect { refresh() } }
+    }
+
+    /** Switches view (or steps to another week/month) and reloads the matching date range. */
+    fun show(mode: CalendarMode, anchor: LocalDate) {
+        _mode.value = mode
+        _anchor.value = anchor
+        refresh()
     }
 
     fun refresh() {
@@ -46,7 +65,8 @@ class CalendarViewModel(
                 is CalendarUiState.Ready -> current.copy(refreshing = true)
                 else -> CalendarUiState.Loading
             }
-            _uiState.value = when (val outcome = repository.calendar()) {
+            val range = _mode.value.rangeAround(_anchor.value)
+            _uiState.value = when (val outcome = repository.calendar(range?.first, range?.second)) {
                 is Outcome.Success -> CalendarUiState.Ready(outcome.value.items, outcome.value.failedServices)
                 is Outcome.Failure -> CalendarUiState.Error(outcome.error)
             }
