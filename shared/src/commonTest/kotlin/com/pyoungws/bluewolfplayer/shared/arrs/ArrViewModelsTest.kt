@@ -2,6 +2,7 @@ package com.pyoungws.bluewolfplayer.shared.arrs
 
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.presentation.ArrSettingsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.CalendarMode
 import com.pyoungws.bluewolfplayer.shared.presentation.CalendarUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.CalendarViewModel
 import kotlinx.coroutines.Dispatchers
@@ -11,6 +12,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import java.io.IOException
 import kotlin.test.AfterTest
@@ -102,6 +104,31 @@ class ArrViewModelsTest {
         runCurrent()
 
         assertEquals(CalendarUiState.NotConfigured, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `switching to a week view fetches that week's range`() = runTest {
+        configure()
+        val viewModel = CalendarViewModel(repository)
+        runCurrent()
+
+        viewModel.show(CalendarMode.Week, LocalDate(2026, 11, 12))
+        runCurrent()
+
+        assertEquals(LocalDate(2026, 11, 9) to LocalDate(2026, 11, 15), dataSource.windows[ArrService.Radarr])
+        assertIs<CalendarUiState.Ready>(viewModel.uiState.value)
+    }
+
+    @Test
+    fun `switching to a month view fetches the visible grid`() = runTest {
+        configure()
+        val viewModel = CalendarViewModel(repository)
+        runCurrent()
+
+        viewModel.show(CalendarMode.Month, LocalDate(2026, 11, 12))
+        runCurrent()
+
+        assertEquals(LocalDate(2026, 10, 26) to LocalDate(2026, 12, 6), dataSource.windows[ArrService.Radarr])
     }
 
     // ArrSettingsViewModel

@@ -184,7 +184,15 @@ Conventions and rules for contributing to Cobalt Wolf.
   calendars, isolates per-service failures). API keys are encrypted at rest by
   `SharedPreferencesArrSettingsStore` via `KeystoreCipher`. `CalendarViewModel`
   and `ArrSettingsViewModel` drive `app/.../ui/calendar/` (phone) and
-  `ui/tv/TvCalendarScreen.kt`. `shared/.../seerr/` is the
+  `ui/tv/TvCalendarScreen.kt`. The calendar has List/Week/Month modes:
+  `CalendarViewModel.show(mode, anchor)` fetches the range for the visible
+  period (`CalendarPeriod` in `presentation` holds the Monday-first week and
+  month-grid date math, tested in `CalendarPeriodTest`); `ArrRepository.calendar`
+  takes an optional explicit range. On TV, `Modifier.tvListScroll` (in
+  `ui/common/TvScroll.kt`) makes a LazyColumn D-pad-scrollable when its items
+  have no focusable children — apply it to read-only lists (system info,
+  libraries, logs, playback settings) since plain LazyColumn can't scroll on
+  TV without focusable items. `shared/.../seerr/` is the
   Seerr/Jellyseerr integration: `SeerrRepository` (`authState` —
   `Checking`/`SignedIn`/`SignedOut`/`NotConfigured` — backed by
   `SeerrCookieStorage` + `KeystoreSeerrSessionStore`) and

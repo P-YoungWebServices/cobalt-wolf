@@ -446,6 +446,10 @@
     <string name="calendar_tomorrow">Tomorrow</string>
     <string name="calendar_yesterday">Yesterday</string>
     <string name="calendar_downloaded">Downloaded</string>
+    <string name="calendar_view_list">List</string>
+    <string name="calendar_view_week">Week</string>
+    <string name="calendar_view_month">Month</string>
+    <string name="calendar_empty_day">Nothing scheduled</string>
     <string name="arr_service_radarr">Radarr</string>
     <string name="arr_service_sonarr">Sonarr</string>
     <string name="arr_service_bazarr">Bazarr</string>
