@@ -3,8 +3,10 @@ package com.pyoungws.bluewolfplayer.shared.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
+import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
 import com.pyoungws.bluewolfplayer.shared.playback.FallbackStep
+import com.pyoungws.bluewolfplayer.shared.playback.MediaSegment
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
 import com.pyoungws.bluewolfplayer.shared.playback.nextFallback
@@ -75,6 +77,14 @@ class PlayerViewModel(
     /** Current SyncPlay membership (the UI shows a badge); null when not in a group. */
     val membership: StateFlow<SyncPlayMembership?> = syncPlay.membership
 
+    /** The episode queued after the current one, null for movies and last episodes. */
+    private val _nextItem = MutableStateFlow<MediaItem?>(null)
+    val nextItem: StateFlow<MediaItem?> = _nextItem.asStateFlow()
+
+    /** Intro/outro markers of the playing item, for the skip buttons. */
+    private val _segments = MutableStateFlow<List<MediaSegment>>(emptyList())
+    val segments: StateFlow<List<MediaSegment>> = _segments.asStateFlow()
+
     private val echoGate = SyncPlayEchoGate()
     private var generation = 0
     private var started = false
@@ -95,6 +105,30 @@ class PlayerViewModel(
     fun retry() {
         _uiState.value = PlayerUiState.Loading
         prepare(forceTranscode = triedTranscode)
+    }
+
+    /** Stops reporting this item and starts preparing the next episode, if there is one. */
+    fun playNext(positionMs: Long) {
+        val next = _nextItem.value ?: return
+        endCurrentReporting(positionMs)
+        triedTranscode = false
+        audioOutputRetries = 0
+        target = PlaybackTarget.Item(next.id)
+        _uiState.value = PlayerUiState.Loading
+        prepare(forceTranscode = false)
+    }
+
+    /**
+     * The stream reached its end. Advances to the next episode when there is one and no SyncPlay
+     * group controls the item; returns false when playback is simply over and the UI should close.
+     */
+    fun onEnded(positionMs: Long): Boolean {
+        if (membership.value == null && _nextItem.value != null) {
+            playNext(positionMs)
+            return true
+        }
+        endCurrentReporting(positionMs)
+        return false
     }
 
     /**
@@ -300,6 +334,19 @@ class PlayerViewModel(
                         )
                     }
                     _uiState.value = PlayerUiState.Ready(request, ++generation)
+                    _nextItem.value = null
+                    _segments.value = emptyList()
+                    if (request.isServerItem) {
+                        val gen = generation
+                        viewModelScope.launch {
+                            val next = repository.nextEpisode(request.item)
+                            val segs = repository.mediaSegments(request.item.id)
+                            if (gen == generation) {
+                                _nextItem.value = next
+                                _segments.value = segs
+                            }
+                        }
+                    }
                 }
                 is Outcome.Failure -> _uiState.value = PlayerUiState.Error(result.error)
             }

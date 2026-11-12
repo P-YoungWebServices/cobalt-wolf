@@ -90,6 +90,13 @@ data class PlaybackRequest(
 /** The three fallback levels, best first. */
 enum class PlaybackLevel { DirectPlay, LocalDecode, Transcode }
 
+/** A marked region of a stream the player can offer to skip; positions are milliseconds. */
+enum class MediaSegmentKind { Intro, Outro }
+
+data class MediaSegment(val kind: MediaSegmentKind, val startMs: Long, val endMs: Long) {
+    fun contains(positionMs: Long) = positionMs in startMs until endMs
+}
+
 /** A snapshot of the player sent to Jellyfin as a start, progress or stopped report. */
 data class PlaybackReport(
     val itemId: String,

@@ -27,7 +27,8 @@ fun season(id: String, number: Int, seriesId: String = "series-1") =
     MediaItem(id, "Season $number", MediaKind.Season, seriesId = seriesId, seasonNumber = number)
 
 fun episode(id: String, number: Int, seasonNumber: Int = 1, played: Boolean = false, positionTicks: Long = 0) = MediaItem(
-    id, id, MediaKind.Episode, seriesId = "series-1", seasonNumber = seasonNumber, episodeNumber = number,
+    id, id, MediaKind.Episode, seriesId = "series-1", seasonId = "season-$seasonNumber",
+    seasonNumber = seasonNumber, episodeNumber = number,
     isPlayed = played, positionTicks = positionTicks, playedPercentage = if (positionTicks > 0) 30.0 else null,
 )
 

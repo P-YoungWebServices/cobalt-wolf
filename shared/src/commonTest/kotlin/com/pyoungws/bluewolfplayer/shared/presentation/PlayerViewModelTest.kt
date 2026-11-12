@@ -2,11 +2,14 @@ package com.pyoungws.bluewolfplayer.shared.presentation
 
 import com.pyoungws.bluewolfplayer.shared.library.FakeLibraryDataSource
 import com.pyoungws.bluewolfplayer.shared.library.SessionGuard
+import com.pyoungws.bluewolfplayer.shared.library.episode
 import com.pyoungws.bluewolfplayer.shared.library.movie
 import com.pyoungws.bluewolfplayer.shared.library.signedInAuthRepository
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.playback.DIRECT_SOURCE
 import com.pyoungws.bluewolfplayer.shared.playback.FakePlaybackDataSource
+import com.pyoungws.bluewolfplayer.shared.playback.MediaSegment
+import com.pyoungws.bluewolfplayer.shared.playback.MediaSegmentKind
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackMethod
 import com.pyoungws.bluewolfplayer.shared.playback.AudioStreamInfo
 import com.pyoungws.bluewolfplayer.shared.playback.DecodePlan
@@ -45,6 +48,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -285,6 +289,64 @@ class PlayerViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PlaybackLevel.Transcode, (viewModel.uiState.value as PlayerUiState.Ready).request.level)
+    }
+
+    @Test
+    fun `an episode loads its next episode and segments`() = runTest {
+        library.item = { episode(it, 1) }
+        library.episodes = { _, _ -> listOf(episode("e1", 1), episode("e2", 2)) }
+        playback.segments = { listOf(MediaSegment(MediaSegmentKind.Intro, 0, 90_000)) }
+        val viewModel = viewModel(PlaybackTarget.Item("e1"))
+        advanceUntilIdle()
+
+        assertEquals("e2", viewModel.nextItem.value?.id)
+        assertEquals(listOf(MediaSegment(MediaSegmentKind.Intro, 0, 90_000)), viewModel.segments.value)
+    }
+
+    @Test
+    fun `the episode end advances to the next episode`() = runTest {
+        library.item = { episode(it, it.removePrefix("e").toInt()) }
+        library.episodes = { _, _ -> listOf(episode("e1", 1), episode("e2", 2)) }
+        val viewModel = viewModel(PlaybackTarget.Item("e1"))
+        advanceUntilIdle()
+        viewModel.onPlaybackStarted(0, isPaused = false)
+
+        assertTrue(viewModel.onEnded(2_700_000))
+        advanceUntilIdle()
+
+        val ready = viewModel.uiState.value as PlayerUiState.Ready
+        assertEquals("e2", ready.request.item.id)
+        assertEquals(2, ready.generation)
+        assertEquals(listOf("start", "stopped"), playback.reports)
+        // The new episode is the finale: nothing follows it.
+        assertNull(viewModel.nextItem.value)
+    }
+
+    @Test
+    fun `a movie or last episode just ends`() = runTest {
+        library.item = { movie(it) }
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.onPlaybackStarted(0, isPaused = false)
+
+        assertFalse(viewModel.onEnded(5_000))
+        advanceUntilIdle()
+
+        assertEquals(listOf("start", "stopped"), playback.reports)
+    }
+
+    @Test
+    fun `a group does not auto-advance on its own`() = runTest {
+        val syncPlay = syncPlayRepository()
+        syncPlay.join(group("g1"))
+        runCurrent()
+        library.item = { episode(it, 1) }
+        library.episodes = { _, _ -> listOf(episode("e1", 1), episode("e2", 2)) }
+        val viewModel = viewModel(PlaybackTarget.Item("e1"), syncPlay = syncPlay)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.onEnded(5_000))
+        assertIs<PlayerUiState.Ready>(viewModel.uiState.value)
     }
 
     @Test

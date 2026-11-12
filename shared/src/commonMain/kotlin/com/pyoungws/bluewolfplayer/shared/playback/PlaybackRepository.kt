@@ -58,6 +58,32 @@ class PlaybackRepository(
         }
     }
 
+    /**
+     * The episode after [item]: the next one in its season, else the next season's first.
+     * Null for non-episodes, series finales and lookup failures — advancing is optional.
+     */
+    suspend fun nextEpisode(item: MediaItem): MediaItem? {
+        if (item.kind != MediaKind.Episode || item.seriesId == null || item.seasonId == null) return null
+        val outcome = guard.run { session ->
+            val episodes = libraryDataSource.getEpisodes(session, item.seriesId, item.seasonId)
+            val index = episodes.indexOfFirst { it.id == item.id }
+            val next = if (index >= 0) episodes.getOrNull(index + 1) else null
+            next ?: nextSeasonFirstEpisode(session, item)
+        }
+        return (outcome as? Outcome.Success)?.value
+    }
+
+    private suspend fun nextSeasonFirstEpisode(session: Session, item: MediaItem): MediaItem? {
+        val seriesId = item.seriesId ?: return null
+        val seasons = libraryDataSource.getSeasons(session, seriesId)
+        val nextSeason = seasons.getOrNull(seasons.indexOfFirst { it.id == item.seasonId } + 1) ?: return null
+        return libraryDataSource.getEpisodes(session, seriesId, nextSeason.id).firstOrNull()
+    }
+
+    /** Intro/outro markers for the item; empty when the server has none or they fail to load. */
+    suspend fun mediaSegments(itemId: String): List<MediaSegment> =
+        (guard.run { playbackDataSource.getMediaSegments(it, itemId) } as? Outcome.Success)?.value.orEmpty()
+
     suspend fun reportStart(report: PlaybackReport) = send { session -> playbackDataSource.reportStart(session, report) }
 
     suspend fun reportProgress(report: PlaybackReport) = send { session -> playbackDataSource.reportProgress(session, report) }

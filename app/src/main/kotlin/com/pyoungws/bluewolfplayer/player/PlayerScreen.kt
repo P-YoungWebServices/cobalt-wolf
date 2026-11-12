@@ -9,6 +9,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
@@ -40,6 +42,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -48,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
@@ -58,11 +62,13 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import android.view.View
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.C
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -76,6 +82,7 @@ import com.pyoungws.bluewolfplayer.BuildConfig
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.isTelevision
 import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
+import com.pyoungws.bluewolfplayer.shared.playback.MediaSegmentKind
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackLevel
 import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
@@ -86,6 +93,10 @@ import com.pyoungws.bluewolfplayer.shared.presentation.SyncPlayUiCommand
 import com.pyoungws.bluewolfplayer.ui.common.ErrorBox
 import com.pyoungws.bluewolfplayer.ui.common.LoadingBox
 import kotlinx.coroutines.delay
+import java.time.Duration
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 private const val PROGRESS_INTERVAL_MS = 10_000L
@@ -149,14 +160,37 @@ private fun PlayerContent(
     val playerView = remember(ready.generation) { PlayerView(context) }
     val engine = remember(ready.generation) { buildPlayerEngine(context, request, playerView, debugMaxChannels) }
     val player = engine.player
+    // The controller's next button has no playlist item to move to: it lights up once the
+    // server reports a following episode, and pressing it hands off to the view model.
+    val controllerPlayer = remember(player) {
+        object : ForwardingPlayer(player) {
+            private fun canGoNext() = viewModel.nextItem.value != null && viewModel.membership.value == null
+
+            override fun isCommandAvailable(command: Int) =
+                (command == Player.COMMAND_SEEK_TO_NEXT && canGoNext()) || super.isCommandAvailable(command)
+
+            override fun getAvailableCommands(): Player.Commands =
+                super.getAvailableCommands().buildUpon().apply {
+                    if (canGoNext()) add(Player.COMMAND_SEEK_TO_NEXT)
+                }.build()
+
+            override fun seekToNext() {
+                if (canGoNext()) viewModel.playNext(currentPosition) else super.seekToNext()
+            }
+        }
+    }
     val stats by engine.stats.stats.collectAsStateWithLifecycle()
     val membership by viewModel.membership.collectAsStateWithLifecycle()
+    val nextItem by viewModel.nextItem.collectAsStateWithLifecycle()
+    val segments by viewModel.segments.collectAsStateWithLifecycle()
     var tracks by remember(player) { mutableStateOf(Tracks.EMPTY) }
     var controlsVisible by remember(player) { mutableStateOf(true) }
     var dialog by remember(player) { mutableStateOf<TrackDialog?>(null) }
     var showBitrateDialog by remember(player) { mutableStateOf(false) }
     var showStats by remember { mutableStateOf(debugShowStats) }
+    var positionMs by remember(player) { mutableLongStateOf(request.startPositionMs) }
     var displayMatched by remember(player) { mutableStateOf(false) }
+    val skipFocusRequester = remember { FocusRequester() }
 
     // Tell the user when a fallback replaced the first attempt.
     LaunchedEffect(ready.generation) {
@@ -172,8 +206,10 @@ private fun PlayerContent(
         if (ready.generation > 1 && message != null) Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }
 
+    val itemTitle = request.item.let { if (it.episodeLabel() != null) "${it.seriesName} ${it.episodeLabel()}: ${it.name}" else it.name }
+
     DisposableEffect(player) {
-        val title = request.item.let { if (it.episodeLabel() != null) "${it.seriesName} ${it.episodeLabel()}: ${it.name}" else it.name }
+        val title = itemTitle
         player.setMediaItem(
             MediaItem.Builder()
                 .setUri(request.source.url)
@@ -209,8 +245,8 @@ private fun PlayerContent(
 
             override fun onPlaybackStateChanged(state: Int) {
                 if (state == Player.STATE_ENDED) {
-                    viewModel.onStopped(player.duration.coerceAtLeast(0))
-                    onClose()
+                    // Episodes roll into the next one; anything else closes the player.
+                    if (!viewModel.onEnded(player.duration.coerceAtLeast(0))) onClose()
                 }
                 // SyncPlay: the group waits for buffering members and resumes when they are ready.
                 if (state == Player.STATE_BUFFERING) viewModel.onBuffering(player.currentPosition, player.playWhenReady)
@@ -340,6 +376,7 @@ private fun PlayerContent(
         var logged = 0
         while (true) {
             delay(STATS_INTERVAL_MS)
+            positionMs = player.currentPosition
             engine.stats.refreshDisplay()
             viewModel.onSyncTick(player.currentPosition)
             // Debug builds log the stats shortly after start and then periodically, for device test runs.
@@ -368,6 +405,12 @@ private fun PlayerContent(
             rootFocusRequester.requestFocus()
         }
     }
+
+    // The controller only re-checks command availability on show: a next episode found while
+    // the controls are up needs a redraw to enable its next button.
+    LaunchedEffect(nextItem != null) {
+        if (nextItem != null && controlsVisible) playerView.showController()
+    }
     Box(
         Modifier.fillMaxSize().then(
             if (isTv) {
@@ -393,8 +436,10 @@ private fun PlayerContent(
             AndroidView(
                 factory = {
                     playerView.apply {
-                        this.player = player
+                        this.player = controllerPlayer
                         setShowSubtitleButton(false)
+                        // A single stream has no previous item; a permanently greyed button only confuses.
+                        setShowPreviousButton(false)
                         setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { controlsVisible = it == android.view.View.VISIBLE })
                     }
                 },
@@ -402,13 +447,21 @@ private fun PlayerContent(
                 modifier = Modifier.fillMaxSize(),
             )
         }
-        if (showStats && !isInPip) StatsOverlay(stats, Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp))
+        if (showStats && !isInPip) StatsOverlay(stats, Modifier.align(Alignment.TopStart).statusBarsPadding().padding(start = 8.dp, top = 56.dp))
         if (controlsVisible && !isInPip) {
             Row(
-                Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp),
+                Modifier.align(Alignment.TopEnd).fillMaxWidth().statusBarsPadding().padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                Text(
+                    itemTitle,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).padding(start = 8.dp),
+                )
                 membership?.let {
                     Text(
                         stringResource(R.string.syncplay_badge, it.groupName),
@@ -425,6 +478,39 @@ private fun PlayerContent(
                     ControlButton(onClick = onEnterPip, icon = Icons.Outlined.PictureInPictureAlt, description = stringResource(R.string.player_pip))
                 }
                 ControlButton(onClick = onClose, icon = Icons.Outlined.Close, description = stringResource(R.string.player_close))
+            }
+        }
+        val activeSegment = segments.firstOrNull { it.contains(positionMs) }
+        val duration = player.duration
+        // Nothing else is focusable while the controls are hidden, so on TV the skip button
+        // takes focus the moment a marked section begins and a single OK press skips it.
+        LaunchedEffect(activeSegment) {
+            if (isTv && activeSegment != null) skipFocusRequester.requestFocus()
+        }
+        if (!isInPip && (activeSegment != null || (controlsVisible && duration > 0))) {
+            Row(
+                Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 120.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (controlsVisible && duration > 0) {
+                    Text(
+                        stringResource(R.string.player_ends_at, finishTimeLabel(positionMs, duration)),
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                activeSegment?.let { segment ->
+                    val buttonModifier = Modifier.focusRequester(skipFocusRequester)
+                    when {
+                        segment.kind == MediaSegmentKind.Outro && nextItem != null -> Button(onClick = { viewModel.playNext(player.currentPosition) }, modifier = buttonModifier) {
+                            Text(stringResource(R.string.player_next_episode))
+                        }
+                        else -> Button(onClick = { player.seekTo(segment.endMs) }, modifier = buttonModifier) {
+                            Text(stringResource(if (segment.kind == MediaSegmentKind.Intro) R.string.player_skip_intro else R.string.player_skip_credits))
+                        }
+                    }
+                }
             }
         }
     }
@@ -492,8 +578,21 @@ private fun selectTrack(player: Player, type: Int, option: TrackOption) {
 
 @Composable
 private fun ControlButton(onClick: () -> Unit, icon: ImageVector, description: String) {
-    IconButton(onClick = onClick) { Icon(icon, contentDescription = description, tint = Color.White) }
+    var focused by remember { mutableStateOf(false) }
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .onFocusChanged { focused = it.isFocused }
+            .border(2.dp, if (focused) Color.White else Color.Transparent, CircleShape)
+            .background(if (focused) Color.White.copy(alpha = 0.25f) else Color.Transparent, CircleShape),
+    ) { Icon(icon, contentDescription = description, tint = Color.White) }
 }
+
+/** The wall-clock time playback ends at the current position (e.g. "Ends at 22:41"). */
+private fun finishTimeLabel(positionMs: Long, durationMs: Long): String =
+    LocalTime.now()
+        .plus(Duration.ofMillis((durationMs - positionMs).coerceAtLeast(0)))
+        .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
 
 @Composable
 private fun BitrateDialog(selected: StreamBitrate, onSelect: (StreamBitrate) -> Unit, onDismiss: () -> Unit) {

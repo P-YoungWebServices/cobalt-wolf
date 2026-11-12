@@ -340,6 +340,10 @@
     <string name="player_pip_unavailable">Picture-in-picture is not available on this device.</string>
     <string name="player_stats">Stats</string>
     <string name="player_bitrate">Stream quality</string>
+    <string name="player_skip_intro">Skip intro</string>
+    <string name="player_skip_credits">Skip credits</string>
+    <string name="player_next_episode">Next episode</string>
+    <string name="player_ends_at">Ends at %1$s</string>
     <string name="player_fallback_local">The device decoder failed. Decoding in software (FFmpeg) instead.</string>
     <string name="player_fallback_transcode">This device cannot play the original. The server is transcoding it.</string>
     <string name="level_direct_play">Direct play</string>
