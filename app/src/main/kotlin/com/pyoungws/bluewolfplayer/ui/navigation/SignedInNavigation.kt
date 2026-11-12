@@ -201,9 +201,7 @@ fun SignedInNavigation() {
             onOpenItem = { push(Route.Detail(it)) },
             onSearch = { push(Route.Search) },
             onDiscover = { push(Route.Discover) },
-            onServers = { push(Route.Servers) },
             onCalendar = { push(Route.Calendar) },
-            onPlaybackSettings = { context.startActivity(PlaybackSettingsActivity.intent(context)) },
             isAdmin = user?.canNavigateTo(NavDestination.Dashboard) == true,
             onDashboard = { push(Route.Dashboard) },
         )
@@ -234,6 +232,8 @@ fun SignedInNavigation() {
             onOpenItem = { push(Route.Detail(it)) },
             onOpenManage = { destination -> managementRoute(destination)?.let(push) },
             onOpenSessions = { push(Route.Sessions) },
+            onOpenServers = { push(Route.Servers) },
+            onOpenPlayback = { context.startActivity(PlaybackSettingsActivity.intent(context)) },
         )
         Route.Sessions -> AdminSessionsScreen(onBack = pop)
         Route.AdminRequests -> AdminRequestsScreen(onBack = pop)

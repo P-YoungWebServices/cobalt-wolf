@@ -181,7 +181,6 @@ private fun TvSignedInNavigation(
                 section = selected.name
             },
             onOpenRoute = push,
-            onSettings = { context.startActivity(PlaybackSettingsActivity.intent(context)) },
             onSignOut = { confirmSignOut = true },
         )
         Box(Modifier.weight(1f)) {
@@ -200,6 +199,8 @@ private fun TvSignedInNavigation(
                     onOpenItem = { push(Route.Detail(it)) },
                     onOpenManage = { destination -> managementRoute(destination)?.let(push) },
                     onOpenSessions = { push(Route.Sessions) },
+                    onOpenServers = { stack = emptyList(); section = TvSection.Servers.name },
+                    onOpenPlayback = { context.startActivity(PlaybackSettingsActivity.intent(context)) },
                 )
                 Route.Sessions -> AdminSessionsScreen(onBack = pop)
                 Route.AdminRequests -> AdminRequestsScreen(onBack = pop)
@@ -268,7 +269,6 @@ private fun TvTopBar(
     isSigningOut: Boolean,
     onSelect: (TvSection) -> Unit,
     onOpenRoute: (Route) -> Unit,
-    onSettings: () -> Unit,
     onSignOut: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -290,8 +290,7 @@ private fun TvTopBar(
             TvNavButton(stringResource(R.string.home_more), selected = section in TvMoreSections) { menuOpen = true }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 TvMenuItem(R.string.discover_my_requests) { menuOpen = false; onSelect(TvSection.MyRequests) }
-                TvMenuItem(R.string.servers_title) { menuOpen = false; onSelect(TvSection.Servers) }
-                TvMenuItem(R.string.tv_nav_settings) { menuOpen = false; onSettings() }
+                // Servers and Settings live on the admin dashboard now.
                 if (isAdmin) {
                     TvMenuItem(R.string.admin_dashboard_title) { menuOpen = false; onOpenRoute(Route.Dashboard) }
                 }

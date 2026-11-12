@@ -63,9 +63,7 @@ fun HomeScreen(
     onOpenItem: (String) -> Unit,
     onSearch: () -> Unit,
     onDiscover: () -> Unit,
-    onServers: () -> Unit,
     onCalendar: () -> Unit,
-    onPlaybackSettings: () -> Unit,
     isAdmin: Boolean,
     onDashboard: () -> Unit,
     viewModel: LibraryHomeViewModel = koinViewModel(),
@@ -111,17 +109,10 @@ fun HomeScreen(
                         Box {
                             TextButton(onClick = { moreMenuOpen = true }) { Text(stringResource(R.string.home_more)) }
                             DropdownMenu(expanded = moreMenuOpen, onDismissRequest = { moreMenuOpen = false }) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.home_servers)) },
-                                    onClick = { moreMenuOpen = false; onServers() },
-                                )
+                                // Servers and Playback live on the admin dashboard now.
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.home_calendar)) },
                                     onClick = { moreMenuOpen = false; onCalendar() },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.home_playback_settings)) },
-                                    onClick = { moreMenuOpen = false; onPlaybackSettings() },
                                 )
                                 if (isAdmin) {
                                     DropdownMenuItem(
