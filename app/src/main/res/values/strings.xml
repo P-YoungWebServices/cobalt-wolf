@@ -690,4 +690,16 @@
     <string name="offline_save">Download</string>
     <string name="offline_saved">Saved</string>
     <string name="offline_downloading">Downloading…</string>
+    <string name="player_queue">Queue</string>
+    <string name="player_queue_up_next">Up next</string>
+    <string name="player_queue_empty">Queue is empty</string>
+    <string name="player_repeat">Repeat: %1$s</string>
+    <string name="player_repeat_off">Off</string>
+    <string name="player_repeat_all">All</string>
+    <string name="player_repeat_one">One</string>
+    <string name="player_shuffle">Shuffle</string>
+    <string name="player_play_next">Play next</string>
+    <string name="player_add_to_queue">Add to queue</string>
+    <string name="player_remove_from_queue">Remove</string>
+    <string name="detail_play_all_from_here">Play all from here</string>
 </resources>

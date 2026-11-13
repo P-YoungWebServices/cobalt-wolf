@@ -14,7 +14,7 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1.1 | Extend models: MediaKind (Audio/Song, MusicAlbum, MusicArtist, TvChannel, Program, Recording, Photo, Book) + LibraryType (Music, LiveTv, HomeVideos, Books, Photos) | ☐ | shared/model/Models.kt; map SDK BaseItemKind/collectionType |
+| 1.1 | Extend models: MediaKind + LibraryType | ☑ | commit 4a6e3d6; Song/MusicAlbum/MusicArtist/TvChannel/Program/Recording/Folder/Person; Music/LiveTv/HomeVideos/Mixed; canDelete/canDownload/ProgramInfo |
 | 1.2 | Play queue system (queue repo, play next/add to queue/play all from here, queue UI, shuffle) | ☐ | Foundation for music + C1 |
 | 1.3 | Music browsing: artists/albums/songs/genres tabs, album/artist/song detail pages | ☐ | |
 | 1.4 | Audio playback engine + now-playing screen (phone + TV) | ☐ | Media3 audio, media session, notification |
@@ -85,6 +85,7 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 ## Current checkpoint
 
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Working on: 1.1 model extensions.
-- Next: 1.2 play queue.
+- Working on: 1.2 play queue system.
+- Next: 1.3 music browsing.
+- Done: 1.1 (models). Compile clean, MediaMappingTest green.
 - Phone test status: not yet run.

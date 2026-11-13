@@ -19,6 +19,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -29,6 +32,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.HighQuality
 import androidx.compose.material.icons.outlined.PictureInPictureAlt
 import androidx.compose.material.icons.outlined.QueryStats
+import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
 import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -90,6 +94,7 @@ import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
 import com.pyoungws.bluewolfplayer.shared.playback.MediaSegmentKind
 import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackLevel
+import com.pyoungws.bluewolfplayer.shared.playback.RepeatMode
 import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.summary
@@ -189,6 +194,8 @@ private fun PlayerContent(
     val membership by viewModel.membership.collectAsStateWithLifecycle()
     val nextItem by viewModel.nextItem.collectAsStateWithLifecycle()
     val segments by viewModel.segments.collectAsStateWithLifecycle()
+    val queue by viewModel.queue.collectAsStateWithLifecycle()
+    var showQueue by remember { mutableStateOf(false) }
     var tracks by remember(player) { mutableStateOf(Tracks.EMPTY) }
     var controlsVisible by remember(player) { mutableStateOf(true) }
     var dialog by remember(player) { mutableStateOf<TrackDialog?>(null) }
@@ -537,6 +544,9 @@ private fun PlayerContent(
                     icon = Icons.Outlined.AspectRatio,
                     description = stringResource(R.string.player_zoom),
                 )
+                if (queue.entries.isNotEmpty()) {
+                    ControlButton(onClick = { showQueue = true }, icon = Icons.AutoMirrored.Outlined.PlaylistPlay, description = stringResource(R.string.player_queue))
+                }
                 ControlButton(onClick = { showStats = !showStats }, icon = Icons.Outlined.QueryStats, description = stringResource(R.string.player_stats))
                 if (!isTv) {
                     ControlButton(onClick = onEnterPip, icon = Icons.Outlined.PictureInPictureAlt, description = stringResource(R.string.player_pip))
@@ -610,6 +620,17 @@ private fun PlayerContent(
             onDismiss = { dialog = null },
         )
     }
+    if (showQueue) {
+        QueueDialog(
+            queue = queue,
+            onSelect = { viewModel.playQueueIndex(it, player.currentPosition); showQueue = false },
+            onPrevious = { viewModel.playQueuePrevious(player.currentPosition); showQueue = false },
+            onRemove = viewModel::removeQueueEntry,
+            onCycleRepeat = viewModel::cycleRepeat,
+            onToggleShuffle = viewModel::toggleShuffle,
+            onDismiss = { showQueue = false },
+        )
+    }
     if (showBitrateDialog) {
         BitrateDialog(
             selected = request.settings.maxBitrate,
@@ -658,6 +679,66 @@ private fun selectTrack(player: Player, type: Int, option: TrackOption) {
             .setOverrideForType(TrackSelectionOverride(option.group.mediaTrackGroup, option.index))
     }
     player.trackSelectionParameters = builder.build()
+}
+
+@Composable
+private fun QueueDialog(
+    queue: com.pyoungws.bluewolfplayer.shared.playback.PlayQueue,
+    onSelect: (Int) -> Unit,
+    onPrevious: () -> Unit,
+    onRemove: (Int) -> Unit,
+    onCycleRepeat: () -> Unit,
+    onToggleShuffle: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.player_queue), modifier = Modifier.weight(1f))
+                TextButton(onClick = onToggleShuffle) {
+                    Text(
+                        stringResource(R.string.player_shuffle),
+                        color = if (queue.shuffled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                TextButton(onClick = onCycleRepeat) {
+                    Text(
+                        stringResource(R.string.player_repeat, stringResource(when (queue.repeat) {
+                            RepeatMode.All -> R.string.player_repeat_all
+                            RepeatMode.One -> R.string.player_repeat_one
+                            else -> R.string.player_repeat_off
+                        })),
+                        color = if (queue.repeat != RepeatMode.Off) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        },
+        text = {
+            if (queue.entries.isEmpty()) Text(stringResource(R.string.player_queue_empty))
+            else LazyColumn(Modifier.heightIn(max = 420.dp)) {
+                itemsIndexed(queue.entries, key = { i, e -> "${e.item.id}-$i" }) { index, entry ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onSelect(index) }.padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            entry.item.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (index == queue.currentIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = { onRemove(index) }) {
+                            Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.player_remove_from_queue))
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.player_close)) } },
+    )
 }
 
 @Composable

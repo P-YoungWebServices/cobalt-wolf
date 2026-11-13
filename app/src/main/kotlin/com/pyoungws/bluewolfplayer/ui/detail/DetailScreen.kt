@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
+import androidx.compose.material.icons.outlined.AddToQueue
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
@@ -242,6 +244,15 @@ private fun DetailContent(
                             contentDescription = stringResource(if (item.isFavorite) R.string.detail_unfavorite else R.string.detail_favorite),
                             tint = if (item.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    state.playTarget?.let { target ->
+                        val playQueue: com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository = org.koin.compose.koinInject()
+                        IconButton(onClick = { playQueue.playNext(target) }) {
+                            Icon(Icons.AutoMirrored.Outlined.PlaylistPlay, contentDescription = stringResource(R.string.player_play_next), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        IconButton(onClick = { playQueue.enqueue(target) }) {
+                            Icon(Icons.Outlined.AddToQueue, contentDescription = stringResource(R.string.player_add_to_queue), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
                 item.tagline?.let {

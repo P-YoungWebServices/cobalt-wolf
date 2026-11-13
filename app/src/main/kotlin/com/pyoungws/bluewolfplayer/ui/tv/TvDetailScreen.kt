@@ -403,6 +403,9 @@ private fun detailMenuOptions(
         target?.let { t ->
             if (t.hasProgress) add(TvMenuOption(stringResource(R.string.detail_play_beginning)) { onPlayFromBeginning(t.id); onDismiss() })
             add(TvMenuOption(stringResource(R.string.syncplay_title)) { onWatchTogether(t.id); onDismiss() })
+            val playQueue: com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository = org.koin.compose.koinInject()
+            add(TvMenuOption(stringResource(R.string.player_play_next)) { playQueue.playNext(t); onDismiss() })
+            add(TvMenuOption(stringResource(R.string.player_add_to_queue)) { playQueue.enqueue(t); onDismiss() })
         }
         if (item.kind == MediaKind.Series && state.episodes.isNotEmpty()) {
             add(TvMenuOption(stringResource(R.string.detail_shuffle)) { onPlay(state.episodes.random().id); onDismiss() })

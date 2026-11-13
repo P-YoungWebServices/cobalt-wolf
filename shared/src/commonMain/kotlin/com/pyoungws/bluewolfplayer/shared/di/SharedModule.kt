@@ -111,6 +111,7 @@ val sharedModule = module {
     single { AdminRepository(get(), get()) }
     single { PlaybackSettingsRepository(get()) }
     single { PlaybackRepository(get(), get(), get(), get(), get()) }
+    single { com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository() }
     // Outlives screens so the final "playback stopped" report is not cancelled when the player closes.
     single { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
@@ -142,7 +143,7 @@ val sharedModule = module {
     viewModel { (library: Library) -> LibraryViewModel(library, get()) }
     viewModel { (query: com.pyoungws.bluewolfplayer.shared.library.ItemQuery) -> ItemBrowseViewModel(query, get()) }
     viewModel { (itemId: String) -> ItemDetailViewModel(itemId, get()) }
-    viewModel { (target: PlaybackTarget) -> PlayerViewModel(target, get(), get(), get()) }
+    viewModel { (target: PlaybackTarget) -> PlayerViewModel(target, get(), get(), get(), get()) }
     viewModelOf(::SyncPlayViewModel)
     viewModelOf(::ServersViewModel)
     viewModelOf(::PlaybackSettingsViewModel)
