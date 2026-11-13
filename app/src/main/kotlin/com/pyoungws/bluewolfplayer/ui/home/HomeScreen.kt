@@ -45,6 +45,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -111,6 +112,9 @@ fun HomeScreen(
                             stringResource(R.string.app_name),
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             // The icon vector has ~14dp of transparent padding on each side at this
                             // size — pull the title in past it so it sits next to the wolf head.
                             modifier = Modifier.offset(x = (-12).dp),
