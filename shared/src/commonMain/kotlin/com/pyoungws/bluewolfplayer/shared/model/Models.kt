@@ -42,6 +42,20 @@ data class Lyrics(val providerName: String? = null, val lines: List<LyricLine> =
 
 data class LyricLine(val text: String, val startMs: Long? = null)
 
+/** A Live TV scheduled recording (timer) or series recording rule. */
+data class LiveTimer(
+    val id: String,
+    val name: String,
+    val channelName: String? = null,
+    val channelId: String? = null,
+    val programId: String? = null,
+    val startDate: java.time.LocalDateTime? = null,
+    val endDate: java.time.LocalDateTime? = null,
+    val status: String? = null,
+    val isSeries: Boolean = false,
+    val days: List<String> = emptyList(),
+)
+
 /** One media stream of an item's primary media source: codec, resolution/HDR for video, layout for audio. */
 data class MediaStreamInfo(
     val kind: StreamKind,

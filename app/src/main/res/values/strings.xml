@@ -707,4 +707,19 @@
     <string name="view_songs">Songs</string>
     <string name="detail_instant_mix">Instant mix</string>
     <string name="detail_lyrics">Lyrics</string>
+    <string name="livetv_channels">Channels</string>
+    <string name="livetv_guide">Guide</string>
+    <string name="livetv_recordings">Recordings</string>
+    <string name="livetv_scheduled">Scheduled</string>
+    <string name="livetv_series">Series</string>
+    <string name="livetv_empty">Nothing here yet</string>
+    <string name="livetv_no_programs">No program data</string>
+    <string name="livetv_live">Live</string>
+    <string name="livetv_premiere">Premiere</string>
+    <string name="livetv_repeat">Repeat</string>
+    <string name="livetv_recording">Recording</string>
+    <string name="livetv_cancel">Cancel</string>
+    <string name="livetv_record">Record</string>
+    <string name="livetv_record_series">Record series</string>
+    <string name="livetv_watch_channel">Watch channel</string>
 </resources>

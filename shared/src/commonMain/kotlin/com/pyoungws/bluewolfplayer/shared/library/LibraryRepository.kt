@@ -3,6 +3,7 @@ package com.pyoungws.bluewolfplayer.shared.library
 import com.pyoungws.bluewolfplayer.shared.model.HomeFeed
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.GenreInfo
+import com.pyoungws.bluewolfplayer.shared.model.LiveTimer
 import com.pyoungws.bluewolfplayer.shared.model.Lyrics
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
@@ -106,6 +107,36 @@ class LibraryRepository(
 
     suspend fun lyrics(itemId: String): Outcome<Lyrics?> =
         guard.run { dataSource.getLyrics(it, itemId) }
+
+    suspend fun liveTvChannels(): Outcome<List<MediaItem>> =
+        guard.run { dataSource.getLiveTvChannels(it) }
+
+    suspend fun liveTvPrograms(channelIds: List<String>, start: java.time.LocalDateTime, end: java.time.LocalDateTime): Outcome<List<MediaItem>> =
+        guard.run { dataSource.getPrograms(it, channelIds, start, end) }
+
+    suspend fun liveTvRecordings(): Outcome<List<MediaItem>> =
+        guard.run { dataSource.getLiveTvRecordings(it) }
+
+    suspend fun liveTvTimers(): Outcome<List<LiveTimer>> =
+        guard.run { dataSource.getTimers(it) }
+
+    suspend fun liveTvSeriesTimers(): Outcome<List<LiveTimer>> =
+        guard.run { dataSource.getSeriesTimers(it) }
+
+    suspend fun recordProgram(programId: String): Outcome<Unit> =
+        guard.run { dataSource.recordProgram(it, programId) }
+
+    suspend fun recordSeries(programId: String): Outcome<Unit> =
+        guard.run { dataSource.recordSeries(it, programId) }
+
+    suspend fun cancelTimer(timerId: String): Outcome<Unit> =
+        guard.run { dataSource.cancelTimer(it, timerId) }
+
+    suspend fun cancelSeriesTimer(timerId: String): Outcome<Unit> =
+        guard.run { dataSource.cancelSeriesTimer(it, timerId) }
+
+    suspend fun deleteRecording(recordingId: String): Outcome<Unit> =
+        guard.run { dataSource.deleteRecording(it, recordingId) }
 
     suspend fun nextUpForSeries(seriesId: String): Outcome<MediaItem?> =
         guard.run { dataSource.getNextUpForSeries(it, seriesId) }

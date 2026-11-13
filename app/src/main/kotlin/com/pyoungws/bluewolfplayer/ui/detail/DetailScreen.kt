@@ -239,6 +239,20 @@ private fun DetailContent(
                             }
                         }
                     }
+                    if (item.kind == MediaKind.Program) {
+                        val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
+                        val recordScope = androidx.compose.runtime.rememberCoroutineScope()
+                        if (item.programInfo?.timerId == null) {
+                            OutlinedButton(onClick = { recordScope.launch { repository.recordProgram(item.id); viewModel.refresh() } }) {
+                                Text(stringResource(R.string.livetv_record))
+                            }
+                        }
+                        if (item.programInfo?.seriesTimerId == null && item.programInfo?.isSeries == true) {
+                            OutlinedButton(onClick = { recordScope.launch { repository.recordSeries(item.id); viewModel.refresh() } }) {
+                                Text(stringResource(R.string.livetv_record_series))
+                            }
+                        }
+                    }
                     if (item.kind == MediaKind.Song || item.kind == MediaKind.MusicAlbum || item.kind == MediaKind.MusicArtist) {
                         val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
                         val mixScope = androidx.compose.runtime.rememberCoroutineScope()

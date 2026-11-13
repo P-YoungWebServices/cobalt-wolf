@@ -2,6 +2,7 @@ package com.pyoungws.bluewolfplayer.shared.library
 
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.LibraryType
+import com.pyoungws.bluewolfplayer.shared.model.LiveTimer
 import com.pyoungws.bluewolfplayer.shared.model.LyricLine
 import com.pyoungws.bluewolfplayer.shared.model.Lyrics
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
@@ -20,6 +21,7 @@ import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.instantMixApi
 import org.jellyfin.sdk.api.client.extensions.libraryApi
+import org.jellyfin.sdk.api.client.extensions.liveTvApi
 import org.jellyfin.sdk.api.client.extensions.lyricApi
 import org.jellyfin.sdk.api.client.extensions.genreApi
 import org.jellyfin.sdk.api.client.extensions.showApi
@@ -46,6 +48,11 @@ import org.jellyfin.sdk.model.api.request.GetSuggestionsRequest
 import org.jellyfin.sdk.model.api.request.GetLatestMediaRequest
 import org.jellyfin.sdk.model.api.request.GetNextUpRequest
 import org.jellyfin.sdk.model.api.request.GetSimilarItemsRequest
+import org.jellyfin.sdk.model.api.SeriesTimerInfoDto
+import org.jellyfin.sdk.model.api.TimerInfoDto
+import org.jellyfin.sdk.model.api.request.GetLiveTvChannelsRequest
+import org.jellyfin.sdk.model.api.request.GetLiveTvProgramsRequest
+import org.jellyfin.sdk.model.api.request.GetRecordingsRequest
 import org.jellyfin.sdk.model.api.request.GetResumeItemsRequest
 import org.jellyfin.sdk.model.api.request.GetSeasonsRequest
 
@@ -66,6 +73,18 @@ interface JellyfinLibraryDataSource {
     suspend fun getSimilar(session: Session, itemId: String): List<MediaItem>
     suspend fun getInstantMix(session: Session, itemId: String, limit: Int = 100): List<MediaItem>
     suspend fun getLyrics(session: Session, itemId: String): Lyrics?
+    suspend fun getLiveTvChannels(session: Session): List<MediaItem>
+    suspend fun getPrograms(session: Session, channelIds: List<String>, start: java.time.LocalDateTime, end: java.time.LocalDateTime): List<MediaItem>
+    suspend fun getLiveTvRecordings(session: Session): List<MediaItem>
+    suspend fun getTimers(session: Session): List<LiveTimer>
+    suspend fun getSeriesTimers(session: Session): List<LiveTimer>
+    /** Records one showing of a program. */
+    suspend fun recordProgram(session: Session, programId: String)
+    /** Records every showing of a program's series. */
+    suspend fun recordSeries(session: Session, programId: String)
+    suspend fun cancelTimer(session: Session, timerId: String)
+    suspend fun cancelSeriesTimer(session: Session, timerId: String)
+    suspend fun deleteRecording(session: Session, recordingId: String)
     suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem?
     suspend fun getSpecialFeatures(session: Session, itemId: String): List<MediaItem>
     suspend fun getLocalTrailers(session: Session, itemId: String): List<MediaItem>
@@ -163,6 +182,67 @@ class SdkJellyfinLibraryDataSource(
                 lines = dto.lyrics.map { LyricLine(text = it.text, startMs = it.start?.let { t -> t / 10_000L + offsetMs }) },
             )
         }
+    }
+
+    override suspend fun getLiveTvChannels(session: Session) = call(session) {
+        liveTvApi.getLiveTvChannels(
+            GetLiveTvChannelsRequest(
+                userId = session.userId.toUuid(),
+                fields = ITEM_FIELDS,
+                enableUserData = true,
+            ),
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getPrograms(session: Session, channelIds: List<String>, start: java.time.LocalDateTime, end: java.time.LocalDateTime) = call(session) {
+        liveTvApi.getLiveTvPrograms(
+            GetLiveTvProgramsRequest(
+                userId = session.userId.toUuid(),
+                channelIds = channelIds.ifEmpty { null }?.map { it.toUuid() },
+                minStartDate = start,
+                maxEndDate = end,
+                enableTotalRecordCount = false,
+                fields = ITEM_FIELDS,
+            ),
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getLiveTvRecordings(session: Session) = call(session) {
+        liveTvApi.getRecordings(
+            GetRecordingsRequest(
+                userId = session.userId.toUuid(),
+                fields = ITEM_FIELDS,
+                enableUserData = true,
+            ),
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getTimers(session: Session) = call(session) {
+        liveTvApi.getTimers(isScheduled = true).content.items.orEmpty().map { it.toLiveTimer() }
+    }
+
+    override suspend fun getSeriesTimers(session: Session) = call(session) {
+        liveTvApi.getSeriesTimers().content.items.orEmpty().map { it.toLiveTimer() }
+    }
+
+    override suspend fun recordProgram(session: Session, programId: String) = call(session) {
+        liveTvApi.createTimer(liveTvApi.getDefaultTimer(programId).content.toTimerInfoDto()).content
+    }
+
+    override suspend fun recordSeries(session: Session, programId: String) = call(session) {
+        liveTvApi.createSeriesTimer(liveTvApi.getDefaultTimer(programId).content).content
+    }
+
+    override suspend fun cancelTimer(session: Session, timerId: String) = call(session) {
+        liveTvApi.cancelTimer(timerId).content
+    }
+
+    override suspend fun cancelSeriesTimer(session: Session, timerId: String) = call(session) {
+        liveTvApi.cancelSeriesTimer(timerId).content
+    }
+
+    override suspend fun deleteRecording(session: Session, recordingId: String) = call(session) {
+        liveTvApi.deleteRecording(recordingId.toUuid()).content
     }
 
     override suspend fun getNextUpForSeries(session: Session, seriesId: String) = call(session) {
@@ -616,3 +696,41 @@ internal const val TICKS_PER_MINUTE = 600_000_000L
 private const val POSTER_WIDTH = 400
 private const val LANDSCAPE_WIDTH = 640
 private const val BACKDROP_WIDTH = 1280
+
+private fun TimerInfoDto.toLiveTimer() = LiveTimer(
+    id = id.orEmpty(),
+    name = name.orEmpty(),
+    channelName = channelName,
+    channelId = channelId?.toString(),
+    programId = programId,
+    startDate = startDate,
+    endDate = endDate,
+    status = status?.serialName,
+)
+
+private fun SeriesTimerInfoDto.toLiveTimer() = LiveTimer(
+    id = id.orEmpty(),
+    name = name.orEmpty(),
+    channelName = channelName,
+    channelId = channelId?.toString(),
+    programId = programId,
+    startDate = startDate,
+    endDate = endDate,
+    isSeries = true,
+    days = days.orEmpty().map { it.serialName },
+)
+
+/** The server-default timer template carries everything a single recording needs. */
+private fun SeriesTimerInfoDto.toTimerInfoDto() = TimerInfoDto(
+    name = name,
+    overview = overview,
+    channelId = channelId,
+    programId = programId,
+    startDate = startDate,
+    endDate = endDate,
+    prePaddingSeconds = prePaddingSeconds,
+    postPaddingSeconds = postPaddingSeconds,
+    isPrePaddingRequired = isPrePaddingRequired,
+    isPostPaddingRequired = isPostPaddingRequired,
+    priority = priority,
+)

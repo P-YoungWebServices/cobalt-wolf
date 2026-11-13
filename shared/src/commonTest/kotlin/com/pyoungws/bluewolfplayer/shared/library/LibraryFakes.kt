@@ -80,6 +80,16 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
     override suspend fun getSimilar(session: Session, itemId: String): List<MediaItem> = similar(itemId).also { calls += "similar($itemId)" }
     override suspend fun getInstantMix(session: Session, itemId: String, limit: Int): List<MediaItem> = instantMix(itemId, limit).also { calls += "instantMix($itemId)" }
     override suspend fun getLyrics(session: Session, itemId: String): com.pyoungws.bluewolfplayer.shared.model.Lyrics? = lyrics(itemId).also { calls += "lyrics($itemId)" }
+    override suspend fun getLiveTvChannels(session: Session): List<MediaItem> = emptyList<MediaItem>().also { calls += "liveTvChannels" }
+    override suspend fun getPrograms(session: Session, channelIds: List<String>, start: java.time.LocalDateTime, end: java.time.LocalDateTime): List<MediaItem> = emptyList<MediaItem>().also { calls += "programs" }
+    override suspend fun getLiveTvRecordings(session: Session): List<MediaItem> = emptyList<MediaItem>().also { calls += "liveTvRecordings" }
+    override suspend fun getTimers(session: Session): List<com.pyoungws.bluewolfplayer.shared.model.LiveTimer> = emptyList<com.pyoungws.bluewolfplayer.shared.model.LiveTimer>().also { calls += "timers" }
+    override suspend fun getSeriesTimers(session: Session): List<com.pyoungws.bluewolfplayer.shared.model.LiveTimer> = emptyList<com.pyoungws.bluewolfplayer.shared.model.LiveTimer>().also { calls += "seriesTimers" }
+    override suspend fun recordProgram(session: Session, programId: String) { calls += "recordProgram($programId)" }
+    override suspend fun recordSeries(session: Session, programId: String) { calls += "recordSeries($programId)" }
+    override suspend fun cancelTimer(session: Session, timerId: String) { calls += "cancelTimer($timerId)" }
+    override suspend fun cancelSeriesTimer(session: Session, timerId: String) { calls += "cancelSeriesTimer($timerId)" }
+    override suspend fun deleteRecording(session: Session, recordingId: String) { calls += "deleteRecording($recordingId)" }
     override suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem? = nextUpForSeries(seriesId).also { calls += "nextUpSeries($seriesId)" }
     override suspend fun setPlayed(session: Session, itemId: String, played: Boolean) { calls += "setPlayed($itemId,$played)" }
     override suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean) { calls += "setFavorite($itemId,$favorite)" }

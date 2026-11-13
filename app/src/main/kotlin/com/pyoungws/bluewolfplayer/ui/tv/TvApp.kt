@@ -188,7 +188,11 @@ private fun TvSignedInNavigation(
         )
         Box(Modifier.weight(1f)) {
             when (val route = routes.lastOrNull()) {
-                is Route.LibraryRoute -> TvLibraryScreen(route.library, onOpenItem = { push(Route.Detail(it)) })
+                is Route.LibraryRoute -> if (route.library.type == com.pyoungws.bluewolfplayer.shared.model.LibraryType.LiveTv) {
+                    com.pyoungws.bluewolfplayer.ui.livetv.LiveTvScreen(onBack = pop, onOpenItem = { push(Route.Detail(it)) })
+                } else {
+                    TvLibraryScreen(route.library, onOpenItem = { push(Route.Detail(it)) })
+                }
                 is Route.Detail -> TvDetailScreen(
                     route.itemId,
                     onPlay = play,

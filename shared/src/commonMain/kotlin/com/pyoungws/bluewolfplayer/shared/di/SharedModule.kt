@@ -55,6 +55,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemBrowseViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.LiveTvViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.BazarrViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MediaDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MediaManagerViewModel
@@ -143,6 +144,7 @@ val sharedModule = module {
     viewModel { (library: Library) -> LibraryViewModel(library, get()) }
     viewModel { (query: com.pyoungws.bluewolfplayer.shared.library.ItemQuery) -> ItemBrowseViewModel(query, get()) }
     viewModel { (itemId: String) -> ItemDetailViewModel(itemId, get()) }
+    viewModel { LiveTvViewModel(get()) }
     viewModel { (target: PlaybackTarget) -> PlayerViewModel(target, get(), get(), get(), get()) }
     viewModelOf(::SyncPlayViewModel)
     viewModelOf(::ServersViewModel)

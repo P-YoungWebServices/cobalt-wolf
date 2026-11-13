@@ -279,7 +279,11 @@ fun SignedInNavigation() {
         )
         is Route.MediaDetail -> MediaDetailScreen(route.service, route.itemId, onBack = pop)
         is Route.SeerrDetail -> SeerrDetailScreen(route.type, route.tmdbId, onBack = pop)
-        is Route.LibraryRoute -> LibraryScreen(route.library, onBack = pop, onOpenItem = { push(Route.Detail(it)) })
+        is Route.LibraryRoute -> if (route.library.type == com.pyoungws.bluewolfplayer.shared.model.LibraryType.LiveTv) {
+            com.pyoungws.bluewolfplayer.ui.livetv.LiveTvScreen(onBack = pop, onOpenItem = { push(Route.Detail(it)) })
+        } else {
+            LibraryScreen(route.library, onBack = pop, onOpenItem = { push(Route.Detail(it)) })
+        }
         is Route.Person -> ItemBrowseScreen(
             title = route.name,
             query = ItemQuery(personIds = listOf(route.personId), includeItemKinds = PLAYABLE_KINDS),
