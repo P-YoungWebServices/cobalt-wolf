@@ -30,8 +30,10 @@ import com.pyoungws.bluewolfplayer.shared.playback.DecodingPreference
 import com.pyoungws.bluewolfplayer.shared.playback.FrameRateMatching
 import com.pyoungws.bluewolfplayer.shared.playback.HdrPreference
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
+import com.pyoungws.bluewolfplayer.shared.presentation.PlayerUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
 import org.koin.android.ext.android.get
 import com.pyoungws.bluewolfplayer.ui.theme.BlueWolfTheme
@@ -143,16 +145,23 @@ class PlayerActivity : ComponentActivity() {
         isInPip = isInPictureInPictureMode
     }
 
+    private val isAudioPlayback: Boolean
+        get() = (viewModel.uiState.value as? PlayerUiState.Ready)?.request?.item?.kind == MediaKind.Song
+
     override fun onStop() {
         super.onStop()
         val player = player ?: return
-        // Leaving without PiP pauses; a PiP window keeps playing. The position is saved either way.
-        if (!isInPip) player.pause()
+        // Leaving without PiP pauses; a PiP window keeps playing. Audio hands off to the
+        // PlaybackService session instead of pausing. The position is saved either way.
+        if (!isInPip && !isAudioPlayback) player.pause()
         viewModel.onProgress(player.currentPosition, isPaused = !player.isPlaying)
     }
 
     override fun onDestroy() {
-        viewModel.onStopped(player?.takeIf { it.playbackState != Player.STATE_IDLE }?.currentPosition ?: -1L)
+        // A playing audio item lives on in the service, so it is not reported stopped.
+        if (!(isAudioPlayback && player?.isPlaying == true)) {
+            viewModel.onStopped(player?.takeIf { it.playbackState != Player.STATE_IDLE }?.currentPosition ?: -1L)
+        }
         super.onDestroy()
     }
 

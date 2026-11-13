@@ -3,6 +3,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <!-- Not required: the phone/tablet UI stays available on touch devices; TVs get the TV layout. -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -55,6 +57,15 @@
             android:name=".ui.settings.PlaybackSettingsActivity"
             android:exported="false"
             android:label="@string/playback_settings_title" />
+
+        <service
+            android:name=".player.PlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
 
         <receiver
             android:name=".widget.SessionsWidgetProvider"

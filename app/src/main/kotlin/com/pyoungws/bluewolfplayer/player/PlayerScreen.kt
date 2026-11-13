@@ -90,6 +90,7 @@ import com.pyoungws.bluewolfplayer.BuildConfig
 import coil3.compose.AsyncImage
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.isTelevision
+import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
 import com.pyoungws.bluewolfplayer.shared.playback.MediaSegmentKind
 import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
@@ -224,12 +225,20 @@ private fun PlayerContent(
 
     val itemTitle = request.item.let { if (it.episodeLabel() != null) "${it.seriesName} ${it.episodeLabel()}: ${it.name}" else it.name }
 
+    val isAudio = request.item.kind == MediaKind.Song
     DisposableEffect(player) {
         val title = itemTitle
         player.setMediaItem(
             MediaItem.Builder()
                 .setUri(request.source.url)
-                .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(title)
+                        .setArtist(request.item.artists.firstOrNull())
+                        .setAlbumTitle(request.item.albumName)
+                        .setArtworkUri((request.item.posterUrl ?: request.item.landscapeUrl)?.let(Uri::parse))
+                        .build(),
+                )
                 .setSubtitleConfigurations(
                     request.source.subtitles.map {
                         MediaItem.SubtitleConfiguration.Builder(Uri.parse(it.url))
@@ -340,12 +349,19 @@ private fun PlayerContent(
         player.addListener(listener)
         player.prepare()
         player.playWhenReady = !request.startPaused
+        PlaybackService.attach(context, player)
         onPlayerChanged(player)
         onDispose {
             onPlayerChanged(null)
             player.removeListener(listener)
             playerView.player = null
-            engine.release()
+            if (isAudio && player.isPlaying) {
+                // Background audio: the service's session keeps the player alive past this screen.
+                player.clearVideoSurface()
+            } else {
+                PlaybackService.stop(context)
+                engine.release()
+            }
             displayModeController.reset()
         }
     }
