@@ -11,12 +11,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.VisualTransformation
 
@@ -41,6 +43,13 @@ fun TvTextField(
 ) {
     var editable by remember { mutableStateOf(false) }
     val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    val dpadExit = mapOf(
+        Key.DirectionUp to FocusDirection.Up,
+        Key.DirectionDown to FocusDirection.Down,
+        Key.DirectionLeft to FocusDirection.Left,
+        Key.DirectionRight to FocusDirection.Right,
+    )
 
     LaunchedEffect(editable) { if (editable) keyboard?.show() }
 
@@ -49,7 +58,18 @@ fun TvTextField(
         onValueChange = onValueChange,
         modifier = modifier
             .onKeyEvent { event ->
-                if (!editable && event.type == KeyEventType.KeyUp &&
+                val dir = dpadExit[event.key]
+                if (event.type == KeyEventType.KeyDown && dir != null) {
+                    // A focused text field swallows D-pad keys for cursor movement — even
+                    // readOnly — so the remote can never leave it. Exit edit mode if needed
+                    // and always hand the direction to the focus system instead.
+                    if (editable) {
+                        editable = false
+                        keyboard?.hide()
+                    }
+                    focusManager.moveFocus(dir)
+                    true
+                } else if (!editable && event.type == KeyEventType.KeyUp &&
                     (event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter)
                 ) {
                     editable = true
