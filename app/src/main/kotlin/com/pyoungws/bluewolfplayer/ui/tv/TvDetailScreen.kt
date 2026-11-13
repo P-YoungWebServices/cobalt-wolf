@@ -1,4 +1,4 @@
-@file:OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
+@file:OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class, androidx.compose.ui.ExperimentalComposeUiApi::class)
 
 package com.pyoungws.bluewolfplayer.ui.tv
 
@@ -44,6 +44,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.foundation.focusGroup
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.focus.onFocusChanged
@@ -161,7 +163,9 @@ private fun TvDetailContent(
         }
     }
     var subMenu by remember { mutableStateOf<TvSubMenu?>(null) }
-    Box(Modifier.fillMaxSize().onPreviewKeyEvent { ev ->
+    // Entering this page from the top bar (or any direction) lands on Play/Resume —
+    // not on whichever focusable happens to sit nearest the nav item pressed.
+    Box(Modifier.fillMaxSize().focusGroup().focusProperties { enter = { playFocusRequester } }.onPreviewKeyEvent { ev ->
         val n = ev.nativeKeyEvent
         when {
             n.action == android.view.KeyEvent.ACTION_DOWN &&
