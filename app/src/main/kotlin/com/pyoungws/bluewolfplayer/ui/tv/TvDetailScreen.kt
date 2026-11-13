@@ -130,10 +130,19 @@ private fun TvDetailContent(
     val listState = rememberLazyListState()
     var autoFocused by remember { mutableStateOf(false) }
     // autoFocused flips only on real focus success so the options-restore effect below
-    // can't steal focus before the button exists.
+    // can't steal focus before the button exists. Focus is requested only once the
+    // actions row is fully inside the viewport — grabbing focus while it is still
+    // partially off screen makes Compose scroll the page to reveal it.
     LaunchedEffect(state.playTarget?.id) {
         if (autoFocused || state.playTarget == null) return@LaunchedEffect
-        repeat(200) {
+        kotlinx.coroutines.withTimeoutOrNull(2000) {
+            snapshotFlow {
+                val info = listState.layoutInfo
+                info.visibleItemsInfo.firstOrNull { it.key == "actions" }
+                    ?.let { it.offset >= info.viewportStartOffset && it.offset + it.size <= info.viewportEndOffset } == true
+            }.first { it }
+        }
+        repeat(20) {
             if (runCatching { playFocusRequester.requestFocus() }.getOrDefault(false)) {
                 autoFocused = true
                 return@LaunchedEffect
@@ -172,11 +181,11 @@ private fun TvDetailContent(
                         model = image,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth().height(150.dp)
+                        modifier = Modifier.fillMaxWidth().height(110.dp)
                             .then(if (options.blurBackdrops) Modifier.blur(20.dp) else Modifier),
                     )
                     if (options.blurBackdrops) {
-                        Box(Modifier.fillMaxWidth().height(150.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)))
+                        Box(Modifier.fillMaxWidth().height(110.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)))
                     }
                 } else {
                     Box(Modifier.fillMaxWidth().height(40.dp))
@@ -186,7 +195,7 @@ private fun TvDetailContent(
         item(key = "header") {
             Row(Modifier.padding(horizontal = TvContentPadding, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 if (item.logoUrl != null) {
-                    AsyncImage(model = item.logoUrl, contentDescription = item.name, contentScale = ContentScale.Fit, modifier = Modifier.width(150.dp).height(110.dp))
+                    AsyncImage(model = item.logoUrl, contentDescription = item.name, contentScale = ContentScale.Fit, modifier = Modifier.width(150.dp).height(96.dp))
                 } else {
                     Artwork(item.posterUrl, aspectRatio = 2f / 3f, modifier = Modifier.width(110.dp))
                 }
@@ -216,7 +225,18 @@ private fun TvDetailContent(
             }
         }
         item(key = "actions") {
-            Row(Modifier.padding(horizontal = TvContentPadding, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Focus landing here from a lower row means the user scrolled back up —
+            // bring the whole header into view rather than stopping at the buttons.
+            Row(
+                Modifier
+                    .padding(horizontal = TvContentPadding, vertical = 8.dp)
+                    .onFocusChanged {
+                        if (it.hasFocus && (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0)) {
+                            scope.launch { listState.animateScrollToItem(0) }
+                        }
+                    },
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
                 state.playTarget?.let { target ->
                     TvActionButton(
                         icon = Icons.Outlined.PlayArrow,
