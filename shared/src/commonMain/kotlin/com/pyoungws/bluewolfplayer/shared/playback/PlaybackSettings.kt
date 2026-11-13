@@ -68,6 +68,14 @@ data class PlaybackSettings(
     val introBehavior: SegmentBehavior = SegmentBehavior.Ask,
     /** What to do when an outro/credits segment is reached. */
     val outroBehavior: SegmentBehavior = SegmentBehavior.Ask,
+    /** Seconds to rewind when resuming an item (0 = resume exactly at the saved position). */
+    val resumeRewindSeconds: Int = 0,
+    /** Consecutive episodes allowed before the "still watching?" prompt pauses playback; 0 disables. */
+    val stillWatchingEpisodes: Int = 3,
+    /** Play local trailer/intros before movies (cinema mode). */
+    val cinemaMode: Boolean = false,
+    /** Hand playback to an external player app instead of the built-in one. */
+    val externalPlayer: Boolean = false,
     /** Series whose last episode activity is older than this are hidden from Next up; 0 disables the cutoff. */
     val nextUpCutoffDays: Int = 365,
     /** Order and visibility of home rows; rows listed here come first, hidden ones are removed. */

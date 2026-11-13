@@ -32,7 +32,9 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.HighQuality
 import androidx.compose.material.icons.outlined.PictureInPictureAlt
 import androidx.compose.material.icons.outlined.QueryStats
+import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -149,6 +151,8 @@ internal fun PlayerScreen(
 
 private enum class TrackDialog { Audio, Subtitles }
 
+private val SPEED_CHOICES = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
+
 private class TrackOption(val label: String, val group: Tracks.Group?, val index: Int, val selected: Boolean)
 
 @Composable
@@ -204,6 +208,9 @@ private fun PlayerContent(
     var scrubPositionMs by remember(player) { mutableStateOf<Long?>(null) }
     var nextCountdownCancelled by remember(ready.generation) { mutableStateOf(false) }
     var showBitrateDialog by remember(player) { mutableStateOf(false) }
+    var showSpeedDialog by remember(player) { mutableStateOf(false) }
+    var showChapters by remember(player) { mutableStateOf(false) }
+    val stillWatching by viewModel.stillWatching.collectAsStateWithLifecycle()
     var showStats by remember { mutableStateOf(debugShowStats) }
     var positionMs by remember(player) { mutableLongStateOf(request.startPositionMs) }
     var displayMatched by remember(player) { mutableStateOf(false) }
@@ -563,6 +570,10 @@ private fun PlayerContent(
                 if (queue.entries.isNotEmpty()) {
                     ControlButton(onClick = { showQueue = true }, icon = Icons.AutoMirrored.Outlined.PlaylistPlay, description = stringResource(R.string.player_queue))
                 }
+                ControlButton(onClick = { showSpeedDialog = true }, icon = Icons.Outlined.Speed, description = stringResource(R.string.player_speed))
+                if (request.item.chapters.isNotEmpty()) {
+                    ControlButton(onClick = { showChapters = true }, icon = Icons.AutoMirrored.Outlined.ListAlt, description = stringResource(R.string.player_chapters))
+                }
                 ControlButton(onClick = { showStats = !showStats }, icon = Icons.Outlined.QueryStats, description = stringResource(R.string.player_stats))
                 if (!isTv) {
                     ControlButton(onClick = onEnterPip, icon = Icons.Outlined.PictureInPictureAlt, description = stringResource(R.string.player_pip))
@@ -655,6 +666,50 @@ private fun PlayerContent(
                 showBitrateDialog = false
             },
             onDismiss = { showBitrateDialog = false },
+        )
+    }
+    if (showSpeedDialog) {
+        TrackSelectionDialog(
+            title = stringResource(R.string.player_speed),
+            options = SPEED_CHOICES.map { TrackOption(it.toString() + "x", null, SPEED_CHOICES.indexOf(it), it == player.playbackParameters.speed) },
+            onSelect = { option ->
+                player.setPlaybackSpeed(SPEED_CHOICES[option.index])
+                showSpeedDialog = false
+            },
+            onDismiss = { showSpeedDialog = false },
+        )
+    }
+    if (showChapters) {
+        TrackSelectionDialog(
+            title = stringResource(R.string.player_chapters),
+            options = request.item.chapters.mapIndexed { index, chapter ->
+                TrackOption(
+                    chapter.name ?: stringResource(R.string.player_chapter_number, index + 1),
+                    null,
+                    index,
+                    positionMs >= chapter.startTicks / 10_000 &&
+                        (request.item.chapters.getOrNull(index + 1)?.startTicks ?: Long.MAX_VALUE) > positionMs * 10_000,
+                )
+            },
+            onSelect = { option ->
+                player.seekTo(request.item.chapters[option.index].startTicks / 10_000)
+                showChapters = false
+            },
+            onDismiss = { showChapters = false },
+        )
+    }
+    if (stillWatching) {
+        LaunchedEffect(Unit) { player.pause() }
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(stringResource(R.string.player_still_watching)) },
+            text = { Text(stringResource(R.string.player_still_watching_body)) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmStillWatching(player.currentPosition); player.play() }) {
+                    Text(stringResource(R.string.player_still_watching_yes))
+                }
+            },
+            dismissButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.player_close)) } },
         )
     }
 }

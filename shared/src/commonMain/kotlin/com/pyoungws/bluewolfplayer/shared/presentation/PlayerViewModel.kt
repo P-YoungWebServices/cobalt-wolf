@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
+import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
 import com.pyoungws.bluewolfplayer.shared.playback.FallbackStep
 import com.pyoungws.bluewolfplayer.shared.playback.MediaSegment
@@ -102,6 +103,16 @@ class PlayerViewModel(
     /** The shared play queue; the player follows it for next/previous and repeat. */
     val queue: StateFlow<PlayQueue> = playQueue.queue
 
+    /**
+     * True while the "still watching?" prompt is up: too many episodes played through without
+     * interaction. The UI pauses playback until [confirmStillWatching] or the user leaves.
+     */
+    private val _stillWatching = MutableStateFlow(false)
+    val stillWatching: StateFlow<Boolean> = _stillWatching.asStateFlow()
+
+    /** Episodes auto-advanced without any user interaction; resets on manual actions. */
+    private var episodeStreak = 0
+
     init {
         // A player opened on something outside the queue starts a fresh single-item queue.
         val queued = playQueue.queue.value
@@ -118,19 +129,30 @@ class PlayerViewModel(
     }
 
     /** Stops reporting this item and starts preparing the queued next or next episode, if there is one. */
-    fun playNext(positionMs: Long) {
+    fun playNext(positionMs: Long, manual: Boolean = true) {
+        if (manual) episodeStreak = 0
         val next = playQueue.advance() ?: _nextItem.value ?: return
+        if (next.kind == MediaKind.Episode) episodeStreak++ else episodeStreak = 0
         retarget(PlaybackTarget.Item(next.id), positionMs)
+    }
+
+    /** User confirmed the still-watching prompt: reset the streak and continue to the next item. */
+    fun confirmStillWatching(positionMs: Long) {
+        _stillWatching.value = false
+        episodeStreak = 0
+        playNext(positionMs, manual = true)
     }
 
     /** Jumps to a tapped queue entry. */
     fun playQueueIndex(index: Int, positionMs: Long) {
+        episodeStreak = 0
         val item = playQueue.advanceTo(index) ?: return
         retarget(PlaybackTarget.Item(item.id), positionMs)
     }
 
     /** Jumps back to the previous queue entry, if any. */
     fun playQueuePrevious(positionMs: Long) {
+        episodeStreak = 0
         val item = playQueue.retreat() ?: return
         retarget(PlaybackTarget.Item(item.id), positionMs)
     }
@@ -162,7 +184,14 @@ class PlayerViewModel(
                     return true
                 }
                 q.nextIndex() != null || _nextItem.value != null -> {
-                    playNext(positionMs)
+                    val ready = _uiState.value as? PlayerUiState.Ready
+                    val limit = ready?.request?.settings?.stillWatchingEpisodes ?: 0
+                    val nextIsEpisode = (q.nextIndex()?.let { q.entries[it].item } ?: _nextItem.value)?.kind == MediaKind.Episode
+                    if (nextIsEpisode && limit > 0 && episodeStreak >= limit) {
+                        _stillWatching.value = true
+                        return true
+                    }
+                    playNext(positionMs, manual = false)
                     return true
                 }
             }
@@ -305,6 +334,7 @@ class PlayerViewModel(
 
     /** The user paused locally: tell the group (unless it is the echo of a group Pause). */
     fun onUserPause(positionMs: Long) {
+        episodeStreak = 0
         if (!groupControlsCurrentItem()) return
         if (echoGate.suppressLocalEcho(SyncPlayEchoGate.Kind.Pause, positionMs.toTicks())) return
         viewModelScope.launch { syncPlay.localPause() }
@@ -317,6 +347,7 @@ class PlayerViewModel(
     }
 
     fun onUserSeek(positionMs: Long) {
+        episodeStreak = 0
         if (!groupControlsCurrentItem()) return
         if (echoGate.suppressLocalEcho(SyncPlayEchoGate.Kind.Seek, positionMs.toTicks())) return
         viewModelScope.launch { syncPlay.localSeek(positionMs.toTicks()) }
@@ -368,8 +399,11 @@ class PlayerViewModel(
                     val startPaused = pendingStartPaused
                     pendingStartPaused = false
                     val request = result.value.let {
+                        val rewindMs = if (resumeAtMs == null && it.startPositionMs > 0) {
+                            it.settings.resumeRewindSeconds * 1000L
+                        } else 0L
                         it.copy(
-                            startPositionMs = resumeAtMs ?: it.startPositionMs,
+                            startPositionMs = resumeAtMs ?: (it.startPositionMs - rewindMs).coerceAtLeast(0),
                             startPaused = startPaused,
                         )
                     }

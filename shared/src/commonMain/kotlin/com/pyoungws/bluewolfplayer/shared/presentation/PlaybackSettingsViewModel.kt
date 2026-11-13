@@ -63,6 +63,10 @@ class PlaybackSettingsViewModel(
     fun setIntroBehavior(value: SegmentBehavior) = update { it.copy(introBehavior = value) }
     fun setOutroBehavior(value: SegmentBehavior) = update { it.copy(outroBehavior = value) }
     fun setNextUpCutoffDays(days: Int) = update { it.copy(nextUpCutoffDays = days) }
+    fun setResumeRewindSeconds(seconds: Int) = update { it.copy(resumeRewindSeconds = seconds) }
+    fun setStillWatchingEpisodes(count: Int) = update { it.copy(stillWatchingEpisodes = count) }
+    fun setCinemaMode(enabled: Boolean) = update { it.copy(cinemaMode = enabled) }
+    fun setExternalPlayer(enabled: Boolean) = update { it.copy(externalPlayer = enabled) }
 
     fun setHomeRowHidden(rowId: String, hidden: Boolean) = update {
         it.copy(hiddenHomeRows = if (hidden) it.hiddenHomeRows + rowId else it.hiddenHomeRows - rowId)

@@ -33,12 +33,12 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 | 2.4 | Library tabs: suggestions, shows upcoming, networks/studios | ☑ | getStudios + getUpcoming endpoints; per-type view tabs |
 | 2.5 | Global Favorites page | ☑ | 721dd4a: top-bar menu → cross-library favorites |
 | 2.6 | Long-press card context menus | ☑ | 634abe7: ItemContextMenu on PosterCard/LandscapeCard (queue, playlist/collection, watched, favorite, remove-from-container). TV cards still need a variant |
-| 2.7 | Multi-select mode + batch actions | ☐ | |
+| 2.7 | Multi-select mode + batch actions | ☑ | 529b1c2: long-press selection, batch queue/watch/favorite/playlist/delete | |
 | 2.8 | Playlist add/create/reorder/remove | ☑ | data layer + picker dialogs; reorder API exists, UI reorder pending |
 | 2.9 | Collection add/create/remove | ☑ | same dialog path |
-| 2.10 | Share / copy stream URL | ☐ | |
-| 2.11 | Delete media (permission-gated) | ☐ | |
-| 2.12 | Admin metadata tools (edit, refresh, identify, images, subtitle download) | ☐ | |
+| 2.10 | Share / copy stream URL | ☑ | context menu copy + share intent | |
+| 2.11 | Delete media (permission-gated) | ☑ | canDelete-gated, confirmed, batch + single | |
+| 2.12 | Admin metadata tools | ☑ | fdb99a5: refresh/identify/edit/subtitle-search dialogs, admin-gated, phone+TV | |
 
 ## Phase 3 — Player
 
@@ -83,10 +83,10 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 ## Current checkpoint
 
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Last commit: 634abe7 — playlist/collection management + long-press context menus.
-- Done: Phase 1 complete; Phase 2 through 2.6/2.8/2.9. Build+tests green (`./gradlew test` clean).
-- Next: 2.7 multi-select → 2.10 share/copy stream URL → 2.11 delete → 2.12 metadata tools, then Phase 3 player work.
+- Last commit: fdb99a5 — admin metadata tools. Phase 2 CLOSED.
+- Done: Phases 1+2 complete. Build+tests green.
+- Next: Phase 3 player work — 3.1 speed, 3.3 gestures, 3.5/3.6 offsets, 3.7 chapters OSD, 3.8 still-watching, 3.9 prerolls, 3.10 resume-rewind, 3.11 external player, 3.13 play-on, 3.15-3.18 playback prefs.
 - Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, menus=app/.../ui/common/ItemActions.kt, cards=app/.../ui/common/Components.kt, view prefs=app/.../ui/common/DisplayPrefs.kt, DI=shared/.../di/SharedModule.kt.
 - Conventions: per-feature commits, `JAVA_HOME=/snap/android-studio/current/jbr`, strings appended in app/.../res/values/strings.xml, icons from material-icons-extended.
-- Open follow-ups: TV card context menu (D-pad long-press), playlist reorder UI, queue UI on TV player, TV album track list.
-- Phone test status: not yet run — do a device pass after Phase 2 closes.
+- Open follow-ups: TV card context menu (D-pad long-press), playlist reorder UI, queue UI on TV player, TV album track list, image-editor screen (edit-images uses RemoteImageApi — deferred).
+- Phone test status: DO NOW — install debug on Nokia G50, smoke: browse music/livetv, queue, context menus, manage dialogs.

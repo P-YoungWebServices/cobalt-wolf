@@ -19,6 +19,10 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             subtitleScale = preferences.getFloat(KEY_SUBTITLE_SCALE, defaults.subtitleScale),
             introBehavior = enum(KEY_INTRO_BEHAVIOR, defaults.introBehavior),
             outroBehavior = enum(KEY_OUTRO_BEHAVIOR, defaults.outroBehavior),
+            resumeRewindSeconds = preferences.getInt(KEY_RESUME_REWIND, defaults.resumeRewindSeconds),
+            stillWatchingEpisodes = preferences.getInt(KEY_STILL_WATCHING, defaults.stillWatchingEpisodes),
+            cinemaMode = preferences.getBoolean(KEY_CINEMA_MODE, defaults.cinemaMode),
+            externalPlayer = preferences.getBoolean(KEY_EXTERNAL_PLAYER, defaults.externalPlayer),
             nextUpCutoffDays = preferences.getInt(KEY_NEXT_UP_CUTOFF, defaults.nextUpCutoffDays),
             homeRowOrder = preferences.getString(KEY_HOME_ROW_ORDER, null)?.split(",").orEmpty(),
             hiddenHomeRows = preferences.getString(KEY_HOME_HIDDEN_ROWS, null)?.split(",")?.toSet().orEmpty(),
@@ -37,6 +41,10 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             .putFloat(KEY_SUBTITLE_SCALE, settings.subtitleScale)
             .putString(KEY_INTRO_BEHAVIOR, settings.introBehavior.name)
             .putString(KEY_OUTRO_BEHAVIOR, settings.outroBehavior.name)
+            .putInt(KEY_RESUME_REWIND, settings.resumeRewindSeconds)
+            .putInt(KEY_STILL_WATCHING, settings.stillWatchingEpisodes)
+            .putBoolean(KEY_CINEMA_MODE, settings.cinemaMode)
+            .putBoolean(KEY_EXTERNAL_PLAYER, settings.externalPlayer)
             .putInt(KEY_NEXT_UP_CUTOFF, settings.nextUpCutoffDays)
             .putString(KEY_HOME_ROW_ORDER, settings.homeRowOrder.joinToString(","))
             .putString(KEY_HOME_HIDDEN_ROWS, settings.hiddenHomeRows.joinToString(","))
@@ -57,6 +65,10 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
         const val KEY_SUBTITLE_SCALE = "subtitle_scale"
         const val KEY_INTRO_BEHAVIOR = "intro_behavior"
         const val KEY_OUTRO_BEHAVIOR = "outro_behavior"
+        const val KEY_RESUME_REWIND = "resume_rewind_seconds"
+        const val KEY_STILL_WATCHING = "still_watching_episodes"
+        const val KEY_CINEMA_MODE = "cinema_mode"
+        const val KEY_EXTERNAL_PLAYER = "external_player"
         const val KEY_NEXT_UP_CUTOFF = "next_up_cutoff"
         const val KEY_HOME_ROW_ORDER = "home_row_order"
         const val KEY_HOME_HIDDEN_ROWS = "home_hidden_rows"

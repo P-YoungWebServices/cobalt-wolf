@@ -158,6 +158,22 @@ private fun Overrides(state: PlaybackSettingsUiState, viewModel: PlaybackSetting
             365 to R.string.cutoff_365,
             730 to R.string.cutoff_730,
         )
+        Choice(
+            R.string.settings_resume_rewind, settings.resumeRewindSeconds, viewModel::setResumeRewindSeconds,
+            0 to R.string.settings_seconds_0,
+            5 to R.string.settings_seconds_5,
+            10 to R.string.settings_seconds_10,
+            30 to R.string.settings_seconds_30,
+        )
+        Choice(
+            R.string.settings_still_watching, settings.stillWatchingEpisodes, viewModel::setStillWatchingEpisodes,
+            0 to R.string.cutoff_off,
+            2 to R.string.settings_episodes_2,
+            3 to R.string.settings_episodes_3,
+            4 to R.string.settings_episodes_4,
+        )
+        Toggle(R.string.settings_cinema_mode, R.string.settings_cinema_mode_summary, settings.cinemaMode, viewModel::setCinemaMode)
+        Toggle(R.string.settings_external_player, R.string.settings_external_player_summary, settings.externalPlayer, viewModel::setExternalPlayer)
         OutlinedButton(onClick = viewModel::resetToAutomatic, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(stringResource(R.string.playback_reset))
         }
