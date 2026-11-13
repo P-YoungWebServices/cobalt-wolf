@@ -43,6 +43,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="bluewolf" android:host="item" />
             </intent-filter>
+            <!-- Android TV global/voice search queries land on the search section. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data android:name="android.app.searchable" android:resource="@xml/searchable" />
         </activity>
 
         <activity
@@ -65,6 +71,16 @@
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
+        </service>
+
+        <service
+            android:name=".ui.tv.WolfDreamService"
+            android:exported="true"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+            </intent-filter>
+            <meta-data android:name="android.service.dream" android:resource="@xml/wolf_dream" />
         </service>
 
         <receiver

@@ -40,8 +40,12 @@ import org.koin.compose.viewmodel.koinViewModel
 fun TvSearchScreen(
     onOpenItem: (String) -> Unit,
     onOpenTitle: (SeerrMediaType, Int) -> Unit,
+    initialQuery: String? = null,
     viewModel: SearchViewModel = koinViewModel(),
 ) {
+    androidx.compose.runtime.LaunchedEffect(initialQuery) {
+        if (!initialQuery.isNullOrBlank()) viewModel.onQueryChange(initialQuery)
+    }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }

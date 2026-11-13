@@ -75,7 +75,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /** Root of the TV layout: session flow, then the 10-foot signed-in experience. */
 @Composable
-fun TvApp(initialItemId: String?, appViewModel: AppViewModel = koinViewModel()) {
+fun TvApp(initialItemId: String?, initialQuery: String? = null, appViewModel: AppViewModel = koinViewModel()) {
     val context = LocalContext.current
     val sessionState by appViewModel.sessionState.collectAsStateWithLifecycle()
 
@@ -89,7 +89,7 @@ fun TvApp(initialItemId: String?, appViewModel: AppViewModel = koinViewModel()) 
     when (val state = sessionState) {
         SessionState.Unknown -> TvLoadingBox()
         is SessionState.SignedOut -> TvSignedOutFlow(state.lastServerAddress)
-        is SessionState.SignedIn -> TvSignedInNavigation(initialItemId)
+        is SessionState.SignedIn -> TvSignedInNavigation(initialItemId, initialQuery)
     }
 }
 
@@ -130,6 +130,7 @@ private fun decodeTvRoute(value: String): Route? = when (val route = decodeRoute
 @Composable
 private fun TvSignedInNavigation(
     initialItemId: String?,
+    initialQuery: String? = null,
     feedViewModel: LibraryHomeViewModel = koinViewModel(),
     accountViewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -151,6 +152,9 @@ private fun TvSignedInNavigation(
     // A channel or deep link opens the matching item on top of Home.
     LaunchedEffect(initialItemId) {
         initialItemId?.let { push(Route.Detail(it)) }
+    }
+    LaunchedEffect(initialQuery) {
+        if (!initialQuery.isNullOrBlank()) section = TvSection.Search.name
     }
 
     // The feed that just loaded also refreshes the Android TV home screen channels.
@@ -248,6 +252,7 @@ private fun TvSignedInNavigation(
                     TvSection.Search -> TvSearchScreen(
                         onOpenItem = { push(Route.Detail(it)) },
                         onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) },
+                        initialQuery = initialQuery,
                     )
                     TvSection.Requests -> TvDiscoverScreen(onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) })
                     TvSection.MyRequests -> TvMyRequestsScreen(onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) })
