@@ -1,86 +1,133 @@
 # Cobalt Wolf
 
-Cobalt Wolf is an open-source Android Jellyfin client that combines a
-media player with a server admin dashboard, plus Seerr/Jellyseerr request
-support for all users. See `docs/SPEC.md` for the full product spec.
+Cobalt Wolf is an open-source Android client for [Jellyfin](https://jellyfin.org)
+that combines a full-featured media player with a server admin dashboard and a
+media-management toolkit — one app for watching your library, running your
+server, and managing your downloads. It runs on Android phones, tablets,
+Android TV and Fire TV from a single codebase, with a touch UI on handhelds
+and a dedicated D-pad UI on televisions.
 
-## Features (planned)
+**Cobalt Wolf is a third-party app and is not affiliated with or endorsed by
+the Jellyfin project.**
 
-- Browse and play movies, series, music, books, live TV and photos
-- Native video player with subtitle/audio track switching, PiP, and SyncPlay
-- High-end playback: 4K, HDR10, HDR10+ and Dolby Vision direct play, lossless
-  audio passthrough, local FFmpeg decoding, styled ASS/SSA subtitles
-- Server admin dashboard: sessions, user/device management, scheduled tasks,
-  live logs, libraries, multi-server support
-- Seerr/Jellyseerr requests: browse and request content, plus an admin
-  approval queue
-- Android phone, tablet, Android TV and Fire TV layouts (one codebase)
+## Features
 
-**Cobalt Wolf is a third-party app and is not affiliated with or
-endorsed by the Jellyfin project.**
+### Watching
 
-## Stack
+- Browse movies, series, music, live TV, home videos and mixed libraries,
+  with list/card views, card sizes and image-type choices
+- Continue Watching, Next Up, Recently Added, suggestions and upcoming rows,
+  plus a global Favorites page
+- Detail pages for movies, episodes, series, seasons, people, artists and
+  albums with cast & crew, chapters, media info and related items
+- Full playback control: audio and subtitle track pickers, version/media
+  source selection, playback speed, repeat modes, Play Next, Add to Queue,
+  Play All From Here, shuffle, resume and play-from-start
+- Playlists and collections: create, reorder and manage items; multi-select
+  mode, long-press context menus, share/copy stream URL, media deletion and
+  administrator metadata tools
+- Downloads for offline playback on phone and tablet
+- SyncPlay "Watch together" groups
+- Search across the library and Seerr at once, with filter chips for type,
+  genre, rating, runtime, year, play state, quality and features
+- Live TV: channel browsing, playback, EPG guide and recording management
+- Music: audio playback with a now-playing experience, music mixes and
+  synced lyrics
 
-- Kotlin, Kotlin Multiplatform (shared module for networking, models and
-  business logic)
-- Jetpack Compose for phone/tablet and TV UI
-- Media3/ExoPlayer playback with an FFmpeg decoder extension
-- Official Jellyfin Kotlin SDK, Ktor for Seerr
-- MVVM with coroutines/Flow, Koin or Hilt for DI, Room or SQLDelight for
-  local storage
+### High-end playback
 
-## High-end playback
+The player detects the device's decoders, display and audio output each time
+playback starts, then picks the best supported path — and falls back
+gracefully instead of failing:
 
-The player detects what the device, its display and its audio output can do
-each time playback starts, and picks the best path they support:
+- **Video:** H.264, HEVC, AV1 and VP9 up to the device's decoder limits (4K
+  where available); HDR10, HDR10+, HLG and Dolby Vision (profiles 5, 7 and 8)
+  when both decoder and display support them. Unsupported Dolby Vision falls
+  back to its HDR10/HLG/SDR base layer, HDR10+ to HDR10, and HDR on an SDR
+  display is tone-mapped by the server.
+- **Audio:** Dolby Digital, Digital Plus (incl. Atmos), TrueHD (incl. Atmos),
+  DTS and DTS-HD MA (incl. DTS:X) passthrough when the HDMI sink reports the
+  format; otherwise decoded to PCM on-device. Night mode / loudness
+  normalization is available for late-night listening.
+- **Fallback order:** direct play → local FFmpeg software decoding → server
+  transcode (with a configurable codec preference and codec-level caps).
+  A decoder that fails mid-playback moves down the same order and resumes
+  where it stopped.
+- **Display matching (TV):** output frame rate switches to match the content,
+  and HDR is only signalled while HDR content plays.
+- **Subtitles:** styled ASS/SSA via libass, PGS and SRT, with per-track delay
+  offset for external text subtitles.
+- A **stats overlay** shows codec, bitrate, HDR type, audio output
+  (passthrough or PCM), sample rate, channels and dropped frames, and a
+  Playback settings page lists what was detected with manual overrides.
+  Gesture controls (brightness/volume/seek) and trickplay seek thumbnails
+  round out the player.
 
-- **Video:** H.264, HEVC, AV1 and VP9 up to the size the device decoders take
-  (4K where available); HDR10, HDR10+, HLG and Dolby Vision (profiles 5, 7
-  and 8) when both the decoder and the display support them. Dolby Vision the
-  device cannot show falls back to its HDR10/HLG/SDR base layer, HDR10+ to
-  HDR10, and HDR on an SDR display is tone-mapped by the server.
-- **Audio:** Dolby Digital, Dolby Digital Plus (including Atmos), Dolby TrueHD
-  (including Atmos), DTS and DTS-HD MA (including DTS:X) are passed through
-  untouched when the HDMI receiver or TV reports the format; otherwise they are
-  decoded to PCM on the device.
-- **Fallback order:** direct play (device decoders, passthrough), then local
-  software decoding with FFmpeg, then a server transcode. A decoder that fails
-  mid-playback moves down the same order and resumes where it stopped.
-- **Display matching (TV):** the display mode is switched to the content's
-  frame rate, and HDR output is only requested while HDR is playing.
-- **Subtitles:** ASS/SSA rendered by libass with full styling (fonts,
-  positioning, animation), PGS and SRT.
-- **Playback settings** (Home > Playback) lists what was detected and what
-  will be used per format, and has manual overrides. A **stats overlay** in the
-  player shows codec, bitrate, HDR type, audio output (passthrough or PCM),
-  sample rate, channels and dropped frames.
+### Server admin dashboard
 
-## Android TV and Fire TV
+Available to Jellyfin administrators (and a reduced view for everyone):
 
-The same app carries a 10-foot TV UI built with Compose for TV. On a device
-whose UI mode is a television (Android TV, Google TV, Fire TV) `MainActivity`
-shows the TV experience; phones and tablets keep the touch UI.
+- Active sessions with per-user activity and playback control, plus a
+  home-screen widget listing live sessions
+- User and device management, scheduled tasks, live server logs, libraries
+- Plugin management and server settings pages
+- Activity log and API key administration
+- Multi-server support: save profiles and switch accounts without signing out
 
-- **D-pad everything:** a persistent top bar navigates Home, Search, Requests,
-  My Requests, Settings and sign out; cards, buttons and forms have visible
-  focus states. The on-screen keyboard is used for search and sign-in, and
-  Quick Connect sign-in avoids typing passwords.
-- **Player:** the remote's transport keys (play/pause, fast-forward, rewind,
-  stop) and the D-pad drive the player; audio, subtitle and stats overlays are
-  focusable. Frame rate matching and HDR output switching work as on the touch
-  build (see "Display matching" above).
-- **Home screen channels:** on devices with the Google TV provider, Continue
-  Watching and Recently Added are published as Android TV home screen channels
-  and deep-link into the item details. Devices without the provider (such as
-  Fire TV) skip them automatically.
-- The leanback launcher entry and TV banner are in the same `MainActivity`/
-  application manifest entries.
+### Requests, calendar and media management
 
-### Testing playback from adb
+- **Seerr/Jellyseerr:** browse trending and popular titles, request movies and
+  series, track your own requests — admins get the approval queue
+- **Calendar:** upcoming episodes and releases from Radarr/Sonarr in list,
+  week and month views
+- **Media manager (admin):** Radarr/Sonarr integration — browse, edit, monitor
+  seasons and episodes, rename files, interactive release search + grab,
+  manual import and delete
+- **qBittorrent:** live transfer monitor with pause/resume and speed-limit
+  toggling
+- **Bazarr and Prowlarr** integration for subtitle and indexer management
 
-Debug builds add two exported entry points, so devices without a TV layout yet
-(Fire TV) and files that are not on a server can be tested. Release builds do
-not contain them.
+### Android TV and Fire TV
+
+A dedicated 10-foot UI built with Compose for TV activates automatically on
+television devices:
+
+- Persistent top-bar navigation (Home, Search, Seerr, Calendar, More) with a
+  D-pad focus model throughout — autofocus, focus restoration and
+  scroll-to-top behaviour tuned for remotes
+- Detail pages with a backdrop masthead and an icon action bar mirroring the
+  phone layout
+- Context menus on cards (menu/long-press): play, mark watched, favourite,
+  queue and more — scoped to the item under focus
+- Playlist reordering, queue view and album track lists designed for the
+  remote
+- Android TV home-screen channels for Continue Watching and Recently Added
+  where the platform supports them
+- Phone admin screens are reachable via D-pad on TV as pushed routes
+
+## Requirements
+
+- Jellyfin server **12.0 or newer**
+- Android **7.0 (API 24)** or newer; a TV build activates automatically on
+  Android TV / Fire TV devices
+- To build: JDK 17+, Android SDK platform 37
+
+## Building
+
+```sh
+./gradlew assembleDebug   # debug APK in app/build/outputs/apk/debug/
+./gradlew test            # shared (JVM + Android host) and app unit tests
+```
+
+Debug builds can be pre-seeded with a test server and service credentials:
+copy `dev.credentials.properties` (see `AGENTS.md` for the keys) into the
+repo root — it is gitignored and never read into release builds.
+
+## Testing playback from adb
+
+Debug builds add two exported entry points, so devices without a TV layout
+yet (Fire TV) and files that are not on a server can be tested. Release
+builds do not contain them.
 
 ```sh
 APP=com.pyoungws.bluewolfplayer
@@ -93,13 +140,26 @@ adb shell am start -n $APP/.ui.settings.DebugPlaybackSettingsActivity
 adb logcat -s CobaltWolfPlayback   # detected capabilities, fallbacks, periodic stats
 ```
 
-Optional extras override the saved Playback settings first: `--es decoding
-Auto|PreferLocal|AlwaysTranscode`, `--es audio_output Auto|PcmOnly`, `--es hdr
-Auto|SdrOnly`, `--ez dolby_vision true|false`, `--ez styled_subtitles
-true|false`, `--ez stats true|false`. `--es audio_mime audio/vnd.dts` selects
-an audio track by type, `--es subtitle_mime application/pgs` (or `text/x-ssa`,
-`application/x-subrip`) turns on the first subtitle track of that type and `--ez over_lock_screen true` plays on a locked
-device.
+Optional extras override the saved Playback settings first:
+`--es decoding Auto|PreferLocal|AlwaysTranscode`,
+`--es audio_output Auto|PcmOnly`, `--es hdr Auto|SdrOnly`,
+`--ez dolby_vision true|false`, `--ez styled_subtitles true|false`,
+`--ez stats true|false`. `--es audio_mime audio/vnd.dts` selects an audio
+track by type, `--es subtitle_mime application/pgs` (or `text/x-ssa`,
+`application/x-subrip`) turns on the first subtitle track of that type and
+`--ez over_lock_screen true` plays on a locked device.
+
+## Stack
+
+- Kotlin, with a Kotlin Multiplatform `shared` module for networking, models
+  and business logic
+- Jetpack Compose (phone/tablet) and Compose for TV, Material 3
+- Media3/ExoPlayer with an FFmpeg decoder extension and libass subtitles
+- Official Jellyfin Kotlin SDK; Ktor for Seerr/arr integrations
+- MVVM with coroutines/Flow, Koin DI, Coil 3
+
+See `docs/SPEC.md` for the full product spec and `AGENTS.md` for
+contributing conventions.
 
 ## Licensing
 
