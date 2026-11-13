@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.AddToQueue
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -187,140 +188,157 @@ private fun DetailContent(
                         }
                         OutlinedButton(onClick = { onWatchTogether(target.id) }) { Text(stringResource(R.string.syncplay_title)) }
                     }
-                    if (item.streams.any { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }) {
-                        var audioOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-                        val audioStreams = item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }
-                        Box {
-                            OutlinedButton(onClick = { audioOpen = true }) {
-                                Text(audioStreams.firstOrNull { it.index == state.selectedAudioStreamIndex }?.describe() ?: stringResource(R.string.detail_default_audio))
+                    // Secondary actions fold into a "More" overflow so the page shows a
+                    // small set of primary buttons instead of rows of controls.
+                    val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
+                    val scope = androidx.compose.runtime.rememberCoroutineScope()
+                    var moreOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                    var audioOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                    var subsOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                    var versionsOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                    var trailersOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    Box {
+                        OutlinedButton(onClick = { moreOpen = true }) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.home_more))
+                        }
+                        androidx.compose.material3.DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
+                            val audioStreams = item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }
+                            if (audioStreams.isNotEmpty()) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(audioStreams.firstOrNull { it.index == state.selectedAudioStreamIndex }?.describe() ?: stringResource(R.string.detail_default_audio)) },
+                                    onClick = { moreOpen = false; audioOpen = true },
+                                )
                             }
-                            androidx.compose.material3.DropdownMenu(expanded = audioOpen, onDismissRequest = { audioOpen = false }) {
-                                androidx.compose.material3.DropdownMenuItem(text = { Text(stringResource(R.string.detail_default)) }, onClick = { viewModel.selectAudioStream(null); audioOpen = false })
-                                audioStreams.forEach { stream ->
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text(stream.describe()) },
-                                        onClick = { viewModel.selectAudioStream(stream.index); audioOpen = false },
-                                    )
-                                }
+                            val subStreams = item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle }
+                            if (subStreams.isNotEmpty()) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(when {
+                                        state.selectedSubtitleStreamIndex == -1 -> stringResource(R.string.player_subtitles_off)
+                                        else -> subStreams.firstOrNull { it.index == state.selectedSubtitleStreamIndex }?.describe() ?: stringResource(R.string.detail_default_subtitle)
+                                    }) },
+                                    onClick = { moreOpen = false; subsOpen = true },
+                                )
+                            }
+                            if (item.mediaSources.size > 1) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(item.mediaSources.firstOrNull { it.id == state.selectedMediaSourceId }?.name ?: stringResource(R.string.detail_select_version)) },
+                                    onClick = { moreOpen = false; versionsOpen = true },
+                                )
+                            }
+                            if (item.isPlayable) {
+                                val downloads: com.pyoungws.bluewolfplayer.ui.downloads.OfflineDownloads = org.koin.compose.koinInject()
+                                val auth: com.pyoungws.bluewolfplayer.shared.auth.AuthRepository = org.koin.compose.koinInject()
+                                val jobs by downloads.jobs.collectAsStateWithLifecycle()
+                                val saved by downloads.items.collectAsStateWithLifecycle()
+                                val job = jobs[item.id]
+                                val isSaved = saved.any { it.itemId == item.id }
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(when {
+                                        job?.failed == true -> R.string.offline_failed
+                                        job != null -> R.string.offline_downloading
+                                        isSaved -> R.string.offline_saved
+                                        else -> R.string.offline_save
+                                    })) },
+                                    enabled = (job == null || job.failed) && !isSaved,
+                                    onClick = {
+                                        (auth.sessionState.value as? com.pyoungws.bluewolfplayer.shared.auth.SessionState.SignedIn)?.let { s2 ->
+                                            scope.launch { downloads.download(s2.session.serverAddress, s2.session.accessToken, item.id, item.name) }
+                                        }
+                                        moreOpen = false
+                                    },
+                                )
+                            }
+                            state.previousEpisode?.let { prev ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.detail_previous_episode)) },
+                                    onClick = { moreOpen = false; onPlay(prev.id) },
+                                )
+                            }
+                            if (state.localTrailers.isNotEmpty() || item.remoteTrailers.isNotEmpty()) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.detail_play_trailers)) },
+                                    onClick = { moreOpen = false; trailersOpen = true },
+                                )
+                            }
+                            if (item.kind == MediaKind.Program && item.programInfo?.timerId == null) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.livetv_record)) },
+                                    onClick = { moreOpen = false; scope.launch { repository.recordProgram(item.id); viewModel.refresh() } },
+                                )
+                            }
+                            if (item.kind == MediaKind.Program && item.programInfo?.seriesTimerId == null && item.programInfo?.isSeries == true) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.livetv_record_series)) },
+                                    onClick = { moreOpen = false; scope.launch { repository.recordSeries(item.id); viewModel.refresh() } },
+                                )
+                            }
+                            if (item.kind == MediaKind.Song || item.kind == MediaKind.MusicAlbum || item.kind == MediaKind.MusicArtist) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.detail_instant_mix)) },
+                                    onClick = {
+                                        moreOpen = false
+                                        scope.launch {
+                                            val mix = (repository.instantMix(item.id) as? com.pyoungws.bluewolfplayer.shared.model.Outcome.Success)?.value.orEmpty().filter { it.isPlayable }
+                                            if (mix.isNotEmpty()) {
+                                                playQueue.playNow(mix, 0)
+                                                onPlay(mix.first().id)
+                                            }
+                                        }
+                                    },
+                                )
+                            }
+                            item.seriesId?.takeIf { item.kind == MediaKind.Episode }?.let { seriesId ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.detail_view_series)) },
+                                    onClick = { moreOpen = false; onOpenItem(seriesId) },
+                                )
                             }
                         }
-                    }
-                    if (item.streams.any { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle }) {
-                        var subsOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-                        val subStreams = item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle }
-                        Box {
-                            OutlinedButton(onClick = { subsOpen = true }) {
-                                Text(when {
-                                    state.selectedSubtitleStreamIndex == -1 -> stringResource(R.string.player_subtitles_off)
-                                    else -> subStreams.firstOrNull { it.index == state.selectedSubtitleStreamIndex }?.describe() ?: stringResource(R.string.detail_default_subtitle)
-                                })
-                            }
-                            androidx.compose.material3.DropdownMenu(expanded = subsOpen, onDismissRequest = { subsOpen = false }) {
-                                androidx.compose.material3.DropdownMenuItem(text = { Text(stringResource(R.string.detail_default)) }, onClick = { viewModel.selectSubtitleStream(null); subsOpen = false })
-                                androidx.compose.material3.DropdownMenuItem(text = { Text(stringResource(R.string.player_subtitles_off)) }, onClick = { viewModel.selectSubtitleStream(-1); subsOpen = false })
-                                subStreams.forEach { stream ->
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text(stream.describe()) },
-                                        onClick = { viewModel.selectSubtitleStream(stream.index); subsOpen = false },
-                                    )
-                                }
+                        androidx.compose.material3.DropdownMenu(expanded = audioOpen, onDismissRequest = { audioOpen = false }) {
+                            androidx.compose.material3.DropdownMenuItem(text = { Text(stringResource(R.string.detail_default)) }, onClick = { viewModel.selectAudioStream(null); audioOpen = false })
+                            item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }.forEach { stream ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stream.describe()) },
+                                    onClick = { viewModel.selectAudioStream(stream.index); audioOpen = false },
+                                )
                             }
                         }
-                    }
-                    if (item.mediaSources.size > 1) {
-                        var versionsOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-                        Box {
-                            OutlinedButton(onClick = { versionsOpen = true }) {
-                                Text(item.mediaSources.firstOrNull { it.id == state.selectedMediaSourceId }?.name ?: stringResource(R.string.detail_select_version))
-                            }
-                            androidx.compose.material3.DropdownMenu(expanded = versionsOpen, onDismissRequest = { versionsOpen = false }) {
-                                item.mediaSources.forEach { source ->
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text(source.name) },
-                                        onClick = { viewModel.selectMediaSource(source.id); versionsOpen = false },
-                                    )
-                                }
+                        androidx.compose.material3.DropdownMenu(expanded = subsOpen, onDismissRequest = { subsOpen = false }) {
+                            androidx.compose.material3.DropdownMenuItem(text = { Text(stringResource(R.string.detail_default)) }, onClick = { viewModel.selectSubtitleStream(null); subsOpen = false })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text(stringResource(R.string.player_subtitles_off)) }, onClick = { viewModel.selectSubtitleStream(-1); subsOpen = false })
+                            item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle }.forEach { stream ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stream.describe()) },
+                                    onClick = { viewModel.selectSubtitleStream(stream.index); subsOpen = false },
+                                )
                             }
                         }
-                    }
-                    if (item.isPlayable) {
-                        val downloads: com.pyoungws.bluewolfplayer.ui.downloads.OfflineDownloads = org.koin.compose.koinInject()
-                        val auth: com.pyoungws.bluewolfplayer.shared.auth.AuthRepository = org.koin.compose.koinInject()
-                        val jobs by downloads.jobs.collectAsStateWithLifecycle()
-                        val saved by downloads.items.collectAsStateWithLifecycle()
-                        val scope = androidx.compose.runtime.rememberCoroutineScope()
-                        val ctx = androidx.compose.ui.platform.LocalContext.current
-                        val job = jobs[item.id]
-                        val isSaved = saved.any { it.itemId == item.id }
-                        OutlinedButton(onClick = {
-                            (auth.sessionState.value as? com.pyoungws.bluewolfplayer.shared.auth.SessionState.SignedIn)?.let { s2 ->
-                                scope.launch { downloads.download(s2.session.serverAddress, s2.session.accessToken, item.id, item.name) }
-                            }
-                        }, enabled = (job == null || job.failed) && !isSaved) {
-                            Text(stringResource(when {
-                                job?.failed == true -> R.string.offline_failed
-                                job != null -> R.string.offline_downloading
-                                isSaved -> R.string.offline_saved
-                                else -> R.string.offline_save
-                            }))
-                        }
-                    }
-                    state.previousEpisode?.let { prev ->
-                        OutlinedButton(onClick = { onPlay(prev.id) }) { Text(stringResource(R.string.detail_previous_episode)) }
-                    }
-                    if (state.localTrailers.isNotEmpty() || item.remoteTrailers.isNotEmpty()) {
-                        var trailersOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-                        val context = androidx.compose.ui.platform.LocalContext.current
-                        Box {
-                            OutlinedButton(onClick = { trailersOpen = true }) { Text(stringResource(R.string.detail_play_trailers)) }
-                            androidx.compose.material3.DropdownMenu(expanded = trailersOpen, onDismissRequest = { trailersOpen = false }) {
-                                state.localTrailers.forEach { trailer ->
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text(trailer.name) },
-                                        onClick = { onPlay(trailer.id); trailersOpen = false },
-                                    )
-                                }
-                                item.remoteTrailers.forEach { trailer ->
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text(trailer.name ?: trailer.url) },
-                                        onClick = {
-                                            trailersOpen = false
-                                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(trailer.url)))
-                                        },
-                                    )
-                                }
+                        androidx.compose.material3.DropdownMenu(expanded = versionsOpen, onDismissRequest = { versionsOpen = false }) {
+                            item.mediaSources.forEach { source ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(source.name) },
+                                    onClick = { viewModel.selectMediaSource(source.id); versionsOpen = false },
+                                )
                             }
                         }
-                    }
-                    if (item.kind == MediaKind.Program) {
-                        val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
-                        val recordScope = androidx.compose.runtime.rememberCoroutineScope()
-                        if (item.programInfo?.timerId == null) {
-                            OutlinedButton(onClick = { recordScope.launch { repository.recordProgram(item.id); viewModel.refresh() } }) {
-                                Text(stringResource(R.string.livetv_record))
+                        androidx.compose.material3.DropdownMenu(expanded = trailersOpen, onDismissRequest = { trailersOpen = false }) {
+                            state.localTrailers.forEach { trailer ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(trailer.name) },
+                                    onClick = { onPlay(trailer.id); trailersOpen = false },
+                                )
+                            }
+                            item.remoteTrailers.forEach { trailer ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(trailer.name ?: trailer.url) },
+                                    onClick = {
+                                        trailersOpen = false
+                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(trailer.url)))
+                                    },
+                                )
                             }
                         }
-                        if (item.programInfo?.seriesTimerId == null && item.programInfo?.isSeries == true) {
-                            OutlinedButton(onClick = { recordScope.launch { repository.recordSeries(item.id); viewModel.refresh() } }) {
-                                Text(stringResource(R.string.livetv_record_series))
-                            }
-                        }
-                    }
-                    if (item.kind == MediaKind.Song || item.kind == MediaKind.MusicAlbum || item.kind == MediaKind.MusicArtist) {
-                        val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
-                        val mixScope = androidx.compose.runtime.rememberCoroutineScope()
-                        OutlinedButton(onClick = {
-                            mixScope.launch {
-                                val mix = (repository.instantMix(item.id) as? com.pyoungws.bluewolfplayer.shared.model.Outcome.Success)?.value.orEmpty().filter { it.isPlayable }
-                                if (mix.isNotEmpty()) {
-                                    playQueue.playNow(mix, 0)
-                                    onPlay(mix.first().id)
-                                }
-                            }
-                        }) { Text(stringResource(R.string.detail_instant_mix)) }
-                    }
-                    item.seriesId?.takeIf { item.kind == MediaKind.Episode }?.let { seriesId ->
-                        OutlinedButton(onClick = { onOpenItem(seriesId) }) { Text(stringResource(R.string.detail_view_series)) }
                     }
                     ManageMediaButton(item, onChanged = { viewModel.refresh() })
                 }
