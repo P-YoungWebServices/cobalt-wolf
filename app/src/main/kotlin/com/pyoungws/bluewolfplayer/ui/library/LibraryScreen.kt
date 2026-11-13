@@ -113,7 +113,7 @@ fun LibraryScreen(library: Library, onBack: () -> Unit, onOpenItem: (String) -> 
                         }
                     }
                 }
-                Box(Modifier.fillMaxSize()) { ItemBrowseScreen(title, query, onBack = onBack, onOpenItem = onOpenItem) }
+                Box(Modifier.fillMaxSize()) { ItemBrowseScreen(title, query, onBack = onBack, onOpenItem = onOpenItem, prefsKey = library.id) }
             }
         }
     }

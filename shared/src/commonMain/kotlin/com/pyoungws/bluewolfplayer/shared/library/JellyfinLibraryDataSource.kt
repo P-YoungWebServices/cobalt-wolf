@@ -111,6 +111,16 @@ data class ItemQuery(
     val startIndex: Int = 0,
     val limit: Int = 60,
     val recursive: Boolean = true,
+    /** Server-side item filters (played/resumable/likes). */
+    val filters: Set<ItemFilter> = emptySet(),
+    val seriesStatus: Set<SeriesStatus> = emptySet(),
+    val isHd: Boolean? = null,
+    val is4k: Boolean? = null,
+    val hasSubtitles: Boolean? = null,
+    val hasTrailer: Boolean? = null,
+    val hasThemeSong: Boolean? = null,
+    val hasThemeVideo: Boolean? = null,
+    val hasSpecialFeature: Boolean? = null,
 )
 
 class SdkJellyfinLibraryDataSource(
@@ -291,6 +301,7 @@ class SdkJellyfinLibraryDataSource(
         val filters = buildList {
             if (query.unwatchedOnly) add(ItemFilter.IS_UNPLAYED)
             if (query.favoritesOnly) add(ItemFilter.IS_FAVORITE)
+            addAll(query.filters)
         }
         val result = libraryApi.getItems(
             GetItemsRequest(
@@ -306,6 +317,14 @@ class SdkJellyfinLibraryDataSource(
                 sortBy = query.sortBy?.let { listOf(it) },
                 sortOrder = listOf(query.sortOrder),
                 filters = filters.ifEmpty { null },
+                seriesStatus = query.seriesStatus.ifEmpty { null },
+                isHd = query.isHd,
+                is4k = query.is4k,
+                hasSubtitles = query.hasSubtitles,
+                hasTrailer = query.hasTrailer,
+                hasThemeSong = query.hasThemeSong,
+                hasThemeVideo = query.hasThemeVideo,
+                hasSpecialFeature = query.hasSpecialFeature,
                 startIndex = query.startIndex,
                 limit = query.limit,
                 recursive = query.recursive,

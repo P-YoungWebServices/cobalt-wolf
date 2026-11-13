@@ -124,9 +124,14 @@ private fun CardFace(item: MediaItem, url: String?, aspectRatio: Float, modifier
 }
 
 @Composable
-fun PosterCard(item: MediaItem, onClick: () -> Unit, width: Dp = 120.dp, modifier: Modifier = Modifier) {
+fun PosterCard(item: MediaItem, onClick: () -> Unit, width: Dp = 120.dp, modifier: Modifier = Modifier, image: CardImage = CardImage.Poster) {
+    val (art, aspect) = when (image) {
+        CardImage.Poster -> (item.posterUrl ?: item.landscapeUrl) to 2f / 3f
+        CardImage.Banner -> (item.backdropUrl ?: item.landscapeUrl ?: item.posterUrl) to 16f / 9f
+        CardImage.Thumb -> (item.landscapeUrl ?: item.posterUrl) to 16f / 9f
+    }
     Column(modifier.width(width).clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick)) {
-        CardFace(item, item.posterUrl ?: item.landscapeUrl, aspectRatio = 2f / 3f, modifier = Modifier.fillMaxWidth())
+        CardFace(item, art, aspectRatio = aspect, modifier = Modifier.fillMaxWidth())
         Text(item.cardTitle(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
         item.cardSubtitle()?.let {
             Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
