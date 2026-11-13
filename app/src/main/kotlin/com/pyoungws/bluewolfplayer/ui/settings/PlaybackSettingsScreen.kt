@@ -275,6 +275,7 @@ private fun HomeRows(state: PlaybackSettingsUiState, viewModel: PlaybackSettings
         PlaybackSettings.ROW_NEXT_UP to R.string.row_next_up,
         PlaybackSettings.ROW_RESUME_AUDIO to R.string.row_resume_audio,
         PlaybackSettings.ROW_LIVE_TV to R.string.row_live_tv,
+        PlaybackSettings.ROW_ON_NOW to R.string.row_on_now,
     )
     Column {
         order.forEachIndexed { index, rowId ->

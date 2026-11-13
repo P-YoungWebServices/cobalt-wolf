@@ -294,6 +294,10 @@ private fun TvTopBar(
     onSignOut: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    var notificationsOpen by remember { mutableStateOf(false) }
+    if (notificationsOpen) {
+        com.pyoungws.bluewolfplayer.ui.common.NotificationsDialog { notificationsOpen = false }
+    }
     Row(
         Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = TvContentPadding, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -317,6 +321,9 @@ private fun TvTopBar(
                 }
                 // Servers and Settings live on the dashboard now.
                 TvMenuItem(R.string.home_dashboard) { menuOpen = false; onOpenRoute(Route.Dashboard) }
+                if (isAdmin) {
+                    TvMenuItem(R.string.home_notifications) { menuOpen = false; notificationsOpen = true }
+                }
                 TvMenuItem(R.string.about_title) { menuOpen = false; onOpenRoute(Route.About) }
                 TvMenuItem(R.string.home_sign_out) { menuOpen = false; onSignOut() }
             }

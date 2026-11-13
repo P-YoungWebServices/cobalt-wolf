@@ -27,6 +27,16 @@ class LibraryRepository(
             val resume = async { dataSource.getResumeItems(session) }
             val resumeAudio = async { runCatching { dataSource.getResumeAudioItems(session) }.getOrDefault(emptyList()) }
             val liveTv = async { if (libraries.any { it.type == com.pyoungws.bluewolfplayer.shared.model.LibraryType.LiveTv }) runCatching { dataSource.getLiveTvChannels(session) }.getOrDefault(emptyList()) else emptyList() }
+            val onNow = async {
+                val channels = liveTv.await()
+                if (channels.isEmpty()) return@async emptyList()
+                val now = java.time.LocalDateTime.now()
+                runCatching {
+                    dataSource.getPrograms(session, channels.map { it.id }, now.minusHours(1), now.plusHours(2))
+                        .filter { it.programInfo?.isAiringAt(now) == true }
+                        .take(20)
+                }.getOrDefault(emptyList())
+            }
             val nextUp = async { dataSource.getNextUp(session, settingsRepository?.settings?.value?.nextUpCutoffDays ?: 0) }
             val rows = libraries.filter { it.isBrowsable }
                 .map { library -> async { RecentlyAddedRow(library, dataSource.getLatest(session, library.id)) } }
@@ -40,6 +50,7 @@ class LibraryRepository(
                 recentlyAdded = rows.awaitAll().filter { it.items.isNotEmpty() },
                 resumeAudio = resumeAudio.await().distinctBy { it.id },
                 liveTvChannels = liveTv.await(),
+                liveTvOnNow = onNow.await(),
             )
         }
     }

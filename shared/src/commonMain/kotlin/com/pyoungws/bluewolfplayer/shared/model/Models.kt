@@ -273,6 +273,8 @@ data class HomeFeed(
     val resumeAudio: List<MediaItem> = emptyList(),
     /** Live TV channels, when a Live TV library exists. */
     val liveTvChannels: List<MediaItem> = emptyList(),
+    /** Programs airing right now across the Live TV channels. */
+    val liveTvOnNow: List<MediaItem> = emptyList(),
 )
 
 data class RecentlyAddedRow(val library: Library, val items: List<MediaItem>)

@@ -27,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.Icon
@@ -54,6 +55,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import org.koin.compose.koinInject
 import com.pyoungws.bluewolfplayer.shared.model.HomeFeed
 import com.pyoungws.bluewolfplayer.shared.model.Library
+import com.pyoungws.bluewolfplayer.shared.presentation.HomeUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.HomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
@@ -85,6 +87,9 @@ fun HomeScreen(
     val isSigningOut by accountViewModel.isSigningOut.collectAsStateWithLifecycle()
     var confirmSignOut by rememberSaveable { mutableStateOf(false) }
     var moreMenuOpen by rememberSaveable { mutableStateOf(false) }
+    var notificationsOpen by rememberSaveable { mutableStateOf(false) }
+    val accountState by accountViewModel.uiState.collectAsStateWithLifecycle()
+    val isAdmin = (accountState as? HomeUiState.Loaded)?.user?.isAdministrator == true
 
     // Watch progress changes while playing, so refresh whenever the screen comes back.
     LifecycleResumeEffect(Unit) {
@@ -125,6 +130,11 @@ fun HomeScreen(
                         IconButton(onClick = onCalendar) {
                             Icon(Icons.Outlined.DateRange, contentDescription = stringResource(R.string.home_calendar))
                         }
+                        if (isAdmin) {
+                            IconButton(onClick = { notificationsOpen = true }) {
+                                Icon(Icons.Outlined.Notifications, contentDescription = stringResource(R.string.home_notifications))
+                            }
+                        }
                         Box {
                             IconButton(onClick = { moreMenuOpen = true }) {
                                 Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.home_more))
@@ -163,6 +173,9 @@ fun HomeScreen(
         }
     }
 
+    if (notificationsOpen) {
+        com.pyoungws.bluewolfplayer.ui.common.NotificationsDialog { notificationsOpen = false }
+    }
     if (confirmSignOut) {
         AlertDialog(
             onDismissRequest = { confirmSignOut = false },
@@ -231,6 +244,14 @@ private fun HomeFeedContent(feed: HomeFeed, onOpenLibrary: (Library) -> Unit, on
                         Column {
                             SectionTitle(stringResource(R.string.home_live_tv))
                             CardRow(feed.liveTvChannels, key = { it.id }) { PosterCard(it, onClick = { onOpenItem(it.id) }) }
+                        }
+                    }
+                }
+                PlaybackSettings.ROW_ON_NOW -> if (feed.liveTvOnNow.isNotEmpty()) {
+                    item(key = "onnow") {
+                        Column {
+                            SectionTitle(stringResource(R.string.home_on_now))
+                            CardRow(feed.liveTvOnNow, key = { it.id }) { LandscapeCard(it, onClick = { onOpenItem(it.id) }) }
                         }
                     }
                 }

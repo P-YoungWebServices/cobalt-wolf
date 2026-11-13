@@ -120,6 +120,7 @@ data class PlaybackSettings(
         const val ROW_NEXT_UP = "nextup"
         const val ROW_RESUME_AUDIO = "resumeaudio"
         const val ROW_LIVE_TV = "livetv"
+        const val ROW_ON_NOW = "onnow"
         const val ROW_RECENT_PREFIX = "recent:"
     }
 }
