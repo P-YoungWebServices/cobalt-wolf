@@ -65,6 +65,13 @@ Conventions and rules for contributing to Cobalt Wolf.
   no-op. Release builds contain no credentials.
 - **Never commit it, copy its values into code, tests, docs, logs or PR text, or
   print the password.** Read values from the file in shell commands only.
+- **Never distribute a debug build — it contains every credential above.** The
+  debug APK bakes `dev.credentials.properties` into `BuildConfig` and DevSeed
+  signs in automatically. A debug APK on a public release leaks the Jellyfin
+  password and all arr API keys to anyone who downloads it. Debug APKs may only
+  be installed on the owner's own test devices via adb. Any artifact shared
+  with anyone else (GitHub release, website download, sideload link) must be
+  `./gradlew assembleRelease` output — never `assembleDebug`.
 - If the file is missing or still has placeholder values, ask the user to fill it
   in rather than guessing credentials.
 
@@ -75,7 +82,14 @@ Conventions and rules for contributing to Cobalt Wolf.
   `keystore.properties.example`. With the file present `./gradlew
   assembleRelease` produces a signed APK; without it the release APK is
   unsigned. The keystore itself (`*.keystore`/`*.jks`) is also gitignored —
-  never commit it or its passwords.
+  never commit it or its passwords. Losing the keystore means never being
+  able to update the app under the same signing identity again.
+- **Pre-publish checklist for any released APK** — run
+  `scripts/make-release.sh`; it builds `assembleRelease`, refuses an
+  unsigned build, verifies the signature with apksigner, and scans every
+  `.dex` for each `dev.credentials.properties` value plus `DEV_` BuildConfig
+  fields, failing if anything is found. Never attach `app-debug.apk` or a
+  script-unverified APK to a release or download link.
 
 ## Test devices
 
