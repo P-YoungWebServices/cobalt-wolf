@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -78,6 +79,7 @@ import com.pyoungws.bluewolfplayer.ui.common.ManageMediaDialog
 import com.pyoungws.bluewolfplayer.ui.common.InfoBadgeRow
 import com.pyoungws.bluewolfplayer.ui.common.labelRes
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -122,13 +124,18 @@ private fun TvDetailContent(
     val playFocusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
     var autoFocused by remember { mutableStateOf(false) }
-    // The actions row can start below the fold (episodes) — the requester only attaches once the
-    // item is composed, so scroll it into view first, then retry until focus lands.
-    val actionsIndex = 2 + if (item.progressFraction != null) 1 else 0
     LaunchedEffect(state.playTarget?.id) {
         if (!autoFocused && state.playTarget != null) {
             autoFocused = true
-            runCatching { listState.scrollToItem(actionsIndex) }
+            // The page always opens at the top: auto-focus Play only when the actions row is
+            // already fully visible — grabbing focus on a partially visible row would scroll
+            // the page (Compose brings focused elements fully into view).
+            snapshotFlow { listState.layoutInfo.visibleItemsInfo.isNotEmpty() }.first { it }
+            val actions = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "actions" }
+            val fullyVisible = actions != null &&
+                actions.offset >= listState.layoutInfo.viewportStartOffset &&
+                actions.offset + actions.size <= listState.layoutInfo.viewportEndOffset
+            if (!fullyVisible) return@LaunchedEffect
             repeat(200) {
                 if (runCatching { playFocusRequester.requestFocus() }.getOrDefault(false)) return@LaunchedEffect
                 delay(50)
