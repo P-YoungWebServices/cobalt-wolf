@@ -18,9 +18,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.content.Intent
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.shared.library.ItemQuery
 import com.pyoungws.bluewolfplayer.shared.library.LibraryRepository
@@ -49,8 +53,11 @@ fun ItemContextMenu(
     val playQueue: PlayQueueRepository = koinInject()
     val repository: LibraryRepository = koinInject()
     val scope = rememberCoroutineScope()
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
     var showPlaylistPicker by remember { mutableStateOf(false) }
     var showCollectionPicker by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         Text(
@@ -90,6 +97,43 @@ fun ItemContextMenu(
                 onClick = { scope.launch { repository.removeFromCollection(containerId, listOf(item.id)); onChanged() }; onDismiss() },
             )
         }
+        if (item.isPlayable) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.action_copy_stream_url)) },
+                onClick = { repository.streamUrl(item)?.let { clipboard.setText(AnnotatedString(it)) }; onDismiss() },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.action_share_stream)) },
+                onClick = {
+                    repository.streamUrl(item)?.let { url ->
+                        val send = Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_TEXT, url).setType("text/plain")
+                        context.startActivity(Intent.createChooser(send, item.name))
+                    }
+                    onDismiss()
+                },
+            )
+        }
+        if (item.canDelete) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.action_delete)) },
+                onClick = { showDeleteConfirm = true },
+            )
+        }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text(stringResource(R.string.action_delete)) },
+            text = { Text(stringResource(R.string.action_delete_confirm, item.name)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch { repository.deleteItems(listOf(item)); onChanged() }
+                    showDeleteConfirm = false; onDismiss()
+                }) { Text(stringResource(R.string.action_delete)) }
+            },
+            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.action_cancel)) } },
+        )
     }
 
     if (showPlaylistPicker) {

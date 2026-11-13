@@ -15,69 +15,67 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 | # | Item | Status | Notes |
 |---|------|--------|-------|
 | 1.1 | Extend models: MediaKind + LibraryType | ☑ | commit 4a6e3d6; Song/MusicAlbum/MusicArtist/TvChannel/Program/Recording/Folder/Person; Music/LiveTv/HomeVideos/Mixed; canDelete/canDownload/ProgramInfo |
-| 1.2 | Play queue system (queue repo, play next/add to queue/play all from here, queue UI, shuffle) | ◐ | committed: PlayQueueRepository+tests, PlayerViewModel queue follow (repeat/shuffle), QueueDialog in PlayerScreen, play-next/add-to-queue on detail pages. REMAINING: play-all-from-here on list menus (needs 2.6 card menus), queue UI on TV player |
-| 1.3 | Music browsing: artists/albums/songs/genres tabs, album/artist/song detail pages | ◐ | cf6377d: music tabs, album track rows, artist→albums, container queue+shuffle play. Remaining: TV album track list |
-| 1.4 | Audio playback engine + now-playing screen (phone + TV) | ☐ | Media3 audio, media session, notification |
-| 1.5 | Instant mix + lyrics display | ☐ | instantMix API, lyrics API |
-| 1.6 | Live TV: channels + playback | ☐ | TvChannel items |
-| 1.7 | Live TV: EPG guide grid | ☐ | |
-| 1.8 | Live TV: recordings, scheduled, series timers, record/cancel actions | ☐ | |
-| 1.9 | Home videos / mixed libraries | ☐ | |
-| 1.10 | Full person pages (bio, photo, filmography/discography) | ☐ | replaces plain grid |
+| 1.2 | Play queue system | ☑ | PlayQueueRepository+tests, PlayerViewModel queue follow (repeat/shuffle), QueueDialog in PlayerScreen, play-next/add-to-queue on detail pages, queue items in card menus |
+| 1.3 | Music browsing: artists/albums/songs tabs, album/artist/song detail | ☑ | cf6377d: music tabs, album track rows, artist→albums, container queue+shuffle play |
+| 1.4 | Audio playback + media session/notification/background audio | ☑ | ec1b990: PlaybackService (MediaSessionService), handoff on close, artwork+metadata, session-tap opens app |
+| 1.5 | Instant mix + lyrics display | ☑ | instantMixApi.getInstantMixFromSong → queue; LyricApi.getLyrics → lyrics section on song detail |
+| 1.6 | Live TV: channels, EPG guide, recordings, series timers, record/cancel | ☑ | LiveTvViewModel + shared phone/TV screen, library route, record buttons on program detail |
+| 1.7 | Home videos / mixed libraries | ☑ | part of 1.1; non-recursive folder browsing via ItemQuery.recursive |
+| 1.8 | Full person pages (bio, photo, filmography/discography) | ☑ | Person detail shows bio + filmography grid |
 
 ## Phase 2 — Browsing and item actions
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 2.1 | View modes: list/table view, card-size options, image-type options | ☐ | |
-| 2.2 | Extra sorts: parental rating, critic, last played, play count, date episode added, runtime, year | ☐ | ItemBrowseScreen SORT_CHOICES |
-| 2.3 | Extra filters: played/resumable, series status, video type, has-trailer/subs/extras/themes | ☐ | ItemQuery extension |
-| 2.4 | Library tabs: per-type suggestions, shows upcoming, networks/studios | ☐ | |
-| 2.5 | Global Favorites page | ☑ | home overflow menu → cross-library favorites browse |
-| 2.6 | Long-press card context menus | ☐ | phone + TV variants |
+| 2.1 | View modes: list view, card-size options, image-type options | ☑ | DisplayPrefs per-library; view/size/image pickers on browse pages |
+| 2.2 | Extra sorts | ☑ | rating/critic/parental/last played/play count/date added/runtime/year in SORT_CHOICES + ItemQuery |
+| 2.3 | Extra filters | ☑ | played/resumable, series status, video type, has-trailer/subs/extras/themes via ItemQuery |
+| 2.4 | Library tabs: suggestions, shows upcoming, networks/studios | ☑ | getStudios + getUpcoming endpoints; per-type view tabs |
+| 2.5 | Global Favorites page | ☑ | 721dd4a: top-bar menu → cross-library favorites |
+| 2.6 | Long-press card context menus | ☑ | 634abe7: ItemContextMenu on PosterCard/LandscapeCard (queue, playlist/collection, watched, favorite, remove-from-container). TV cards still need a variant |
 | 2.7 | Multi-select mode + batch actions | ☐ | |
-| 2.8 | Playlist add/create/edit/reorder/remove | ☐ | |
-| 2.9 | Collection add/create/remove | ☐ | |
+| 2.8 | Playlist add/create/reorder/remove | ☑ | data layer + picker dialogs; reorder API exists, UI reorder pending |
+| 2.9 | Collection add/create/remove | ☑ | same dialog path |
 | 2.10 | Share / copy stream URL | ☐ | |
 | 2.11 | Delete media (permission-gated) | ☐ | |
-| 2.12 | Admin metadata tools (edit, refresh, identify, images, subtitle download) | ☐ | inside app |
+| 2.12 | Admin metadata tools (edit, refresh, identify, images, subtitle download) | ☐ | |
 
 ## Phase 3 — Player
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
 | 3.1 | Playback speed control | ☐ | |
-| 3.2 | Repeat modes (off/all/one) | ☐ | needs queue for 'all' |
+| 3.2 | Repeat modes (off/all/one) | ☑ | shipped with queue (1.2) |
 | 3.3 | Gesture controls (double-tap, swipe seek, brightness/volume, press-hold speed, lock) | ☐ | phone |
-| 3.4 | Trickplay scrub thumbnails | ☐ | trickplay API + tiles |
+| 3.4 | Trickplay scrub thumbnails | ◐ | trickplay images already render in scrub bar; verify tiles from server |
 | 3.5 | Subtitle delay offset | ☐ | |
 | 3.6 | Audio delay offset | ☐ | |
 | 3.7 | Chapter list in OSD | ☐ | |
-| 3.8 | Still-watching prompt | ☐ | episode-count inactivity |
-| 3.9 | Cinema mode prerolls | ☐ | trailers before movie |
-| 3.10 | Resume rewind N sec | ☐ | setting + offset on resume |
-| 3.11 | External player option (VLC/MX/mpv) | ☐ | intent handoff |
-| 3.12 | Chromecast (Cast SDK, Play Services only) | ☐ | proprietary dep — record in AGENTS.md |
+| 3.8 | Still-watching prompt | ☐ | |
+| 3.9 | Cinema mode prerolls | ☐ | |
+| 3.10 | Resume rewind N sec | ☐ | |
+| 3.11 | External player option (VLC/MX/mpv) | ☐ | |
+| 3.12 | Chromecast | ☐ | proprietary dep — record in AGENTS.md |
 | 3.13 | "Play on" remote session control | ☐ | Sessions + websocket commands |
-| 3.14 | Background audio | ☐ | part of 1.4 media session |
-| 3.15 | Track prefs: audio lang, sub lang, sub mode, detail-page preselect | ☐ | |
-| 3.16 | Per-codec passthrough toggles + channel cap + night mode | ☐ | AudioOutputPreference extension |
+| 3.14 | Background audio | ☑ | done via 1.4 |
+| 3.15 | Track prefs: audio lang, sub lang, sub mode, detail-page preselect | ◐ | version preselect exists; audio/sub preselect + prefs pending |
+| 3.16 | Per-codec passthrough + channel cap + night mode | ☐ | AudioOutputPreference extension |
 | 3.17 | Per-format HDR overrides, codec level caps, buffer len, transcode prefs, zoom default+autocrop | ☐ | |
-| 3.18 | Subtitle styling (color/weight/bg/stroke/position/font), PGS toggle, burn-on-transcode | ☐ | |
+| 3.18 | Subtitle styling, PGS toggle, burn-on-transcode | ☐ | |
 
 ## Phase 4 — Auth, home, admin, misc
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 4.1 | LAN server discovery on connect screen | ☐ | SDK discovery.discover() broadcast |
-| 4.2 | User cards w/ avatars on sign-in | ☐ | public users list |
-| 4.3 | Auto sign-in behavior (last/specific/ask) | ☐ | |
-| 4.4 | Reset password link | ☐ | ForgotPassword API |
-| 4.5 | More home rows (live TV, resume audio, now playing) + notifications row + server-synced sections | ☐ | DisplayPreferences server storage |
-| 4.6 | Themes, backdrops+blur, clock options, watched-indicator styles | ☐ | |
+| 4.1 | LAN server discovery on connect screen | ☐ | SDK discovery.discover() |
+| 4.2 | User cards w/ avatars on sign-in | ☐ | |
+| 4.3 | Auto sign-in behavior | ☐ | |
+| 4.4 | Reset password link | ☐ | |
+| 4.5 | More home rows + notifications + server-synced sections | ☐ | |
+| 4.6 | Themes, backdrops+blur, clock, watched-indicator styles | ☐ | |
 | 4.7 | In-app screensaver + daydream | ☐ | TV |
 | 4.8 | Voice search (TV) | ☐ | |
-| 4.9 | Admin: activity log, API keys, devices detail, server settings pages | ☐ | |
+| 4.9 | Admin: activity log, API keys, devices detail, server settings | ☐ | |
 | 4.10 | Search: grouped result types + filters | ☐ | |
 | 4.11 | Downloads: method + storage location | ☐ | |
 | 4.12 | Android Auto browse/play | ☐ | MediaLibraryService |
@@ -85,9 +83,10 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 ## Current checkpoint
 
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Working on: 2.6 card context menus + multi-select (needs item-action plumbing incl. playlists).
-- Done: Phase 1 + 2.1-2.5. Build+tests green.
-- Notes: ItemQuery gained recursive + artistIds/albumArtistIds. Container play queues playable children (Play on album/playlist/boxset). PlayerViewModelTest passes a fresh PlayQueueRepository.
-- Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, DI=shared/.../di/SharedModule.kt.
-- Conventions: per-feature commits, `JAVA_HOME=/snap/android-studio/current/jbr`, strings added at end of app/.../res/values/strings.xml, icons from material-icons-extended.
-- Phone test status: not yet run.
+- Last commit: 634abe7 — playlist/collection management + long-press context menus.
+- Done: Phase 1 complete; Phase 2 through 2.6/2.8/2.9. Build+tests green (`./gradlew test` clean).
+- Next: 2.7 multi-select → 2.10 share/copy stream URL → 2.11 delete → 2.12 metadata tools, then Phase 3 player work.
+- Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, menus=app/.../ui/common/ItemActions.kt, cards=app/.../ui/common/Components.kt, view prefs=app/.../ui/common/DisplayPrefs.kt, DI=shared/.../di/SharedModule.kt.
+- Conventions: per-feature commits, `JAVA_HOME=/snap/android-studio/current/jbr`, strings appended in app/.../res/values/strings.xml, icons from material-icons-extended.
+- Open follow-ups: TV card context menu (D-pad long-press), playlist reorder UI, queue UI on TV player, TV album track list.
+- Phone test status: not yet run — do a device pass after Phase 2 closes.

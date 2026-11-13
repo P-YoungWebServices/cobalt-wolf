@@ -1,6 +1,8 @@
 package com.pyoungws.bluewolfplayer.ui.library
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,11 +20,14 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items as listItems
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -62,6 +67,7 @@ import com.pyoungws.bluewolfplayer.ui.common.ViewPrefs
 import com.pyoungws.bluewolfplayer.ui.common.cardSubtitle
 import com.pyoungws.bluewolfplayer.ui.common.cardTitle
 import com.pyoungws.bluewolfplayer.ui.common.rememberViewPrefs
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import org.jellyfin.sdk.model.api.ItemFilter
@@ -135,12 +141,20 @@ fun ItemBrowseScreen(title: String, query: ItemQuery, onBack: () -> Unit, onOpen
     val (viewPrefs, setViewPrefs) = rememberViewPrefs("browse:$prefsKey")
     LoadMoreEffect(gridState, listState, onLoadMore = viewModel::loadMore)
 
+    var selected by remember { mutableStateOf(setOf<String>()) }
+    val selecting = selected.isNotEmpty()
+    val toggleSelect = { item: MediaItem -> selected = if (item.id in selected) selected - item.id else selected + item.id }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.nav_back)) } },
-                actions = { ViewMenu(viewPrefs, setViewPrefs) },
+                title = { Text(if (selecting) stringResource(R.string.select_count, selected.size) else title) },
+                navigationIcon = {
+                    TextButton(onClick = { if (selecting) selected = emptySet() else onBack() }) {
+                        Text(stringResource(if (selecting) R.string.action_cancel else R.string.nav_back))
+                    }
+                },
+                actions = { if (selecting) SelectionActions(selected, state.items, onDone = { selected = emptySet() }) else ViewMenu(viewPrefs, setViewPrefs) },
             )
         },
     ) { padding ->
@@ -158,7 +172,14 @@ fun ItemBrowseScreen(title: String, query: ItemQuery, onBack: () -> Unit, onOpen
                     state.items.isEmpty() && state.error != null -> ErrorBox(state.error!!, onRetry = viewModel::retry)
                     state.items.isEmpty() -> Text(stringResource(R.string.library_empty), modifier = Modifier.align(Alignment.Center))
                     viewPrefs.view == CardView.List -> LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                        listItems(state.items, key = { it.id }) { ItemListRow(it, onClick = { onOpenItem(it.id) }) }
+                        listItems(state.items, key = { it.id }) {
+                            ItemListRow(
+                                it,
+                                onClick = { if (selecting) toggleSelect(it) else onOpenItem(it.id) },
+                                onLongClick = { toggleSelect(it) },
+                                selected = it.id in selected,
+                            )
+                        }
                         footerItems(state, viewModel)
                     }
                     else -> LazyVerticalGrid(
@@ -169,7 +190,16 @@ fun ItemBrowseScreen(title: String, query: ItemQuery, onBack: () -> Unit, onOpen
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxSize(),
                     ) {
-                        items(state.items, key = { it.id }) { PosterCard(it, onClick = { onOpenItem(it.id) }, width = viewPrefs.size.width, image = viewPrefs.image) }
+                        items(state.items, key = { it.id }) {
+                            PosterCard(
+                                it,
+                                onClick = { if (selecting) toggleSelect(it) else onOpenItem(it.id) },
+                                width = viewPrefs.size.width,
+                                image = viewPrefs.image,
+                                selected = it.id in selected,
+                                onLongClick = { toggleSelect(it) },
+                            )
+                        }
                         footerGridItems(state, viewModel)
                     }
                 }
@@ -179,9 +209,13 @@ fun ItemBrowseScreen(title: String, query: ItemQuery, onBack: () -> Unit, onOpen
 }
 
 @Composable
-private fun ItemListRow(item: MediaItem, onClick: () -> Unit) {
+private fun ItemListRow(item: MediaItem, onClick: () -> Unit, onLongClick: () -> Unit = {}, selected: Boolean = false) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 6.dp),
+        Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .then(if (selected) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -323,3 +357,89 @@ internal fun LoadMoreEffect(gridState: LazyGridState, listState: androidx.compos
 }
 
 private const val LOAD_MORE_THRESHOLD = 12
+
+/** Contextual top-bar actions while a multi-select is active. */
+@Composable
+private fun SelectionActions(selectedIds: Set<String>, items: List<MediaItem>, onDone: () -> Unit) {
+    val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
+    val playQueue: com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository = org.koin.compose.koinInject()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val chosen = items.filter { it.id in selectedIds }
+    var menuOpen by remember { mutableStateOf(false) }
+    var deleteConfirm by remember { mutableStateOf(false) }
+    var playlistPicker by remember { mutableStateOf(false) }
+
+    Box {
+        TextButton(onClick = { menuOpen = true }) { Text(stringResource(R.string.action_selection_menu)) }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            val playable = chosen.filter { it.isPlayable }
+            if (playable.isNotEmpty()) {
+                DropdownMenuItem(text = { Text(stringResource(R.string.player_add_to_queue)) }, onClick = { playable.forEach(playQueue::enqueue); menuOpen = false; onDone() })
+            }
+            DropdownMenuItem(text = { Text(stringResource(R.string.detail_mark_watched)) }, onClick = { scope.launch { chosen.forEach { repository.setPlayed(it, true) } }; menuOpen = false; onDone() })
+            DropdownMenuItem(text = { Text(stringResource(R.string.detail_mark_unwatched)) }, onClick = { scope.launch { chosen.forEach { repository.setPlayed(it, false) } }; menuOpen = false; onDone() })
+            DropdownMenuItem(text = { Text(stringResource(R.string.detail_favorite)) }, onClick = { scope.launch { chosen.forEach { repository.setFavorite(it, true) } }; menuOpen = false; onDone() })
+            DropdownMenuItem(text = { Text(stringResource(R.string.detail_unfavorite)) }, onClick = { scope.launch { chosen.forEach { repository.setFavorite(it, false) } }; menuOpen = false; onDone() })
+            DropdownMenuItem(text = { Text(stringResource(R.string.action_add_to_playlist)) }, onClick = { menuOpen = false; playlistPicker = true })
+            if (chosen.any { it.canDelete }) {
+                DropdownMenuItem(text = { Text(stringResource(R.string.action_delete)) }, onClick = { menuOpen = false; deleteConfirm = true })
+            }
+        }
+    }
+
+    if (deleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { deleteConfirm = false },
+            title = { Text(stringResource(R.string.action_delete)) },
+            text = { Text(stringResource(R.string.action_delete_count_confirm, chosen.count { it.canDelete })) },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch { repository.deleteItems(chosen.filter { it.canDelete }) }
+                    deleteConfirm = false; onDone()
+                }) { Text(stringResource(R.string.action_delete)) }
+            },
+            dismissButton = { TextButton(onClick = { deleteConfirm = false }) { Text(stringResource(R.string.action_cancel)) } },
+        )
+    }
+    if (playlistPicker) {
+        BatchPlaylistPicker(items = chosen, onDismiss = { playlistPicker = false; onDone() })
+    }
+}
+
+@Composable
+private fun BatchPlaylistPicker(items: List<MediaItem>, onDismiss: () -> Unit) {
+    val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val playlists by androidx.compose.runtime.produceState<List<MediaItem>>(emptyList()) {
+        value = (repository.items(ItemQuery(includeItemKinds = setOf(com.pyoungws.bluewolfplayer.shared.model.MediaKind.Playlist), limit = 100)) as? com.pyoungws.bluewolfplayer.shared.model.Outcome.Success)?.value?.items.orEmpty()
+    }
+    var newName by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.action_add_to_playlist)) },
+        text = {
+            Column {
+                playlists.forEach { playlist ->
+                    TextButton(
+                        onClick = { scope.launch { repository.addToPlaylist(playlist.id, items.map { it.id }); onDismiss() } },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(playlist.name, modifier = Modifier.fillMaxWidth()) }
+                }
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text(stringResource(R.string.action_new_playlist)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { scope.launch { if (newName.isNotBlank()) repository.createPlaylist(newName.trim(), items.map { it.id }); onDismiss() } },
+                enabled = newName.isNotBlank(),
+            ) { Text(stringResource(R.string.action_create)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}

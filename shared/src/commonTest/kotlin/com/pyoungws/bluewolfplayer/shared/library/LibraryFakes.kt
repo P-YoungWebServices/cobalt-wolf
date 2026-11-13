@@ -99,6 +99,8 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
     override suspend fun createCollection(session: Session, name: String, itemIds: List<String>): String = "col1".also { calls += "createCollection($name)" }
     override suspend fun addToCollection(session: Session, collectionId: String, itemIds: List<String>) { calls += "addToCollection($collectionId,${itemIds.size})" }
     override suspend fun removeFromCollection(session: Session, collectionId: String, itemIds: List<String>) { calls += "removeFromCollection($collectionId,${itemIds.size})" }
+    override suspend fun deleteItems(session: Session, itemIds: List<String>) { calls += "deleteItems(${itemIds.size})" }
+    override fun streamUrl(session: Session, item: MediaItem): String = "${session.serverAddress}/Videos/${item.id}/stream"
     override suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem? = nextUpForSeries(seriesId).also { calls += "nextUpSeries($seriesId)" }
     override suspend fun setPlayed(session: Session, itemId: String, played: Boolean) { calls += "setPlayed($itemId,$played)" }
     override suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean) { calls += "setFavorite($itemId,$favorite)" }

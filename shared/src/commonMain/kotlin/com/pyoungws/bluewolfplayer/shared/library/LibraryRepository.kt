@@ -171,6 +171,13 @@ class LibraryRepository(
     suspend fun setPlayed(item: MediaItem, played: Boolean): Outcome<Unit> =
         guard.run { dataSource.setPlayed(it, item.id, played) }
 
+    suspend fun deleteItems(items: List<MediaItem>): Outcome<Unit> =
+        guard.run { dataSource.deleteItems(it, items.map(MediaItem::id)) }
+
+    /** Authenticated direct-play URL for sharing/copying. Never log it. */
+    fun streamUrl(item: MediaItem): String? =
+        guard.sessionOrNull()?.let { dataSource.streamUrl(it, item) }
+
     suspend fun setFavorite(item: MediaItem, favorite: Boolean): Outcome<Unit> =
         guard.run { dataSource.setFavorite(it, item.id, favorite) }
 

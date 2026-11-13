@@ -107,6 +107,13 @@ interface JellyfinLibraryDataSource {
     suspend fun getPreviousEpisode(session: Session, episode: MediaItem): MediaItem?
     suspend fun setPlayed(session: Session, itemId: String, played: Boolean)
     suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean)
+    /** Permanently deletes items from the server; caller gates on `canDelete`. */
+    suspend fun deleteItems(session: Session, itemIds: List<String>)
+    /**
+     * A direct-play URL for the item with the access token embedded, suitable
+     * for sharing/copying into an external player. Never log this value.
+     */
+    fun streamUrl(session: Session, item: MediaItem): String
 }
 
 /** Generic item query used by alternate browse views, collection contents and person filmographies. */
@@ -555,6 +562,17 @@ class SdkJellyfinLibraryDataSource(
             if (favorite) userDataApi.markFavoriteItem(itemId = itemId.toUuid(), userId = session.userId.toUuid())
             else userDataApi.unmarkFavoriteItem(itemId = itemId.toUuid(), userId = session.userId.toUuid())
         }
+    }
+
+    override suspend fun deleteItems(session: Session, itemIds: List<String>) {
+        call(session) { libraryApi.deleteItems(itemIds.map { it.toUuid() }) }
+    }
+
+    override fun streamUrl(session: Session, item: MediaItem): String {
+        val base = session.serverAddress.trimEnd('/')
+        val path = if (item.kind == MediaKind.Song) "Audio" else "Videos"
+        val mediaSource = item.mediaSources.firstOrNull()?.id ?: item.id
+        return "$base/$path/${item.id}/stream?static=true&mediaSourceId=$mediaSource&api_key=${session.accessToken}"
     }
 
     private companion object {

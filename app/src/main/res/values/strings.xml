@@ -763,4 +763,11 @@
     <string name="action_new_collection">New collection name</string>
     <string name="action_create">Create</string>
     <string name="action_cancel">Cancel</string>
+    <string name="select_count">%1$d selected</string>
+    <string name="action_selection_menu">Actions</string>
+    <string name="action_copy_stream_url">Copy stream URL</string>
+    <string name="action_share_stream">Share stream link</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_delete_confirm">Delete %1$s from the server? This cannot be undone.</string>
+    <string name="action_delete_count_confirm">Delete %1$d items from the server? This cannot be undone.</string>
 </resources>

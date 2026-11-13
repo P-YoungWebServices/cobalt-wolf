@@ -1,6 +1,7 @@
 package com.pyoungws.bluewolfplayer.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -127,7 +128,15 @@ private fun CardFace(item: MediaItem, url: String?, aspectRatio: Float, modifier
 }
 
 @Composable
-fun PosterCard(item: MediaItem, onClick: () -> Unit, width: Dp = 120.dp, modifier: Modifier = Modifier, image: CardImage = CardImage.Poster) {
+fun PosterCard(
+    item: MediaItem,
+    onClick: () -> Unit,
+    width: Dp = 120.dp,
+    modifier: Modifier = Modifier,
+    image: CardImage = CardImage.Poster,
+    selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+) {
     val (art, aspect) = when (image) {
         CardImage.Poster -> (item.posterUrl ?: item.landscapeUrl) to 2f / 3f
         CardImage.Banner -> (item.backdropUrl ?: item.landscapeUrl ?: item.posterUrl) to 16f / 9f
@@ -138,7 +147,8 @@ fun PosterCard(item: MediaItem, onClick: () -> Unit, width: Dp = 120.dp, modifie
         modifier
             .width(width)
             .clip(RoundedCornerShape(8.dp))
-            .combinedClickable(onClick = onClick, onLongClick = { menuOpen = true }),
+            .then(if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)) else Modifier)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick ?: { menuOpen = true }),
     ) {
         CardFace(item, art, aspectRatio = aspect, modifier = Modifier.fillMaxWidth())
         Text(item.cardTitle(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
@@ -146,7 +156,7 @@ fun PosterCard(item: MediaItem, onClick: () -> Unit, width: Dp = 120.dp, modifie
             Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
-    ItemContextMenu(item, expanded = menuOpen, onDismiss = { menuOpen = false })
+    if (onLongClick == null) ItemContextMenu(item, expanded = menuOpen, onDismiss = { menuOpen = false })
 }
 
 @Composable

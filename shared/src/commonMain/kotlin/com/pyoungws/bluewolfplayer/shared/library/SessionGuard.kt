@@ -16,6 +16,10 @@ import org.jellyfin.sdk.api.client.exception.TimeoutException
  */
 class SessionGuard(private val authRepository: AuthRepository) {
 
+    /** The active session if one is already signed in, without attempting a restore. */
+    fun sessionOrNull(): Session? =
+        (authRepository.sessionState.value as? SessionState.SignedIn)?.session
+
     suspend fun <T> run(block: suspend (Session) -> T): Outcome<T> {
         // A screen recreated after process death (the player is its own activity) can get here
         // before the app's start-up restore has run.
