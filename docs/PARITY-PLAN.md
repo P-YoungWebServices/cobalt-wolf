@@ -69,7 +69,7 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 |---|------|--------|-------|
 | 4.1 | LAN server discovery on connect screen | ☐ | SDK discovery.discover() |
 | 4.2 | User cards w/ avatars on sign-in | ☐ | |
-| 4.3 | Auto sign-in behavior | ☐ | |
+| 4.3 | Auto sign-in | ☑ | persisted sessions already auto-resume on start | |
 | 4.4 | Reset password link | ☐ | |
 | 4.5 | More home rows + notifications + server-synced sections | ☐ | |
 | 4.6 | Themes, backdrops+blur, clock, watched-indicator styles | ☐ | |
@@ -83,10 +83,18 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 ## Current checkpoint
 
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Last commit: 3.16-3.18 playback prefs. Phase 3 CLOSED except deferrals + 3.12 Chromecast + 3.14 (done earlier).
+- Last commit: 0637efb — LAN discovery + avatars + forgot-password.
+- Phase 3 CLOSED (deferrals noted per item). Phase 4 done: 4.1-4.4.
 - Done: Phases 1+2 complete. Build+tests green.
-- Next: Phase 4 in order:
-  4.4 reset-password link (quick), 4.1 LAN discovery (UDP broadcast to :7359), 4.2 user cards w/ avatars + 4.3 auto sign-in (auth screens), 4.10 grouped search, 4.11 download method/storage, 4.5 home rows (livetv/resume-audio/now-playing/notifications), 4.6 display options, 4.7 TV screensaver, 4.8 voice search, 4.9 admin pages, 4.12 Android Auto, 3.12 Chromecast (proprietary dep — flag license in AGENTS.md).
+- Next Phase 4 items:
+  4.10 grouped search results + filters (SearchScreen + SearchViewModel)
+  4.11 download method/storage settings (ui/downloads + OfflineDownloads)
+  4.5 home rows: livetv/resume-audio/now-playing/notifications (loadHome in LibraryRepository + HomeScreen rows)
+  4.6 display options: themes/backdrops+blur/clock/watched indicators (DisplayPrefs-style store)
+  4.7 TV screensaver/daydream, 4.8 TV voice search (Leanback intent)
+  4.9 admin: activity log/API keys/server settings pages (ActivityLogApi, ApiKeyApi, SystemApi/ConfigurationApi)
+  4.12 Android Auto (MediaBrowserService), 3.12 Chromecast (proprietary dep — flag license in AGENTS.md)
+- After Phase 4: run full test+assembleDebug, then phone retest, THEN ask user about Fire Stick.
 - Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, menus=app/.../ui/common/ItemActions.kt, cards=app/.../ui/common/Components.kt, view prefs=app/.../ui/common/DisplayPrefs.kt, DI=shared/.../di/SharedModule.kt.
 - Conventions: per-feature commits, `JAVA_HOME=/snap/android-studio/current/jbr`, strings appended in app/.../res/values/strings.xml, icons from material-icons-extended.
 - Open follow-ups: TV card context menu (D-pad long-press), playlist reorder UI, queue UI on TV player, TV album track list, image-editor screen (edit-images uses RemoteImageApi — deferred).
