@@ -702,4 +702,7 @@
     <string name="player_add_to_queue">Add to queue</string>
     <string name="player_remove_from_queue">Remove</string>
     <string name="detail_play_all_from_here">Play all from here</string>
+    <string name="view_albums">Albums</string>
+    <string name="view_artists">Artists</string>
+    <string name="view_songs">Songs</string>
 </resources>

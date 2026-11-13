@@ -111,6 +111,7 @@ private fun TvDetailContent(
     onOpenPerson: (String, String) -> Unit,
 ) {
     val item = state.item
+    val playQueue: com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository = org.koin.compose.koinInject()
     // The first thing on the page is "what can I do with this": hand focus to Play/Resume once,
     // on first load — not again when a season switch swaps the episode behind the button.
     val playFocusRequester = remember { FocusRequester() }
@@ -200,7 +201,13 @@ private fun TvDetailContent(
                     TvActionButton(
                         icon = Icons.Outlined.PlayArrow,
                         label = tvPlayLabel(item, target),
-                        onClick = { state.selectedMediaSourceId?.let { onPlayVersion(target.id, it) } ?: onPlay(target.id) },
+                        onClick = {
+                            val playable = state.containerItems.filter { it.isPlayable }
+                            if (item.isContainer && playable.size > 1) {
+                                playQueue.playNow(playable, playable.indexOfFirst { it.id == target.id }.coerceAtLeast(0))
+                            }
+                            state.selectedMediaSourceId?.let { onPlayVersion(target.id, it) } ?: onPlay(target.id)
+                        },
                         modifier = Modifier.focusRequester(playFocusRequester),
                     )
                     if (target.hasProgress) {
@@ -399,11 +406,11 @@ private fun detailMenuOptions(
 ): List<TvMenuOption> {
     val item = state.item
     val target = state.playTarget
+    val playQueue: com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository = org.koin.compose.koinInject()
     return buildList {
         target?.let { t ->
             if (t.hasProgress) add(TvMenuOption(stringResource(R.string.detail_play_beginning)) { onPlayFromBeginning(t.id); onDismiss() })
             add(TvMenuOption(stringResource(R.string.syncplay_title)) { onWatchTogether(t.id); onDismiss() })
-            val playQueue: com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository = org.koin.compose.koinInject()
             add(TvMenuOption(stringResource(R.string.player_play_next)) { playQueue.playNext(t); onDismiss() })
             add(TvMenuOption(stringResource(R.string.player_add_to_queue)) { playQueue.enqueue(t); onDismiss() })
         }
@@ -411,6 +418,15 @@ private fun detailMenuOptions(
             add(TvMenuOption(stringResource(R.string.detail_shuffle)) { onPlay(state.episodes.random().id); onDismiss() })
             state.episodes.firstOrNull { !it.isPlayed }?.let { first ->
                 add(TvMenuOption(stringResource(R.string.detail_play_first_unwatched)) { onPlay(first.id); onDismiss() })
+            }
+        } else {
+            val playable = state.containerItems.filter { it.isPlayable }
+            if (item.isContainer && playable.size > 1) {
+                add(TvMenuOption(stringResource(R.string.detail_shuffle)) {
+                    playQueue.playNow(playable.shuffled(), 0)
+                    onPlay(playQueue.queue.value.current?.item?.id ?: return@TvMenuOption)
+                    onDismiss()
+                })
             }
         }
         add(TvMenuOption(stringResource(if (item.isPlayed) R.string.detail_mark_unwatched else R.string.detail_mark_watched)) { viewModel.toggleWatched(); onDismiss() })

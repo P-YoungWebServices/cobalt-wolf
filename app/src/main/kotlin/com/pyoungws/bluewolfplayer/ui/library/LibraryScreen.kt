@@ -46,6 +46,12 @@ private enum class LibraryView(val labelRes: Int) {
     Grid(R.string.view_grid), Genres(R.string.view_genres), Letters(R.string.view_letters), Suggested(R.string.view_suggested)
 }
 
+private enum class MusicView(val labelRes: Int, val kind: MediaKind) {
+    Albums(R.string.view_albums, MediaKind.MusicAlbum),
+    Artists(R.string.view_artists, MediaKind.MusicArtist),
+    Songs(R.string.view_songs, MediaKind.Song),
+}
+
 /** Browses one library: paged grid with sort/filter plus genre, letter and suggested views. */
 @Composable
 fun LibraryScreen(library: Library, onBack: () -> Unit, onOpenItem: (String) -> Unit) {
@@ -53,6 +59,8 @@ fun LibraryScreen(library: Library, onBack: () -> Unit, onOpenItem: (String) -> 
     var view by remember { mutableStateOf(LibraryView.Grid) }
     var genreName by remember { mutableStateOf<String?>(null) }
     var letter by remember { mutableStateOf<String?>(null) }
+    var musicView by remember { mutableStateOf(MusicView.Albums) }
+    val isMusic = library.type == LibraryType.Music
 
     val genres by produceState<List<GenreInfo>>(emptyList(), library.id) {
         value = (repository.genres(library.id) as? Outcome.Success)?.value.orEmpty()
@@ -61,9 +69,10 @@ fun LibraryScreen(library: Library, onBack: () -> Unit, onOpenItem: (String) -> 
         if (view == LibraryView.Suggested) value = (repository.suggestions(library) as? Outcome.Success)?.value.orEmpty()
     }
 
-    val kind = when (library.type) {
+    val kind = when {
+        isMusic -> musicView.kind
+        else -> when (library.type) {
         LibraryType.TvShows -> MediaKind.Series
-        LibraryType.Music -> MediaKind.MusicAlbum
         LibraryType.MusicVideos -> MediaKind.MusicVideo
         LibraryType.LiveTv -> MediaKind.TvChannel
         LibraryType.HomeVideos -> MediaKind.Video
@@ -71,6 +80,7 @@ fun LibraryScreen(library: Library, onBack: () -> Unit, onOpenItem: (String) -> 
         LibraryType.Playlists -> MediaKind.Playlist
         LibraryType.Mixed -> null
         else -> MediaKind.Movie
+        }
     }
     val query = ItemQuery(
         libraryId = library.id,
@@ -93,6 +103,16 @@ fun LibraryScreen(library: Library, onBack: () -> Unit, onOpenItem: (String) -> 
                     onViewChange = { view = it; genreName = null; letter = null },
                     onGenre = { genreName = it; letter = null },
                     onLetter = { letter = it; genreName = null })
+                if (isMusic && view == LibraryView.Grid) {
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        MusicView.entries.forEach { entry ->
+                            FilterChip(selected = musicView == entry, onClick = { musicView = entry }, label = { Text(stringResource(entry.labelRes)) })
+                        }
+                    }
+                }
                 Box(Modifier.fillMaxSize()) { ItemBrowseScreen(title, query, onBack = onBack, onOpenItem = onOpenItem) }
             }
         }

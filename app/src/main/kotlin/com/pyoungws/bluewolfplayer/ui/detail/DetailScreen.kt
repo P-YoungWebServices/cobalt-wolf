@@ -116,6 +116,7 @@ private fun DetailContent(
     onOpenPerson: (String, String) -> Unit,
 ) {
     val item = state.item
+    val playQueue: com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository = org.koin.compose.koinInject()
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item(key = "header") {
             Column {
@@ -156,7 +157,18 @@ private fun DetailContent(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     state.playTarget?.let { target ->
-                        Button(onClick = { state.selectedMediaSourceId?.let { onPlayVersion(target.id, it) } ?: onPlay(target.id) }) { Text(playLabel(item, target)) }
+                        val playContainer: (Boolean) -> Unit = { shuffled ->
+                            val playable = state.containerItems.filter { it.isPlayable }
+                            if (item.isContainer && playable.size > 1) {
+                                val ordered = if (shuffled) playable.shuffled() else playable
+                                playQueue.playNow(ordered, ordered.indexOfFirst { it.id == target.id }.coerceAtLeast(0))
+                            }
+                            state.selectedMediaSourceId?.let { onPlayVersion(target.id, it) } ?: onPlay(target.id)
+                        }
+                        Button(onClick = { playContainer(false) }) { Text(playLabel(item, target)) }
+                        if (item.isContainer && state.containerItems.count { it.isPlayable } > 1) {
+                            OutlinedButton(onClick = { playContainer(true) }) { Text(stringResource(R.string.detail_shuffle)) }
+                        }
                         if (target.hasProgress) {
                             OutlinedButton(onClick = { onPlayFromBeginning(target.id) }) { Text(stringResource(R.string.detail_play)) }
                         }
@@ -246,7 +258,6 @@ private fun DetailContent(
                         )
                     }
                     state.playTarget?.let { target ->
-                        val playQueue: com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository = org.koin.compose.koinInject()
                         IconButton(onClick = { playQueue.playNext(target) }) {
                             Icon(Icons.AutoMirrored.Outlined.PlaylistPlay, contentDescription = stringResource(R.string.player_play_next), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -294,7 +305,18 @@ private fun DetailContent(
                 }
             }
         }
-        if (state.containerItems.isNotEmpty()) {
+        if (state.containerItems.isNotEmpty() && item.kind == MediaKind.MusicAlbum) {
+            item(key = "tracks-title") { SectionTitle(stringResource(R.string.detail_contents)) }
+            val songs = state.containerItems
+            items(songs.size, key = { songs[it].id }) { index ->
+                val song = songs[index]
+                SongRow(song, index + 1, onClick = {
+                    val playable = songs.filter { it.isPlayable }
+                    playQueue.playNow(playable, playable.indexOfFirst { it.id == song.id }.coerceAtLeast(0))
+                    onPlay(song.id)
+                })
+            }
+        } else if (state.containerItems.isNotEmpty()) {
             item(key = "contents") {
                 SectionTitle(stringResource(R.string.detail_contents))
                 LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -417,6 +439,30 @@ private fun EpisodeRow(episode: MediaItem, onClick: () -> Unit) {
     }
 }
 
+
+@Composable
+private fun SongRow(song: MediaItem, position: Int, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            (song.trackNumber ?: position).toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(24.dp),
+        )
+        Column(Modifier.weight(1f)) {
+            Text(song.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val details = listOfNotNull(
+                song.artists.firstOrNull(),
+                song.runtimeMinutes?.let { stringResource(R.string.detail_runtime_minutes, it) },
+            ).joinToString(" · ")
+            if (details.isNotEmpty()) Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
 
 @Composable
 private fun playLabel(item: MediaItem, target: MediaItem): String = when {

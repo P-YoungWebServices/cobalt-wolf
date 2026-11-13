@@ -15,7 +15,7 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 | # | Item | Status | Notes |
 |---|------|--------|-------|
 | 1.1 | Extend models: MediaKind + LibraryType | ☑ | commit 4a6e3d6; Song/MusicAlbum/MusicArtist/TvChannel/Program/Recording/Folder/Person; Music/LiveTv/HomeVideos/Mixed; canDelete/canDownload/ProgramInfo |
-| 1.2 | Play queue system (queue repo, play next/add to queue/play all from here, queue UI, shuffle) | ☐ | Foundation for music + C1 |
+| 1.2 | Play queue system (queue repo, play next/add to queue/play all from here, queue UI, shuffle) | ◐ | committed: PlayQueueRepository+tests, PlayerViewModel queue follow (repeat/shuffle), QueueDialog in PlayerScreen, play-next/add-to-queue on detail pages. REMAINING: play-all-from-here on list menus (needs 2.6 card menus), queue UI on TV player |
 | 1.3 | Music browsing: artists/albums/songs/genres tabs, album/artist/song detail pages | ☐ | |
 | 1.4 | Audio playback engine + now-playing screen (phone + TV) | ☐ | Media3 audio, media session, notification |
 | 1.5 | Instant mix + lyrics display | ☐ | instantMix API, lyrics API |
@@ -85,7 +85,8 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 ## Current checkpoint
 
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Working on: 1.2 play queue system.
-- Next: 1.3 music browsing.
-- Done: 1.1 (models). Compile clean, MediaMappingTest green.
+- Working on: 1.3 music browsing (artists/albums/songs tabs, album/artist/song detail).
+- Done: 1.1 models (4a6e3d6), 1.2 queue core (see table for remainder).
+- Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, DI=shared/.../di/SharedModule.kt.
+- Conventions: per-feature commits, `JAVA_HOME=/snap/android-studio/current/jbr`, strings added at end of app/.../res/values/strings.xml, icons from material-icons-extended.
 - Phone test status: not yet run.

@@ -38,6 +38,7 @@ sealed interface ItemDetailUiState {
             get() = when {
                 item.isPlayable -> item
                 item.kind == MediaKind.Series -> episodes.firstOrNull { it.hasProgress } ?: episodes.firstOrNull { !it.isPlayed } ?: episodes.firstOrNull()
+                item.isContainer -> containerItems.firstOrNull { it.isPlayable }
                 else -> null
             }
     }
@@ -88,9 +89,15 @@ class ItemDetailViewModel(
         val previousEpisode = if (item.kind == MediaKind.Episode) {
             (repository.previousEpisode(item) as? Outcome.Success)?.value
         } else null
-        val containerItems = if (item.kind == MediaKind.BoxSet || item.kind == MediaKind.Playlist || item.kind == MediaKind.Folder) {
-            (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(parentId = item.id, limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
-        } else emptyList()
+        val containerItems = when (item.kind) {
+            MediaKind.BoxSet, MediaKind.Playlist, MediaKind.Folder ->
+                (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(parentId = item.id, limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
+            MediaKind.MusicAlbum ->
+                (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(parentId = item.id, includeItemKinds = setOf(MediaKind.Song), limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
+            MediaKind.MusicArtist ->
+                (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(albumArtistIds = listOf(item.id), includeItemKinds = setOf(MediaKind.MusicAlbum), limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
+            else -> emptyList()
+        }
         if (item.kind != MediaKind.Series) {
             _uiState.value = ItemDetailUiState.Loaded(
                 item,

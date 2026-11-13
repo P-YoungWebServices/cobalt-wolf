@@ -71,6 +71,7 @@ class PlayerViewModelTest {
         playbackRepository(library, playback, SessionGuard(signedInAuthRepository()), capabilities),
         reportScope = this,
         syncPlay = syncPlay ?: syncPlayRepository(),
+        playQueue = com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository(),
     )
 
     private suspend fun TestScope.syncPlayRepository(
