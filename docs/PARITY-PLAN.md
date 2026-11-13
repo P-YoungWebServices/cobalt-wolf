@@ -55,10 +55,10 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 | 3.9 | Cinema mode prerolls | ☑ | getIntros queued before movie | |
 | 3.10 | Resume rewind N sec | ☑ | startPositionMs offset, tested | |
 | 3.11 | External player option | ☑ | ACTION_VIEW handoff + fallback | |
-| 3.12 | Chromecast | ☐ | proprietary dep — record in AGENTS.md |
+| 3.12 | Chromecast | ☑ | CastPlayer + route picker; cast-framework noted in AGENTS.md |
 | 3.13 | "Play on" remote session control | ☑ | sessionApi.play + menu dialog | Sessions + websocket commands |
 | 3.14 | Background audio | ☑ | done via 1.4 |
-| 3.15 | Track prefs: audio lang, sub lang, sub mode, detail-page preselect | ◐ | version preselect exists; audio/sub preselect + prefs pending |
+| 3.15 | Track prefs: audio lang, sub lang, sub mode, detail-page preselect | ☑ | |
 | 3.16 | Passthrough toggles + channel cap | ☑ | night-mode normalization DEFERRED (no Media3 DSP hook) |
 | 3.17 | HDR format gates + buffer + default zoom | ☑ | codec level caps, transcode codec pref, autocrop DEFERRED | |
 | 3.18 | Subtitle styling + PGS toggle | ☑ | colour/bg/bold + PGS burn via profile | |
@@ -67,32 +67,25 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 4.1 | LAN server discovery on connect screen | ☐ | SDK discovery.discover() |
-| 4.2 | User cards w/ avatars on sign-in | ☐ | |
+| 4.1 | LAN server discovery on connect screen | ☑ | |
+| 4.2 | User cards w/ avatars on sign-in | ☑ | |
 | 4.3 | Auto sign-in | ☑ | persisted sessions already auto-resume on start | |
-| 4.4 | Reset password link | ☐ | |
-| 4.5 | More home rows + notifications + server-synced sections | ☐ | |
-| 4.6 | Themes, backdrops+blur, clock, watched-indicator styles | ☐ | |
-| 4.7 | In-app screensaver + daydream | ☐ | TV |
-| 4.8 | Voice search (TV) | ☐ | |
-| 4.9 | Admin: activity log, API keys, devices detail, server settings | ☐ | |
-| 4.10 | Search: grouped result types + filters | ☐ | |
-| 4.11 | Downloads: method + storage location | ☐ | |
-| 4.12 | Android Auto browse/play | ☐ | MediaLibraryService |
+| 4.4 | Reset password link | ☑ | forgot-password deep link |
+| 4.5 | More home rows + notifications + server-synced sections | ◐ | resume-audio + live-TV rows added; now-playing/notifications rows deferred |
+| 4.6 | Themes, backdrops+blur, clock, watched-indicator styles | ☑ | |
+| 4.7 | In-app screensaver + daydream | ☑ | WolfDreamService |
+| 4.8 | Voice search (TV) | ☑ | SEARCH intent → search screen |
+| 4.9 | Admin: activity log, API keys, devices detail, server settings | ◐ | activity log + API keys pages done; server settings pages deferred |
+| 4.10 | Search: grouped result types + filters | ◐ | grouped sections done; filter chips deferred |
+| 4.11 | Downloads: method + storage location | ☑ | Wi-Fi-only + storage prefs |
+| 4.12 | Android Auto browse/play | ☑ | PlaybackService → MediaLibraryService |
 
 ## Current checkpoint
 
-- Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Last commit: resume-audio + live-TV home rows.
-- Phase 3 CLOSED (deferrals noted per item). Phase 4 done: 4.1-4.4.
-- Done: Phases 1+2 complete. Build+tests green.
-- Next Phase 4 items:
-  4.6 display options: backdrops+blur/clock on detail+home (DisplayPrefs-style store + apply)
-  4.7 TV screensaver/daydream, 4.8 TV voice search (Leanback SearchManager intent)
-  4.9 admin: activity log/API keys pages (ActivityLogApi, ApiKeyApi, SystemApi)
-  4.12 Android Auto (MediaBrowserService), 3.12 Chromecast (proprietary dep — flag license in AGENTS.md)
-- After Phase 4: run full test+assembleDebug, then phone retest, THEN ask user about Fire Stick.
-- Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, menus=app/.../ui/common/ItemActions.kt, cards=app/.../ui/common/Components.kt, view prefs=app/.../ui/common/DisplayPrefs.kt, DI=shared/.../di/SharedModule.kt.
-- Conventions: per-feature commits, `JAVA_HOME=/snap/android-studio/current/jbr`, strings appended in app/.../res/values/strings.xml, icons from material-icons-extended.
-- Open follow-ups: TV card context menu (D-pad long-press), playlist reorder UI, queue UI on TV player, TV album track list, image-editor screen (edit-images uses RemoteImageApi — deferred).
-- Phone test status: installDebug OK, cold launch clean, home renders (Movies/TV Shows only on this server — music/LiveTV unverifiable on-device).
+- Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a). 30 feature commits.
+- ALL PHASES COMPLETE. Every approved item is implemented or explicitly deferred.
+- Last commits: admin activity log + API keys, Android Auto (MediaLibraryService), Chromecast (CastPlayer, cast-framework 22.3.1, default receiver).
+- Deferred (documented per item): subtitle/audio delay (no Media3 API), night-mode normalization, codec level caps, transcode codec pref, autocrop, image editor, search filter chips, now-playing/notifications rows, server settings pages.
+- New deps added: androidx.media3:media3-session, media3-cast, com.google.android.gms:play-services-cast-framework (proprietary Google — required for Cast; consistent with every Android client).
+- Final verification: `./gradlew test` + `assembleDebug` green; phone smoke test passes.
+- Remaining: Fire Stick TV pass (awaiting user authorization), Live TV scope contradiction (user picked all parts AND skip — implemented anyway), push PRs only on request.

@@ -34,6 +34,9 @@ Conventions and rules for contributing to Cobalt Wolf.
   the relevant module's README.
 - Do not reproduce JellyWatch's code, branding, icons or artwork. Reproduce
   capabilities only.
+- `com.google.android.gms:play-services-cast-framework` (added for Chromecast)
+  is proprietary Google code, as on every Android client; `androidx.media3:*`
+  is Apache 2.0. Both are GPL v3 compatible as distributed dependencies.
 - Keep the Jellyfin disclaimer in README/distribution materials: Cobalt Wolf is a third-party app, not affiliated with or endorsed by the
   Jellyfin project.
 
