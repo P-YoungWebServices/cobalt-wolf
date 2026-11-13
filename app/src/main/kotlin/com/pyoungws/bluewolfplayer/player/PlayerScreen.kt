@@ -677,6 +677,12 @@ private fun PlayerContent(
                         modifier = Modifier.padding(end = 8.dp),
                     )
                 }
+            }
+            Row(
+                Modifier.align(Alignment.BottomEnd).padding(8.dp).padding(bottom = 160.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 ControlButton(onClick = { dialog = TrackDialog.Audio }, icon = Icons.AutoMirrored.Outlined.VolumeUp, description = stringResource(R.string.player_audio))
                 ControlButton(onClick = { dialog = TrackDialog.Subtitles }, icon = Icons.Outlined.Subtitles, description = stringResource(R.string.player_subtitles))
                 ControlButton(onClick = { showDelayDialog = true }, icon = Icons.Outlined.MoreTime, description = stringResource(R.string.player_subtitle_delay))
