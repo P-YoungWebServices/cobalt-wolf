@@ -323,7 +323,11 @@ private fun DetailContent(
                         OutlinedButton(onClick = { onOpenItem(seriesId) }) { Text(stringResource(R.string.detail_view_series)) }
                     }
                     ManageMediaButton(item, onChanged = { viewModel.refresh() })
-                    Spacer(Modifier.weight(1f))
+                }
+                Row(
+                    Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
                     IconButton(onClick = { viewModel.toggleWatched() }) {
                         Icon(
                             if (item.isPlayed) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
