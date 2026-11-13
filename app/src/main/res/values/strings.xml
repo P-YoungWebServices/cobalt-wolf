@@ -930,6 +930,9 @@
     <string name="artwork_crop_landscape">Crop landscape</string>
     <string name="artwork_upload">Upload</string>
     <string name="artwork_uploading">Uploading…</string>
+    <string name="playlist_move_up">Move up</string>
+    <string name="playlist_move_down">Move down</string>
+    <string name="playlist_remove">Remove from playlist</string>
     <string name="offline_wifi_only_on">Download over Wi-Fi only: on</string>
     <string name="offline_wifi_only_off">Download over Wi-Fi only: off</string>
     <string name="offline_storage_internal">Storage: internal</string>

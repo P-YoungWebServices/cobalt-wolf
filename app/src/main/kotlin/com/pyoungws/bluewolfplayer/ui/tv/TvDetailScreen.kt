@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Layers
@@ -44,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -119,6 +121,9 @@ private fun TvDetailContent(
 ) {
     val item = state.item
     val playQueue: com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository = org.koin.compose.koinInject()
+    val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var trackMenuIndex by remember { mutableStateOf<Int?>(null) }
     // The first thing on the page is "what can I do with this": hand focus to Play/Resume once,
     // on first load — not again when a season switch swaps the episode behind the button.
     val playFocusRequester = remember { FocusRequester() }
@@ -318,8 +323,29 @@ private fun TvDetailContent(
         }
         if (state.containerItems.isNotEmpty()) {
             item(key = "contents-title") { TvSectionTitle(stringResource(R.string.detail_contents)) }
-            item(key = "contents") {
-                TvCardRow(state.containerItems, key = { it.id }) { entry -> TvPosterCard(entry, onClick = { onOpenItem(entry.id) }) }
+            if (item.kind == MediaKind.MusicAlbum || item.kind == MediaKind.Playlist) {
+                // Track-style list: numbered rows, play on select. Playlists also get a
+                // remote-menu overlay with reorder and remove.
+                items(state.containerItems.size, key = { "${state.containerItems[it].id}-$it" }) { index ->
+                    val entry = state.containerItems[index]
+                    TvTrackRow(
+                        entry, index + 1,
+                        onClick = {
+                            if (entry.isPlayable) {
+                                val playable = state.containerItems.filter { it.isPlayable }
+                                playQueue.playNow(playable, playable.indexOfFirst { it.id == entry.id }.coerceAtLeast(0))
+                                onPlay(entry.id)
+                            } else {
+                                onOpenItem(entry.id)
+                            }
+                        },
+                        onMenu = if (item.kind == MediaKind.Playlist) { { trackMenuIndex = index } } else null,
+                    )
+                }
+            } else {
+                item(key = "contents") {
+                    TvCardRow(state.containerItems, key = { it.id }) { entry -> TvPosterCard(entry, onClick = { onOpenItem(entry.id) }) }
+                }
             }
         }
         if (state.similar.isNotEmpty()) {
@@ -356,6 +382,35 @@ private fun TvDetailContent(
                     }
                 }
             }
+        }
+    }
+    trackMenuIndex?.let { index ->
+        state.containerItems.getOrNull(index)?.let { entry ->
+            TvItemOptionsOverlay(
+                title = entry.name,
+                options = buildList {
+                    add(TvMenuOption(stringResource(R.string.detail_options_details)) { onOpenItem(entry.id); trackMenuIndex = null })
+                    entry.playlistItemId?.let { entryId ->
+                        if (index > 0) {
+                            add(TvMenuOption(stringResource(R.string.playlist_move_up)) {
+                                scope.launch { repository.movePlaylistItem(item.id, entryId, index - 1); viewModel.refresh() }
+                                trackMenuIndex = null
+                            })
+                        }
+                        if (index < state.containerItems.lastIndex) {
+                            add(TvMenuOption(stringResource(R.string.playlist_move_down)) {
+                                scope.launch { repository.movePlaylistItem(item.id, entryId, index + 1); viewModel.refresh() }
+                                trackMenuIndex = null
+                            })
+                        }
+                        add(TvMenuOption(stringResource(R.string.playlist_remove)) {
+                            scope.launch { repository.removeFromPlaylist(item.id, listOf(entryId)); viewModel.refresh() }
+                            trackMenuIndex = null
+                        })
+                    }
+                },
+                onDismiss = { trackMenuIndex = null },
+            )
         }
     }
     if (optionsOpen) {
@@ -507,6 +562,47 @@ private fun detailMenuOptions(
             add(TvMenuOption(stringResource(R.string.detail_view_series)) { onOpenItem(sid); onDismiss() })
         }
         add(TvMenuOption(stringResource(R.string.manage_title)) { onManage() })
+    }
+}
+
+/** Numbered, D-pad-focusable track row for album/playlist contents. */
+@Composable
+private fun TvTrackRow(item: MediaItem, position: Int, onClick: () -> Unit, onMenu: (() -> Unit)?) {
+    var focused by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = TvContentPadding)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (focused) Color.White.copy(alpha = 0.15f) else Color.Transparent)
+            .onKeyEvent { ev ->
+                val n = ev.nativeKeyEvent
+                if (onMenu != null && n.action == android.view.KeyEvent.ACTION_DOWN && n.keyCode == android.view.KeyEvent.KEYCODE_MENU) {
+                    onMenu(); true
+                } else false
+            }
+            .clickable(onClick = onClick)
+            .onFocusChanged { focused = it.isFocused }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            (item.trackNumber ?: position).toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(24.dp),
+        )
+        Column(Modifier.weight(1f)) {
+            Text(item.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val details = listOfNotNull(
+                item.artists.firstOrNull(),
+                item.runtimeMinutes?.let { stringResource(R.string.detail_runtime_minutes, it) },
+            ).joinToString(" · ")
+            if (details.isNotEmpty()) {
+                Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }
 
