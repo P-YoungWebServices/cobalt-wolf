@@ -63,14 +63,19 @@ fun LibraryScreen(library: Library, onBack: () -> Unit, onOpenItem: (String) -> 
 
     val kind = when (library.type) {
         LibraryType.TvShows -> MediaKind.Series
+        LibraryType.Music -> MediaKind.MusicAlbum
         LibraryType.MusicVideos -> MediaKind.MusicVideo
+        LibraryType.LiveTv -> MediaKind.TvChannel
+        LibraryType.HomeVideos -> MediaKind.Video
         LibraryType.BoxSets -> MediaKind.BoxSet
         LibraryType.Playlists -> MediaKind.Playlist
+        LibraryType.Mixed -> null
         else -> MediaKind.Movie
     }
     val query = ItemQuery(
         libraryId = library.id,
-        includeItemKinds = setOf(kind),
+        includeItemKinds = kind?.let(::setOf).orEmpty(),
+        recursive = library.type != LibraryType.Mixed,
         genres = genreName?.let(::listOf).orEmpty(),
         nameStartsWith = letter,
     )

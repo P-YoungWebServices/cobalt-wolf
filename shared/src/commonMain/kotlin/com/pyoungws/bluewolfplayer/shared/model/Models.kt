@@ -29,7 +29,11 @@ data class Session(
     val accessToken: String,
 )
 
-enum class MediaKind { Movie, Series, Season, Episode, MusicVideo, BoxSet, Playlist, Video, Other }
+enum class MediaKind {
+    Movie, Series, Season, Episode, MusicVideo, BoxSet, Playlist, Video,
+    Song, MusicAlbum, MusicArtist, TvChannel, Program, Recording, Folder, Person,
+    Other,
+}
 
 enum class StreamKind { Video, Audio, Subtitle }
 
@@ -47,7 +51,7 @@ data class MediaStreamInfo(
     val isHearingImpaired: Boolean = false,
 )
 
-enum class LibraryType { Movies, TvShows, MusicVideos, BoxSets, Playlists, Other }
+enum class LibraryType { Movies, TvShows, Music, MusicVideos, LiveTv, HomeVideos, Mixed, BoxSets, Playlists, Other }
 
 enum class SeriesStatus { Continuing, Ended, Unreleased }
 
@@ -92,6 +96,25 @@ data class TrickplayTiles(
 ) {
     fun tileUrl(index: Int) = "$urlPrefix$index.jpg"
     fun indexAtTicks(ticks: Long): Int = (ticks / (interval * 10_000L)).toInt().coerceIn(0, thumbnailCount - 1)
+}
+
+/** Live TV program metadata — schedule slot, channel and recording state, as carried by programs and channels. */
+data class ProgramInfo(
+    val channelId: String? = null,
+    val channelName: String? = null,
+    val channelNumber: String? = null,
+    val start: java.time.LocalDateTime? = null,
+    val end: java.time.LocalDateTime? = null,
+    val isLive: Boolean = false,
+    val isPremiere: Boolean = false,
+    val isRepeat: Boolean = false,
+    val isSeries: Boolean = false,
+    val timerId: String? = null,
+    val seriesTimerId: String? = null,
+) {
+    /** True when the program occupies the current wall-clock slot. */
+    fun isAiringAt(now: java.time.LocalDateTime): Boolean =
+        start != null && end != null && !now.isBefore(start) && now.isBefore(end)
 }
 
 /** A genre entry for the by-genre browse view. */
@@ -148,10 +171,27 @@ data class MediaItem(
     val remoteTrailers: List<MediaTrailer> = emptyList(),
     val mediaSources: List<MediaVersion> = emptyList(),
     val trickplay: TrickplayTiles? = null,
+    /** Music fields — set on songs and albums. */
+    val albumId: String? = null,
+    val albumName: String? = null,
+    val artists: List<String> = emptyList(),
+    val artistIds: List<String> = emptyList(),
+    val trackNumber: Int? = null,
+    /** Live TV schedule data on programs and channels. */
+    val programInfo: ProgramInfo? = null,
+    /** Server-side permissions from the item's play/delete policy. */
+    val canDelete: Boolean = false,
+    val canDownload: Boolean = false,
 ) {
-    val isPlayable: Boolean get() = kind == MediaKind.Movie || kind == MediaKind.Episode || kind == MediaKind.MusicVideo || kind == MediaKind.Video
+    val isPlayable: Boolean
+        get() = kind == MediaKind.Movie || kind == MediaKind.Episode || kind == MediaKind.MusicVideo || kind == MediaKind.Video ||
+            kind == MediaKind.Song || kind == MediaKind.TvChannel || kind == MediaKind.Program || kind == MediaKind.Recording
     /** Items that group children rather than playing directly. */
-    val isContainer: Boolean get() = kind == MediaKind.Series || kind == MediaKind.Season || kind == MediaKind.BoxSet || kind == MediaKind.Playlist
+    val isContainer: Boolean
+        get() = kind == MediaKind.Series || kind == MediaKind.Season || kind == MediaKind.BoxSet || kind == MediaKind.Playlist ||
+            kind == MediaKind.MusicAlbum || kind == MediaKind.MusicArtist || kind == MediaKind.Folder
+    /** Songs and live TV play in order; movies/episodes are one-shots. */
+    val isQueueable: Boolean get() = kind == MediaKind.Song || kind == MediaKind.MusicVideo
     val hasProgress: Boolean get() = positionTicks > 0 && !isPlayed
 
     /** Progress through the item in 0..1, or null if not started. */

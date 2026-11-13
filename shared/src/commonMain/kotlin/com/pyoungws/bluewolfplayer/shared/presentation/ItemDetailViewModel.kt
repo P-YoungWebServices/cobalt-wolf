@@ -88,7 +88,7 @@ class ItemDetailViewModel(
         val previousEpisode = if (item.kind == MediaKind.Episode) {
             (repository.previousEpisode(item) as? Outcome.Success)?.value
         } else null
-        val containerItems = if (item.kind == MediaKind.BoxSet || item.kind == MediaKind.Playlist) {
+        val containerItems = if (item.kind == MediaKind.BoxSet || item.kind == MediaKind.Playlist || item.kind == MediaKind.Folder) {
             (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(parentId = item.id, limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
         } else emptyList()
         if (item.kind != MediaKind.Series) {

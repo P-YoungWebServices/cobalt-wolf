@@ -83,6 +83,7 @@ data class ItemQuery(
     val favoritesOnly: Boolean = false,
     val startIndex: Int = 0,
     val limit: Int = 60,
+    val recursive: Boolean = true,
 )
 
 class SdkJellyfinLibraryDataSource(
@@ -198,7 +199,7 @@ class SdkJellyfinLibraryDataSource(
                 filters = filters.ifEmpty { null },
                 startIndex = query.startIndex,
                 limit = query.limit,
-                recursive = true,
+                recursive = query.recursive,
                 fields = ITEM_FIELDS,
                 enableUserData = true,
             ),
@@ -251,6 +252,7 @@ class SdkJellyfinLibraryDataSource(
         val kinds = when (library.type) {
             LibraryType.Movies -> listOf(BaseItemKind.MOVIE)
             LibraryType.TvShows -> listOf(BaseItemKind.SERIES)
+            LibraryType.Music -> listOf(BaseItemKind.MUSIC_ALBUM)
             else -> emptyList()
         }
         if (kinds.isEmpty()) emptyList()
@@ -276,19 +278,22 @@ class SdkJellyfinLibraryDataSource(
     }
 
     override suspend fun getLibraryItems(session: Session, library: Library, startIndex: Int, limit: Int) = call(session) {
+        val (kinds, recursive) = when (library.type) {
+            LibraryType.TvShows -> listOf(BaseItemKind.SERIES) to true
+            LibraryType.Music -> listOf(BaseItemKind.MUSIC_ALBUM) to true
+            LibraryType.MusicVideos -> listOf(BaseItemKind.MUSIC_VIDEO) to true
+            LibraryType.LiveTv -> listOf(BaseItemKind.TV_CHANNEL) to false
+            LibraryType.BoxSets -> listOf(BaseItemKind.BOX_SET) to true
+            LibraryType.Playlists -> listOf(BaseItemKind.PLAYLIST) to true
+            LibraryType.HomeVideos -> listOf(BaseItemKind.VIDEO) to true
+            LibraryType.Mixed -> emptyList<BaseItemKind>() to false
+            else -> listOf(BaseItemKind.MOVIE) to true
+        }
         val result = libraryApi.getItems(
             userId = session.userId.toUuid(),
             parentId = library.id.toUuid(),
-            recursive = true,
-            includeItemTypes = listOf(
-                when (library.type) {
-                    LibraryType.TvShows -> BaseItemKind.SERIES
-                    LibraryType.MusicVideos -> BaseItemKind.MUSIC_VIDEO
-                    LibraryType.BoxSets -> BaseItemKind.BOX_SET
-                    LibraryType.Playlists -> BaseItemKind.PLAYLIST
-                    else -> BaseItemKind.MOVIE
-                },
-            ),
+            recursive = recursive,
+            includeItemTypes = kinds.ifEmpty { null },
             sortBy = listOf(ItemSortBy.SORT_NAME),
             sortOrder = listOf(SortOrder.ASCENDING),
             startIndex = startIndex,
@@ -332,7 +337,11 @@ class SdkJellyfinLibraryDataSource(
             userId = session.userId.toUuid(),
             searchTerm = term,
             recursive = true,
-            includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES, BaseItemKind.EPISODE, BaseItemKind.MUSIC_VIDEO),
+            includeItemTypes = listOf(
+                BaseItemKind.MOVIE, BaseItemKind.SERIES, BaseItemKind.EPISODE, BaseItemKind.MUSIC_VIDEO,
+                BaseItemKind.AUDIO, BaseItemKind.MUSIC_ALBUM, BaseItemKind.MUSIC_ARTIST,
+                BaseItemKind.TV_CHANNEL, BaseItemKind.PERSON,
+            ),
             limit = limit,
             fields = ITEM_FIELDS,
             enableUserData = true,
@@ -370,6 +379,14 @@ private fun MediaKind.toBaseItemKind(): BaseItemKind? = when (this) {
     MediaKind.BoxSet -> BaseItemKind.BOX_SET
     MediaKind.Playlist -> BaseItemKind.PLAYLIST
     MediaKind.Video -> BaseItemKind.VIDEO
+    MediaKind.Song -> BaseItemKind.AUDIO
+    MediaKind.MusicAlbum -> BaseItemKind.MUSIC_ALBUM
+    MediaKind.MusicArtist -> BaseItemKind.MUSIC_ARTIST
+    MediaKind.TvChannel -> BaseItemKind.TV_CHANNEL
+    MediaKind.Program -> BaseItemKind.TV_PROGRAM
+    MediaKind.Recording -> BaseItemKind.RECORDING
+    MediaKind.Folder -> BaseItemKind.FOLDER
+    MediaKind.Person -> BaseItemKind.PERSON
     MediaKind.Other -> null
 }
 
@@ -379,7 +396,11 @@ internal fun BaseItemDto.toLibrary(serverAddress: String) = Library(
     type = when (collectionType) {
         CollectionType.MOVIES -> LibraryType.Movies
         CollectionType.TVSHOWS -> LibraryType.TvShows
+        CollectionType.MUSIC -> LibraryType.Music
         CollectionType.MUSICVIDEOS -> LibraryType.MusicVideos
+        CollectionType.LIVETV -> LibraryType.LiveTv
+        CollectionType.HOMEVIDEOS -> LibraryType.HomeVideos
+        CollectionType.FOLDERS -> LibraryType.Mixed
         CollectionType.BOXSETS -> LibraryType.BoxSets
         CollectionType.PLAYLISTS -> LibraryType.Playlists
         else -> LibraryType.Other
@@ -398,6 +419,14 @@ internal fun BaseItemDto.toMediaItem(serverAddress: String): MediaItem {
         BaseItemKind.BOX_SET -> MediaKind.BoxSet
         BaseItemKind.PLAYLIST -> MediaKind.Playlist
         BaseItemKind.VIDEO, BaseItemKind.TRAILER -> MediaKind.Video
+        BaseItemKind.AUDIO, BaseItemKind.AUDIO_BOOK -> MediaKind.Song
+        BaseItemKind.MUSIC_ALBUM -> MediaKind.MusicAlbum
+        BaseItemKind.MUSIC_ARTIST -> MediaKind.MusicArtist
+        BaseItemKind.TV_CHANNEL, BaseItemKind.LIVE_TV_CHANNEL -> MediaKind.TvChannel
+        BaseItemKind.TV_PROGRAM, BaseItemKind.LIVE_TV_PROGRAM, BaseItemKind.PROGRAM -> MediaKind.Program
+        BaseItemKind.RECORDING -> MediaKind.Recording
+        BaseItemKind.FOLDER -> MediaKind.Folder
+        BaseItemKind.PERSON -> MediaKind.Person
         else -> MediaKind.Other
     }
     val streams = mediaStreams.orEmpty().map { stream ->
@@ -492,6 +521,26 @@ internal fun BaseItemDto.toMediaItem(serverAddress: String): MediaItem {
         },
         remoteTrailers = remoteTrailers.orEmpty().map { com.pyoungws.bluewolfplayer.shared.model.MediaTrailer(name = it.name, url = it.url.orEmpty()) },
         mediaSources = mediaSources.orEmpty().map { com.pyoungws.bluewolfplayer.shared.model.MediaVersion(id = it.id.orEmpty(), name = it.name ?: it.path?.substringAfterLast('/') ?: it.id.orEmpty()) },
+        albumId = albumId?.toString(),
+        albumName = album,
+        artists = artists.orEmpty(),
+        artistIds = artistItems.orEmpty().map { it.id.toString() },
+        trackNumber = if (kind == MediaKind.Song) indexNumber else null,
+        programInfo = if (kind == MediaKind.Program || kind == MediaKind.TvChannel) com.pyoungws.bluewolfplayer.shared.model.ProgramInfo(
+            channelId = channelId?.toString(),
+            channelName = channelName,
+            channelNumber = channelNumber ?: number?.toString(),
+            start = startDate,
+            end = endDate,
+            isLive = isLive == true,
+            isPremiere = isPremiere == true,
+            isRepeat = isRepeat == true,
+            isSeries = isSeries == true,
+            timerId = timerId,
+            seriesTimerId = seriesTimerId,
+        ) else null,
+        canDelete = canDelete == true,
+        canDownload = canDownload == true,
         trickplay = trickplay?.values?.filterNotNull()?.flatMap { it.entries }?.maxByOrNull { it.key.toIntOrNull() ?: 0 }?.let { entry ->
             val tileWidthPx = entry.key.toIntOrNull() ?: entry.value.width
             com.pyoungws.bluewolfplayer.shared.model.TrickplayTiles(
