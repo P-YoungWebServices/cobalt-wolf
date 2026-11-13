@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -51,6 +52,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
@@ -198,8 +200,10 @@ private fun TvDetailContent(
         // that focusing Play means "bring item 0 into view": it is already at the top,
         // so the focus scroll clamps to offset 0 instead of sliding the header away.
         item(key = "masthead") {
-            Column {
             Box(Modifier.fillMaxWidth()) {
+                // The backdrop fills the whole masthead behind the meta/actions rather than
+                // being a thin strip above them — a 110dp-tall center crop only shows the
+                // middle ~27% of a 16:9 image and reads as a cut-off/scrolled page.
                 val options = com.pyoungws.bluewolfplayer.ui.common.rememberDisplayOptions().first
                 val image = item.backdropUrl ?: item.landscapeUrl
                 if (image != null && options.showBackdrops) {
@@ -207,16 +211,27 @@ private fun TvDetailContent(
                         model = image,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth().height(110.dp)
+                        alignment = Alignment.TopCenter,
+                        modifier = Modifier.matchParentSize()
                             .then(if (options.blurBackdrops) Modifier.blur(20.dp) else Modifier),
                     )
                     if (options.blurBackdrops) {
-                        Box(Modifier.fillMaxWidth().height(110.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)))
+                        Box(Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)))
                     }
-                } else {
-                    Box(Modifier.fillMaxWidth().height(40.dp))
                 }
-            }
+                // Fade the bottom of the backdrop into the page so the meta row and buttons
+                // stay readable over it.
+                Box(
+                    Modifier.matchParentSize().background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.45f to MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+                            1f to MaterialTheme.colorScheme.surface,
+                        )
+                    )
+                )
+                Column {
+                Spacer(Modifier.height(if (image != null && options.showBackdrops) 120.dp else 40.dp))
             Row(Modifier.padding(horizontal = TvContentPadding, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 if (item.logoUrl != null) {
                     AsyncImage(model = item.logoUrl, contentDescription = item.name, contentScale = ContentScale.Fit, modifier = Modifier.width(150.dp).height(96.dp))
@@ -306,6 +321,7 @@ private fun TvDetailContent(
                 item.seriesId?.takeIf { item.kind == MediaKind.Episode }?.let { seriesId ->
                     TvActionButton(icon = Icons.Outlined.Tv, label = stringResource(R.string.detail_view_series), onClick = { onOpenItem(seriesId) })
                 }
+            }
             }
             }
         }
