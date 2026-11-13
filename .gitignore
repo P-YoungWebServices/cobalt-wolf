@@ -95,3 +95,6 @@ coverage/
 
 # Local test credentials (never commit)
 dev.credentials.properties
+
+# Website sources — hosted/deployed separately, never commit
+website/
