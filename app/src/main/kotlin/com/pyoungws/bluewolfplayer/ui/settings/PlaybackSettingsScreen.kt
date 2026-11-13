@@ -229,6 +229,19 @@ private fun Overrides(state: PlaybackSettingsUiState, viewModel: PlaybackSetting
             TranscodeCodec.Hevc to R.string.transcode_hevc,
             TranscodeCodec.Av1 to R.string.transcode_av1,
         )
+        Choice(
+            R.string.settings_h264_level, settings.h264LevelCap, viewModel::setH264LevelCap,
+            0 to R.string.level_max,
+            40 to R.string.level_40, 41 to R.string.level_41, 42 to R.string.level_42,
+            50 to R.string.level_50, 51 to R.string.level_51, 52 to R.string.level_52,
+        )
+        Choice(
+            R.string.settings_hevc_level, settings.hevcLevelCap, viewModel::setHevcLevelCap,
+            0 to R.string.level_max,
+            120 to R.string.level_40, 123 to R.string.level_41, 150 to R.string.level_50,
+            153 to R.string.level_51, 156 to R.string.level_52, 180 to R.string.level_60,
+            183 to R.string.level_61, 186 to R.string.level_62,
+        )
         OutlinedButton(onClick = viewModel::resetToAutomatic, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(stringResource(R.string.playback_reset))
         }

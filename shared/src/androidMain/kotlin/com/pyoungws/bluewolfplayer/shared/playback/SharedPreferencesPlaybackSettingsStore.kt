@@ -40,6 +40,8 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             bufferSeconds = preferences.getInt(KEY_BUFFER_SECONDS, defaults.bufferSeconds),
             nextUpCutoffDays = preferences.getInt(KEY_NEXT_UP_CUTOFF, defaults.nextUpCutoffDays),
             transcodeCodec = enum(KEY_TRANSCODE_CODEC, defaults.transcodeCodec),
+            h264LevelCap = preferences.getInt(KEY_H264_LEVEL, defaults.h264LevelCap),
+            hevcLevelCap = preferences.getInt(KEY_HEVC_LEVEL, defaults.hevcLevelCap),
             homeRowOrder = preferences.getString(KEY_HOME_ROW_ORDER, null)?.split(",").orEmpty(),
             hiddenHomeRows = preferences.getString(KEY_HOME_HIDDEN_ROWS, null)?.split(",")?.toSet().orEmpty(),
         )
@@ -78,6 +80,8 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             .putInt(KEY_BUFFER_SECONDS, settings.bufferSeconds)
             .putInt(KEY_NEXT_UP_CUTOFF, settings.nextUpCutoffDays)
             .putString(KEY_TRANSCODE_CODEC, settings.transcodeCodec.name)
+            .putInt(KEY_H264_LEVEL, settings.h264LevelCap)
+            .putInt(KEY_HEVC_LEVEL, settings.hevcLevelCap)
             .putString(KEY_HOME_ROW_ORDER, settings.homeRowOrder.joinToString(","))
             .putString(KEY_HOME_HIDDEN_ROWS, settings.hiddenHomeRows.joinToString(","))
             .apply()
@@ -118,6 +122,8 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
         const val KEY_BUFFER_SECONDS = "buffer_seconds"
         const val KEY_NEXT_UP_CUTOFF = "next_up_cutoff"
         const val KEY_TRANSCODE_CODEC = "transcode_codec"
+        const val KEY_H264_LEVEL = "h264_level_cap"
+        const val KEY_HEVC_LEVEL = "hevc_level_cap"
         const val KEY_HOME_ROW_ORDER = "home_row_order"
         const val KEY_HOME_HIDDEN_ROWS = "home_hidden_rows"
     }

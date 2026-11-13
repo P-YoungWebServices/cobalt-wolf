@@ -108,6 +108,16 @@ class DeviceProfileTest {
     }
 
     @Test
+    fun `a codec level cap becomes a profile condition so the server transcodes above it`() {
+        val profile = buildDeviceProfile(TV_CAPABILITIES, PlaybackSettings(h264LevelCap = 42, hevcLevelCap = 153))
+
+        assertEquals("42", profile.codec("h264").value(ProfileConditionValue.VIDEO_LEVEL))
+        assertEquals("153", profile.codec("hevc").value(ProfileConditionValue.VIDEO_LEVEL))
+        assertTrue(profile.codec("vp9").conditions.none { it.property == ProfileConditionValue.VIDEO_LEVEL })
+        assertTrue(buildDeviceProfile(TV_CAPABILITIES, PlaybackSettings()).codec("h264").conditions.none { it.property == ProfileConditionValue.VIDEO_LEVEL })
+    }
+
+    @Test
     fun `styled and bitmap subtitles are taken from the container, text ones also as files`() {
         val subtitles = buildDeviceProfile(PHONE_CAPABILITIES, PlaybackSettings()).subtitleProfiles
         val embedded = subtitles.filter { it.method == SubtitleDeliveryMethod.EMBED }.map { it.format }

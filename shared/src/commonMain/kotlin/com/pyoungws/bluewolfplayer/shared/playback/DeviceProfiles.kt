@@ -78,7 +78,7 @@ fun buildDeviceProfile(capabilities: DeviceCapabilities, settings: PlaybackSetti
         ),
         containerProfiles = emptyList(),
         // No limits to state when the server would only repackage the video it is asked to transcode.
-        codecProfiles = if (serverTranscodesVideo) video.map { it.toCodecProfile() } else emptyList(),
+        codecProfiles = if (serverTranscodesVideo) video.map { it.toCodecProfile(settings) } else emptyList(),
         subtitleProfiles = EMBEDDED_SUBTITLES.filter { settings.pgsSubtitles || it !in GRAPHICAL_SUBTITLES }
             .map { SubtitleProfile(format = it, method = SubtitleDeliveryMethod.EMBED) } +
             EXTERNAL_SUBTITLES.map { SubtitleProfile(format = it, method = SubtitleDeliveryMethod.EXTERNAL) },
@@ -86,7 +86,7 @@ fun buildDeviceProfile(capabilities: DeviceCapabilities, settings: PlaybackSetti
     )
 }
 
-private fun VideoSupport.toCodecProfile() = CodecProfile(
+private fun VideoSupport.toCodecProfile(settings: PlaybackSettings) = CodecProfile(
     type = CodecType.VIDEO,
     codec = codec.jellyfinName,
     conditions = listOf(
@@ -94,9 +94,23 @@ private fun VideoSupport.toCodecProfile() = CodecProfile(
         condition(ProfileConditionType.LESS_THAN_EQUAL, ProfileConditionValue.HEIGHT, maxHeight.toString()),
         condition(ProfileConditionType.LESS_THAN_EQUAL, ProfileConditionValue.VIDEO_BIT_DEPTH, maxBitDepth.toString()),
         condition(ProfileConditionType.EQUALS_ANY, ProfileConditionValue.VIDEO_RANGE_TYPE, ranges.joinToString("|") { it.toSdk().serialName }),
-    ),
+    ) + levelCondition(codec, settings),
     applyConditions = emptyList(),
 )
+
+/** A user level cap on a codec becomes a profile condition, so the server transcodes what exceeds it. */
+private fun levelCondition(codec: VideoCodec, settings: PlaybackSettings): List<ProfileCondition> {
+    val level = when (codec) {
+        VideoCodec.H264 -> settings.h264LevelCap
+        VideoCodec.Hevc -> settings.hevcLevelCap
+        else -> 0
+    }
+    return if (level > 0) {
+        listOf(condition(ProfileConditionType.LESS_THAN_EQUAL, ProfileConditionValue.VIDEO_LEVEL, level.toString()))
+    } else {
+        emptyList()
+    }
+}
 
 // Not required: a stream whose property the server could not probe is still tried on the device.
 private fun condition(type: ProfileConditionType, property: ProfileConditionValue, value: String) =

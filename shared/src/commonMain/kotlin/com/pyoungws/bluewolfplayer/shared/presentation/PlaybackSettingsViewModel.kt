@@ -88,6 +88,8 @@ class PlaybackSettingsViewModel(
     fun setDefaultZoom(v: ZoomMode) = update { it.copy(defaultZoom = v) }
     fun setBufferSeconds(v: Int) = update { it.copy(bufferSeconds = v) }
     fun setTranscodeCodec(v: TranscodeCodec) = update { it.copy(transcodeCodec = v) }
+    fun setH264LevelCap(v: Int) = update { it.copy(h264LevelCap = v) }
+    fun setHevcLevelCap(v: Int) = update { it.copy(hevcLevelCap = v) }
 
     fun setHomeRowHidden(rowId: String, hidden: Boolean) = update {
         it.copy(hiddenHomeRows = if (hidden) it.hiddenHomeRows + rowId else it.hiddenHomeRows - rowId)

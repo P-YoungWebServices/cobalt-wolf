@@ -105,6 +105,10 @@ data class PlaybackSettings(
     val nextUpCutoffDays: Int = 365,
     /** Video codec the server should transcode to when a transcode is needed. */
     val transcodeCodec: TranscodeCodec = TranscodeCodec.Auto,
+    /** Highest H.264 level offered to the server (times 10, e.g. 51 = 5.1); streams above it get transcoded. 0 = decoder max. */
+    val h264LevelCap: Int = 0,
+    /** Highest HEVC level offered to the server (e.g. 153 = 5.1); 0 = decoder max. */
+    val hevcLevelCap: Int = 0,
     /** Order and visibility of home rows; rows listed here come first, hidden ones are removed. */
     val homeRowOrder: List<String> = emptyList(),
     val hiddenHomeRows: Set<String> = emptySet(),
