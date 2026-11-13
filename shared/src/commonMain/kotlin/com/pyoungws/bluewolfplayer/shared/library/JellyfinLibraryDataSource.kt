@@ -2,6 +2,8 @@ package com.pyoungws.bluewolfplayer.shared.library
 
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.LibraryType
+import com.pyoungws.bluewolfplayer.shared.model.LyricLine
+import com.pyoungws.bluewolfplayer.shared.model.Lyrics
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.GenreInfo
@@ -16,7 +18,9 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
+import org.jellyfin.sdk.api.client.extensions.instantMixApi
 import org.jellyfin.sdk.api.client.extensions.libraryApi
+import org.jellyfin.sdk.api.client.extensions.lyricApi
 import org.jellyfin.sdk.api.client.extensions.genreApi
 import org.jellyfin.sdk.api.client.extensions.showApi
 import org.jellyfin.sdk.api.client.extensions.suggestionApi
@@ -60,6 +64,8 @@ interface JellyfinLibraryDataSource {
     suspend fun getEpisodes(session: Session, seriesId: String, seasonId: String): List<MediaItem>
     suspend fun search(session: Session, term: String, limit: Int): List<MediaItem>
     suspend fun getSimilar(session: Session, itemId: String): List<MediaItem>
+    suspend fun getInstantMix(session: Session, itemId: String, limit: Int = 100): List<MediaItem>
+    suspend fun getLyrics(session: Session, itemId: String): Lyrics?
     suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem?
     suspend fun getSpecialFeatures(session: Session, itemId: String): List<MediaItem>
     suspend fun getLocalTrailers(session: Session, itemId: String): List<MediaItem>
@@ -138,6 +144,25 @@ class SdkJellyfinLibraryDataSource(
                 fields = ITEM_FIELDS,
             ),
         ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getInstantMix(session: Session, itemId: String, limit: Int) = call(session) {
+        instantMixApi.getInstantMixFromItem(
+            itemId = itemId.toUuid(),
+            userId = session.userId.toUuid(),
+            limit = limit,
+            fields = ITEM_FIELDS,
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getLyrics(session: Session, itemId: String) = call(session) {
+        lyricApi.getLyrics(itemId.toUuid()).content.let { dto ->
+            val offsetMs = dto.metadata?.offset ?: 0L
+            Lyrics(
+                providerName = dto.metadata?.creator,
+                lines = dto.lyrics.map { LyricLine(text = it.text, startMs = it.start?.let { t -> t / 10_000L + offsetMs }) },
+            )
+        }
     }
 
     override suspend fun getNextUpForSeries(session: Session, seriesId: String) = call(session) {

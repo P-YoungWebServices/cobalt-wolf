@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pyoungws.bluewolfplayer.shared.library.LibraryRepository
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
+import com.pyoungws.bluewolfplayer.shared.model.Lyrics
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
@@ -32,6 +33,7 @@ sealed interface ItemDetailUiState {
         val selectedMediaSourceId: String? = null,
         /** Contents of a box set / playlist. */
         val containerItems: List<MediaItem> = emptyList(),
+        val lyrics: Lyrics? = null,
     ) : ItemDetailUiState {
         /** What the main Play button starts: the item itself, or for a series the first unwatched (else first) episode. */
         val playTarget: MediaItem?
@@ -98,6 +100,9 @@ class ItemDetailViewModel(
                 (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(albumArtistIds = listOf(item.id), includeItemKinds = setOf(MediaKind.MusicAlbum), limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
             else -> emptyList()
         }
+        val lyrics = if (item.kind == MediaKind.Song) {
+            (repository.lyrics(itemId) as? Outcome.Success)?.value
+        } else null
         if (item.kind != MediaKind.Series) {
             _uiState.value = ItemDetailUiState.Loaded(
                 item,
@@ -106,6 +111,7 @@ class ItemDetailViewModel(
                 localTrailers = trailers,
                 previousEpisode = previousEpisode,
                 containerItems = containerItems,
+                lyrics = lyrics,
             )
             return
         }

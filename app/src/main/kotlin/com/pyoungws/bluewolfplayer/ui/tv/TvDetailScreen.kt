@@ -63,6 +63,7 @@ import coil3.compose.AsyncImage
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.MediaKind
+import kotlinx.coroutines.launch
 import com.pyoungws.bluewolfplayer.shared.model.detailInfoItems
 import com.pyoungws.bluewolfplayer.shared.model.endTime
 import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
@@ -428,6 +429,20 @@ private fun detailMenuOptions(
                     onDismiss()
                 })
             }
+        }
+        if (item.kind == MediaKind.Song || item.kind == MediaKind.MusicAlbum || item.kind == MediaKind.MusicArtist) {
+            val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
+            val mixScope = androidx.compose.runtime.rememberCoroutineScope()
+            add(TvMenuOption(stringResource(R.string.detail_instant_mix)) {
+                mixScope.launch {
+                    val mix = (repository.instantMix(item.id) as? com.pyoungws.bluewolfplayer.shared.model.Outcome.Success)?.value.orEmpty().filter { it.isPlayable }
+                    if (mix.isNotEmpty()) {
+                        playQueue.playNow(mix, 0)
+                        onPlay(mix.first().id)
+                    }
+                }
+                onDismiss()
+            })
         }
         add(TvMenuOption(stringResource(if (item.isPlayed) R.string.detail_mark_unwatched else R.string.detail_mark_watched)) { viewModel.toggleWatched(); onDismiss() })
         add(TvMenuOption(stringResource(if (item.isFavorite) R.string.detail_unfavorite else R.string.detail_favorite)) { viewModel.toggleFavorite(); onDismiss() })

@@ -3,6 +3,7 @@ package com.pyoungws.bluewolfplayer.shared.library
 import com.pyoungws.bluewolfplayer.shared.model.HomeFeed
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.GenreInfo
+import com.pyoungws.bluewolfplayer.shared.model.Lyrics
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
 import com.pyoungws.bluewolfplayer.shared.model.Page
@@ -99,6 +100,12 @@ class LibraryRepository(
 
     suspend fun similarItems(itemId: String): Outcome<List<MediaItem>> =
         guard.run { dataSource.getSimilar(it, itemId) }
+
+    suspend fun instantMix(itemId: String, limit: Int = 100): Outcome<List<MediaItem>> =
+        guard.run { dataSource.getInstantMix(it, itemId, limit) }
+
+    suspend fun lyrics(itemId: String): Outcome<Lyrics?> =
+        guard.run { dataSource.getLyrics(it, itemId) }
 
     suspend fun nextUpForSeries(seriesId: String): Outcome<MediaItem?> =
         guard.run { dataSource.getNextUpForSeries(it, seriesId) }

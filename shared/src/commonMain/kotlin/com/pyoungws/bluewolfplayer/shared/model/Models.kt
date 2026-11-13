@@ -37,6 +37,11 @@ enum class MediaKind {
 
 enum class StreamKind { Video, Audio, Subtitle }
 
+/** A lyric sheet: unsynced lines or timestamped karaoke-style lines (startMs null = unsynced). */
+data class Lyrics(val providerName: String? = null, val lines: List<LyricLine> = emptyList())
+
+data class LyricLine(val text: String, val startMs: Long? = null)
+
 /** One media stream of an item's primary media source: codec, resolution/HDR for video, layout for audio. */
 data class MediaStreamInfo(
     val kind: StreamKind,

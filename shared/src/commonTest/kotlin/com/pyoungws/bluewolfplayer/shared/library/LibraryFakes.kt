@@ -74,8 +74,12 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
     override suspend fun getLocalTrailers(session: Session, itemId: String): List<MediaItem> = localTrailers(itemId).also { calls += "localTrailers($itemId)" }
     override suspend fun getPreviousEpisode(session: Session, episode: MediaItem): MediaItem? = previousEpisode(episode).also { calls += "previousEpisode(${episode.id})" }
     var similar: (itemId: String) -> List<MediaItem> = { emptyList() }
+    var instantMix: (itemId: String, limit: Int) -> List<MediaItem> = { _, _ -> emptyList() }
+    var lyrics: (itemId: String) -> com.pyoungws.bluewolfplayer.shared.model.Lyrics? = { null }
     var nextUpForSeries: (seriesId: String) -> MediaItem? = { null }
     override suspend fun getSimilar(session: Session, itemId: String): List<MediaItem> = similar(itemId).also { calls += "similar($itemId)" }
+    override suspend fun getInstantMix(session: Session, itemId: String, limit: Int): List<MediaItem> = instantMix(itemId, limit).also { calls += "instantMix($itemId)" }
+    override suspend fun getLyrics(session: Session, itemId: String): com.pyoungws.bluewolfplayer.shared.model.Lyrics? = lyrics(itemId).also { calls += "lyrics($itemId)" }
     override suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem? = nextUpForSeries(seriesId).also { calls += "nextUpSeries($seriesId)" }
     override suspend fun setPlayed(session: Session, itemId: String, played: Boolean) { calls += "setPlayed($itemId,$played)" }
     override suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean) { calls += "setFavorite($itemId,$favorite)" }

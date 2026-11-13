@@ -705,4 +705,6 @@
     <string name="view_albums">Albums</string>
     <string name="view_artists">Artists</string>
     <string name="view_songs">Songs</string>
+    <string name="detail_instant_mix">Instant mix</string>
+    <string name="detail_lyrics">Lyrics</string>
 </resources>

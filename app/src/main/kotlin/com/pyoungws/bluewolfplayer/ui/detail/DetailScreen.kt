@@ -239,6 +239,19 @@ private fun DetailContent(
                             }
                         }
                     }
+                    if (item.kind == MediaKind.Song || item.kind == MediaKind.MusicAlbum || item.kind == MediaKind.MusicArtist) {
+                        val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
+                        val mixScope = androidx.compose.runtime.rememberCoroutineScope()
+                        OutlinedButton(onClick = {
+                            mixScope.launch {
+                                val mix = (repository.instantMix(item.id) as? com.pyoungws.bluewolfplayer.shared.model.Outcome.Success)?.value.orEmpty().filter { it.isPlayable }
+                                if (mix.isNotEmpty()) {
+                                    playQueue.playNow(mix, 0)
+                                    onPlay(mix.first().id)
+                                }
+                            }
+                        }) { Text(stringResource(R.string.detail_instant_mix)) }
+                    }
                     item.seriesId?.takeIf { item.kind == MediaKind.Episode }?.let { seriesId ->
                         OutlinedButton(onClick = { onOpenItem(seriesId) }) { Text(stringResource(R.string.detail_view_series)) }
                     }
@@ -326,6 +339,14 @@ private fun DetailContent(
                             Text(entry.name, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
                         }
                     }
+                }
+            }
+        }
+        state.lyrics?.takeIf { it.lines.isNotEmpty() }?.let { lyrics ->
+            item(key = "lyrics") {
+                SectionTitle(stringResource(R.string.detail_lyrics))
+                Column(Modifier.padding(horizontal = 16.dp)) {
+                    lyrics.lines.forEach { line -> Text(line.text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
             }
         }
