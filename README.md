@@ -164,7 +164,7 @@ track by type, `--es subtitle_mime application/pgs` (or `text/x-ssa`,
 - Official Jellyfin Kotlin SDK; Ktor for Seerr/arr integrations
 - MVVM with coroutines/Flow, Koin DI, Coil 3
 
-See `docs/SPEC.md` for the full product spec and `AGENTS.md` for
+See `SPEC.md` for the full product spec and `AGENTS.md` for
 contributing conventions.
 
 ## Licensing

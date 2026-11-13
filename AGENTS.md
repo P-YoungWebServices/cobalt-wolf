@@ -9,7 +9,7 @@ Conventions and rules for contributing to Cobalt Wolf.
 - **Kotlin coroutines and Flow** for all asynchronous work. No callbacks or
   RxJava.
 - UI is Jetpack Compose (phone/tablet) and Compose for TV.
-- Follow `docs/SPEC.md` for the product spec and milestone plan.
+- Follow `SPEC.md` for the product spec and milestone plan.
 
 ## Process
 
@@ -317,7 +317,7 @@ Conventions and rules for contributing to Cobalt Wolf.
 All checked for GPL v3 compatibility:
 
 - Jellyfin Kotlin SDK (`org.jellyfin.sdk`), LGPL-3.0. Keep attribution.
-  Requires Jellyfin server 12.0+ (see `docs/SPEC.md`).
+  Requires Jellyfin server 12.0+ (see `SPEC.md`).
 - Kotlin, kotlinx.coroutines, kotlinx.serialization, kotlinx.datetime: Apache-2.0
 - Ktor client (core, OkHttp engine, content negotiation, kotlinx-json; mock for
   tests): Apache-2.0. Used for the Seerr/Jellyseerr REST API in `shared/.../seerr`.
