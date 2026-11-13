@@ -326,6 +326,7 @@ private fun TvDetailContent(
                     TvActionButton(icon = Icons.AutoMirrored.Outlined.PlaylistPlay, label = stringResource(R.string.player_play_next), onClick = { playQueue.playNext(target) })
                     TvActionButton(icon = Icons.Outlined.AddToQueue, label = stringResource(R.string.player_add_to_queue), onClick = { playQueue.enqueue(target) })
                 }
+                TvActionButton(icon = Icons.Outlined.MoreVert, label = stringResource(R.string.home_more), onClick = { optionsOpen = true })
                 // Stream/version pickers share the row — it scrolls sideways if a
                 // fully-loaded item (resume + shuffle + all three pickers) overflows.
                 val audioStreams = item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }
@@ -362,7 +363,6 @@ private fun TvDetailContent(
                         )
                     }
                 }
-                TvActionButton(icon = Icons.Outlined.MoreVert, label = stringResource(R.string.home_more), onClick = { optionsOpen = true })
             }
             }
             }
