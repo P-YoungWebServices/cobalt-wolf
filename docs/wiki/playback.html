@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playback engine — Cobalt Wolf Wiki</title>
+<meta name="description" content="How Cobalt Wolf chooses playback paths: direct play, FFmpeg software decode and server transcode; HDR, audio passthrough, subtitles and the stats overlay.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="building.html">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html" class="active">Playback engine</a>
+    <a href="tv.html">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html">Watch together</a>
+    <a href="downloads.html">Offline downloads</a>
+    <a href="multi-server.html">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html">Requests (Seerr)</a>
+    <a href="media-management.html">Calendar &amp; media manager</a>
+    <a href="admin.html">Admin dashboard</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Playback engine</div>
+    <h1>Playback engine</h1>
+    <p>Cobalt Wolf's player is built on Media3/ExoPlayer with an FFmpeg decoder extension. Instead of a fixed device profile, it detects what your hardware can do <em>every time you press play</em> and picks the highest-quality path that will actually work.</p>
+
+    <h2>How a playback path is chosen</h2>
+    <p>On every playback start, the app probes:</p>
+    <ul>
+      <li><strong>Decoders</strong> — which codecs and profiles the device can decode in hardware (H.264, HEVC, AV1, VP9) and up to what resolution/level.</li>
+      <li><strong>Display</strong> — whether the connected panel supports HDR10, HDR10+, HLG or Dolby Vision.</li>
+      <li><strong>Audio output</strong> — which encoded formats the HDMI sink (TV/receiver/soundbar) reports for passthrough.</li>
+    </ul>
+    <p>It then walks the fallback order below and stops at the first level the file and device both support.</p>
+
+    <h2>The fallback order</h2>
+    <table class="spec">
+      <tr><th>Level</th><th>What happens</th></tr>
+      <tr><td><strong>1. Direct play</strong></td><td>The file is streamed as-is and decoded by the device's hardware decoders. Zero server CPU. Used whenever the codec, resolution, HDR format and audio are all supported.</td></tr>
+      <tr><td><strong>2. Local FFmpeg decode</strong></td><td>The stream is still direct-played, but the bundled FFmpeg decoders handle formats the hardware can't. Costs device battery/CPU; needs no server transcoding.</td></tr>
+      <tr><td><strong>3. Server transcode</strong></td><td>The last resort: Jellyfin transcodes to a supported format. Honors a configurable codec preference and codec-level caps.</td></tr>
+    </table>
+    <p>A decoder that <em>fails mid-playback</em> drops down the same chain automatically and resumes where it stopped — you see a blip, not an error screen.</p>
+
+    <h2>Video &amp; HDR</h2>
+    <ul>
+      <li><strong>Codecs:</strong> H.264, HEVC, AV1, VP9 — up to the device's decoder limits (4K where the hardware allows).</li>
+      <li><strong>HDR:</strong> HDR10, HDR10+, HLG and Dolby Vision profiles 5, 7 and 8, when both the decoder and the display support the format.</li>
+      <li><strong>Graceful degradation:</strong> unsupported Dolby Vision plays its HDR10/HLG/SDR base layer; HDR10+ plays as HDR10; HDR on an SDR display is tone-mapped by the server transcode.</li>
+      <li><strong>Display matching (TV):</strong> the output frame rate switches to match the content (23.976, 24, 25, 30, 50, 60 Hz…), and HDR is only signalled while HDR content is actually playing — your TV won't be stuck in HDR mode for SDR video.</li>
+    </ul>
+
+    <h2>Audio</h2>
+    <ul>
+      <li><strong>Passthrough</strong> when the HDMI sink reports the format: Dolby Digital, Digital Plus (incl. Atmos), TrueHD (incl. Atmos), DTS, DTS-HD MA (incl. DTS:X).</li>
+      <li><strong>PCM decode</strong> on-device when passthrough isn't available — your receiver still gets multichannel, just decoded on the player.</li>
+      <li><strong>Night mode</strong> — loudness normalization for late-night listening.</li>
+      <li><strong>Track picker</strong> — switch audio tracks during playback, or pick a different media source/version before starting.</li>
+    </ul>
+
+    <h2>Subtitles</h2>
+    <ul>
+      <li><strong>ASS/SSA</strong> — full styling via bundled libass (fonts, positioning, karaoke, transforms).</li>
+      <li><strong>PGS</strong> — image-based subtitles rendered in the player.</li>
+      <li><strong>SRT / external text</strong> — rendered natively with a per-track <strong>delay offset</strong> control to fix out-of-sync subs.</li>
+    </ul>
+
+    <h2>Player controls</h2>
+    <ul>
+      <li><strong>Gestures (touch):</strong> swipe for brightness and volume, drag to seek.</li>
+      <li><strong>Trickplay</strong> — seek thumbnails while scrubbing, when the server provides them.</li>
+      <li><strong>Extras:</strong> playback speed, repeat modes, chapter navigation, "Ends at" wall-clock.</li>
+      <li><strong>Intro/outro skip</strong> — Jellyfin MediaSegments are shown as a skip button; on TV it's auto-focused.</li>
+      <li><strong>Next episode</strong> — a real next button once the next item resolves, plus auto-advance when an episode ends (disabled inside SyncPlay groups).</li>
+      <li><strong>Picture-in-picture</strong> on phones and tablets.</li>
+    </ul>
+
+    <h2>The stats overlay</h2>
+    <p>Enable the stats overlay for a live readout, updated continuously:</p>
+    <pre><code>stats · codec hevc · decoder c2.*.hevc.*
+hdr HDR10 · audio TrueHD → passthrough (Atmos)
+out 3840×2160 @ 23.976 · dropped 0</code></pre>
+    <p>It shows the active codec, the decoder in use, HDR type, whether audio is passthrough or PCM, sample rate, channel layout, output resolution/frame rate and dropped frames — the first thing to check when diagnosing playback issues.</p>
+
+    <h2>Playback settings &amp; overrides</h2>
+    <p>The <strong>Playback</strong> settings page lists exactly what capability detection found on your device — decoders, HDR formats, audio outputs — and lets you override the automatic choices:</p>
+    <ul>
+      <li><strong>Decoding:</strong> Auto · Prefer local decode · Always transcode</li>
+      <li><strong>Audio output:</strong> Auto · PCM only</li>
+      <li><strong>HDR:</strong> Auto · SDR only</li>
+      <li><strong>Dolby Vision:</strong> on/off</li>
+      <li><strong>Styled subtitles:</strong> ASS/SSA rendering on/off</li>
+    </ul>
+    <div class="note">Overriding to <strong>Always transcode</strong> or <strong>PCM only</strong> is the fastest workaround for a device with a flaky decoder or an audio receiver that misreports its formats.</div>
+
+    <h2>Matroska seeking</h2>
+    <p>Some ffmpeg-remuxed MKVs only reference their seek index (Cues) from a second SeekHead at the end of the file, which ExoPlayer's Matroska extractor never follows — making the file report itself as unseekable. Cobalt Wolf probes the MKV over HTTP range requests before playback, builds the cue index itself and injects a real seek map, so scrubbing, rewind/fast-forward and <code>seekTo</code> all work on those files.</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

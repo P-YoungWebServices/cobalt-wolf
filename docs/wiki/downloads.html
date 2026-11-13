@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offline downloads — Cobalt Wolf Wiki</title>
+<meta name="description" content="Download media for offline playback in Cobalt Wolf on phones and tablets.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="building.html">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html">Playback engine</a>
+    <a href="tv.html">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html">Watch together</a>
+    <a href="downloads.html" class="active">Offline downloads</a>
+    <a href="multi-server.html">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html">Requests (Seerr)</a>
+    <a href="media-management.html">Calendar &amp; media manager</a>
+    <a href="admin.html">Admin dashboard</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Offline downloads</div>
+    <h1>Offline downloads</h1>
+    <p>Save movies and episodes to your phone or tablet and watch them without a connection — on a plane, in the car, anywhere your server can't reach.</p>
+
+    <h2>Downloading</h2>
+    <ul>
+      <li>Open the detail page for a movie or episode and choose <strong>Download</strong>.</li>
+      <li>Downloads appear in the app's <strong>Downloads</strong> section, where you can watch progress, pause or remove them.</li>
+      <li>Downloaded items play through the same player — the full <a href="playback.html">playback engine</a>, subtitle support and track pickers included.</li>
+    </ul>
+    <div class="note">Downloads are available on phone and tablet. On TV, the Downloads entry is an admin-only route used for the qBittorrent monitor — see <a href="media-management.html">Calendar &amp; media manager</a>.</div>
+
+    <h2>Managing storage</h2>
+    <ul>
+      <li>Downloads live in the app's private storage — they don't clutter your gallery and are removed if the app is uninstalled.</li>
+      <li>Delete items individually from the Downloads section when you're done to reclaim space.</li>
+      <li>Keep an eye on device storage before grabbing large files: a 4K remux can be tens of gigabytes.</li>
+    </ul>
+
+    <h2>Don't confuse this with the qBittorrent monitor</h2>
+    <p>The admin <strong>Downloads</strong> route on TV and the torrent monitor are a different feature: they show your server's qBittorrent transfers, not files on this device. Offline downloads covered here are media saved <em>to this device</em> from your Jellyfin library.</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

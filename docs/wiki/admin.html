@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin dashboard — Cobalt Wolf Wiki</title>
+<meta name="description" content="The Cobalt Wolf admin dashboard: active sessions, users, devices, scheduled tasks, logs, libraries, plugins and API keys.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="building.html">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html">Playback engine</a>
+    <a href="tv.html">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html">Watch together</a>
+    <a href="downloads.html">Offline downloads</a>
+    <a href="multi-server.html">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html">Requests (Seerr)</a>
+    <a href="media-management.html">Calendar &amp; media manager</a>
+    <a href="admin.html" class="active">Admin dashboard</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Admin dashboard</div>
+    <h1>Admin dashboard</h1>
+    <p>Cobalt Wolf doubles as a Jellyfin admin console. If your Jellyfin user policy has the administrator flag, the dashboard and management destinations unlock automatically — no separate app, no extra sign-in.</p>
+
+    <h2>Who sees what</h2>
+    <ul>
+      <li><strong>Admins</strong> get the full dashboard: sessions poll, service cards, management section.</li>
+      <li><strong>Everyone else</strong> gets a reduced dashboard — Servers/Playback cards and recently added media, without admin data.</li>
+      <li>Admin routes are <strong>hidden and unreachable</strong> for non-admins — they're not merely greyed out.</li>
+    </ul>
+
+    <h2>Active sessions</h2>
+    <ul>
+      <li>Real-time list of who's playing what, with per-user activity.</li>
+      <li>Session detail: item, progress, codecs, whether it's direct-playing or transcoding.</li>
+      <li><strong>Playback control</strong> over sessions and the ability to <strong>send a message</strong> to one.</li>
+      <li>Sessions live on their own page from the dashboard's action cards.</li>
+    </ul>
+
+    <h2>Home-screen widget</h2>
+    <p>An Android home-screen widget lists the server's active sessions — user, item and progress — without opening the app. Add it from your launcher's widget picker.</p>
+
+    <h2>Management</h2>
+    <ul>
+      <li><strong>Users</strong> — view, create, edit and delete accounts.</li>
+      <li><strong>Devices</strong> — review and manage devices that have connected.</li>
+      <li><strong>Libraries</strong> — library details and info.</li>
+      <li><strong>Plugins</strong> — plugin management and server settings pages.</li>
+      <li><strong>API keys</strong> — administration of the server's keys.</li>
+    </ul>
+
+    <h2>Monitoring</h2>
+    <ul>
+      <li><strong>Scheduled tasks</strong> — start, stop and monitor library scans and other jobs.</li>
+      <li><strong>Live server logs</strong> — stream the log with filters.</li>
+      <li><strong>Activity log</strong> — server activity history.</li>
+      <li><strong>System info &amp; update status.</strong></li>
+    </ul>
+
+    <h2>Service cards</h2>
+    <p>If <a href="requests.html">Seerr</a>, <a href="media-management.html">Radarr/Sonarr, qBittorrent, Bazarr or Prowlarr</a> are configured, the dashboard carries status cards for them — including live badge counts for things like Bazarr wanted subtitles and Prowlarr indexer issues.</p>
+
+    <h2>Notifications</h2>
+    <p>While signed in, a watcher polls for request events and posts local notifications — e.g. when a request is approved or becomes available.</p>
+
+    <h2>On TV</h2>
+    <p>The dashboard opens from the More menu's <em>Server dashboard</em> entry. Admin screens run as pushed routes that are fully navigable by D-pad; Downloads and service credentials are admin-only routes opened from the dashboard.</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building from source — Cobalt Wolf Wiki</title>
+<meta name="description" content="Build Cobalt Wolf from source: toolchain requirements, Gradle commands and release signing.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="building.html" class="active">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html">Playback engine</a>
+    <a href="tv.html">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html">Watch together</a>
+    <a href="downloads.html">Offline downloads</a>
+    <a href="multi-server.html">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html">Requests (Seerr)</a>
+    <a href="media-management.html">Calendar &amp; media manager</a>
+    <a href="admin.html">Admin dashboard</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Building from source</div>
+    <h1>Building from source</h1>
+    <p>Cobalt Wolf is a Kotlin Multiplatform project: a <code>shared</code> module (models, data sources, repositories, ViewModels) plus an Android <code>app</code> module with a Compose UI for phones and a Compose for TV UI for televisions.</p>
+
+    <h2>Requirements</h2>
+    <table class="spec">
+      <tr><th>Tool</th><th>Version</th></tr>
+      <tr><td>JDK</td><td>17 or newer (Android Studio's bundled JBR works)</td></tr>
+      <tr><td>Android SDK</td><td>Platform 37 — via <code>ANDROID_HOME</code> or <code>local.properties</code> <code>sdk.dir</code></td></tr>
+      <tr><td>Gradle</td><td>Wrapper included — no install needed</td></tr>
+    </table>
+
+    <h2>Clone &amp; build</h2>
+    <pre><code>git clone https://github.com/P-YoungWebServices/cobalt-wolf.git
+cd cobalt-wolf
+
+./gradlew assembleDebug     # → app/build/outputs/apk/debug/
+./gradlew assembleRelease   # → app/build/outputs/apk/release/
+./gradlew test              # shared JVM + Android host tests and app unit tests</code></pre>
+    <p>Install the debug APK on a connected device with:</p>
+    <pre><code>adb install app/build/outputs/apk/debug/app-debug.apk</code></pre>
+
+    <h2>Release signing</h2>
+    <p>Release builds sign themselves when <code>keystore.properties</code> exists in the repo root:</p>
+    <pre><code>storeFile=../release.keystore
+storePassword=…
+keyAlias=…
+keyPassword=…</code></pre>
+    <p>Copy <code>keystore.properties.example</code>, point it at your keystore, and keep it out of version control (it's gitignored, as are <code>*.keystore</code>/<code>*.jks</code>). Without the file, <code>assembleRelease</code> produces an <strong>unsigned</strong> APK.</p>
+
+    <h2>Debug credentials seeding (optional)</h2>
+    <p>Debug builds can auto-configure a test server and service credentials at startup via <code>dev.credentials.properties</code> (gitignored) in the repo root. It seeds Jellyfin sign-in and the Seerr/arr/qBittorrent settings so a fresh test install is usable immediately. Release builds never read it — the release code path is a no-op.</p>
+    <div class="warnbox">Never commit credentials or copy them into code, docs or issue reports.</div>
+
+    <h2>Testing playback from adb</h2>
+    <p>Debug builds export two extra entry points (absent from release builds) for testing without a full server:</p>
+    <pre><code>APP=com.pyoungws.cobaltwolf
+# Play a URL directly
+adb shell am start -n $APP/.player.DebugPlayerActivity -d http://host:8089/sample.mkv --ez stats true
+# Play a library item by id
+adb shell am start -n $APP/.player.DebugPlayerActivity --es item_id &lt;jellyfin item id&gt;
+# Playback settings screen
+adb shell am start -n $APP/.ui.settings.DebugPlaybackSettingsActivity
+# Watch the player log
+adb logcat -s CobaltWolfPlayback</code></pre>
+    <p>The <code>CobaltWolfPlayback</code> tag logs detected capabilities, fallbacks taken and a periodic stats line.</p>
+
+    <h2>Contributing</h2>
+    <ul>
+      <li>Kotlin only, MVVM + repository layer, coroutines/Flow — no callbacks or RxJava.</li>
+      <li>Small, focused PRs; unit tests for all business logic.</li>
+      <li>Run <code>./gradlew test</code> before submitting.</li>
+      <li>All code must be original or license-compatible with GPL v3 — see <code>AGENTS.md</code> in the repo for the full rules.</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

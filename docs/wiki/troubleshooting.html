@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting — Cobalt Wolf Wiki</title>
+<meta name="description" content="Fixes for common Cobalt Wolf problems: sign-in, playback, HDR, audio passthrough, subtitles and TV issues.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="building.html">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html">Playback engine</a>
+    <a href="tv.html">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html">Watch together</a>
+    <a href="downloads.html">Offline downloads</a>
+    <a href="multi-server.html">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html">Requests (Seerr)</a>
+    <a href="media-management.html">Calendar &amp; media manager</a>
+    <a href="admin.html">Admin dashboard</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html" class="active">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Troubleshooting</div>
+    <h1>Troubleshooting</h1>
+    <p>Work through the relevant section. Most playback problems come down to a device capability being misdetected or a receiver misreporting its formats — both have overrides.</p>
+
+    <h2>Connecting &amp; signing in</h2>
+    <ul>
+      <li><strong>"Can't reach server"</strong> — verify the URL scheme and port (<code>http://server:8096</code> is the default), and that the device is on the same network. Try the address in a browser first.</li>
+      <li><strong>Server too old</strong> — Cobalt Wolf requires Jellyfin <strong>12.0+</strong>. Check your server version under Dashboard → General.</li>
+      <li><strong>Quick Connect fails</strong> — it must be enabled on the server (Dashboard → General → Quick Connect), and the approving client must be signed in to the same account.</li>
+      <li><strong>Kicked back to sign-in</strong> — the server invalidated your token (restart, plugin update, token revoked). The profile is removed; sign in again.</li>
+      <li><strong>Admin features missing</strong> — they're gated by your Jellyfin user policy's administrator flag, not an app setting. See <a href="admin.html">Admin dashboard</a>.</li>
+    </ul>
+
+    <h2>Playback</h2>
+    <ul>
+      <li><strong>Enable the stats overlay first</strong> — it shows which decoder, HDR path and audio output are actually in use. Most mysteries end there. See <a href="playback.html">Playback engine</a>.</li>
+      <li><strong>Stuttering on high-bitrate files</strong> — the device may be software-decoding. Check the stats line; if the decoder is FFmpeg-based, the hardware can't handle that codec. Let the server transcode (Playback settings → Always transcode) or get a lower-bitrate version.</li>
+      <li><strong>Video looks washed out / wrong colours</strong> — an HDR/SDR mismatch. Set Playback settings → HDR to <strong>SDR only</strong> to force tone-mapped output.</li>
+      <li><strong>Dolby Vision looks like HDR10</strong> — that's the intended fallback: profile 7/8 content plays its HDR10 base layer when the display can't do DV. Check the Playback settings page for what was detected.</li>
+      <li><strong>No audio on passthrough</strong> — the receiver/soundbar reported a format it doesn't actually handle. Set Audio output to <strong>PCM only</strong>.</li>
+      <li><strong>Audio out of sync on a specific file</strong> — try a different audio track or media version; if only that file is affected it's likely the encode, not the player.</li>
+      <li><strong>Can't seek in an MKV</strong> — update to the latest release; files whose seek index only lives at the end of the file are handled by the built-in cue probing. If it still fails, remux the file (<code>ffmpeg -i in.mkv -c copy out.mkv</code>).</li>
+    </ul>
+
+    <h2>Subtitles</h2>
+    <ul>
+      <li><strong>Styling looks wrong on ASS subs</strong> — toggle styled subtitles off/on in Playback settings; a very rare libass edge case may render better as plain text.</li>
+      <li><strong>Subs out of sync</strong> — use the per-track delay offset on external text subtitles.</li>
+      <li><strong>No subtitles listed</strong> — check the track picker during playback; also confirm the file actually has subtitle streams (detail page → media info).</li>
+    </ul>
+
+    <h2>TV-specific</h2>
+    <ul>
+      <li><strong>Phone UI on a TV</strong> — the device doesn't report itself as a television to Android. This is a device quirk; report it with the model name.</li>
+      <li><strong>Keyboard pops up unexpectedly</strong> — shouldn't happen: TV text fields stay read-only until focused and confirmed. If it does, report which screen.</li>
+      <li><strong>No home-screen channels</strong> — expected on Fire TV (no TV provider). On Android TV/Google TV, add the channel from the launcher's channel customization.</li>
+      <li><strong>Judder on 24p content</strong> — frame-rate matching needs the TV to allow display mode changes. Check the display stats line shows the content's rate.</li>
+    </ul>
+
+    <h2>Services (Seerr, *arr, qBittorrent)</h2>
+    <ul>
+      <li><strong>Service shows offline</strong> — test the URL in a browser from the same device; check the API key is current (arr apps regenerate them).</li>
+      <li><strong>qBittorrent keeps logging out</strong> — the app re-logs in automatically when the cookie expires; persistent failures mean the WebUI credentials changed.</li>
+      <li><strong>Seerr sign-in rejected</strong> — sign in with your <em>Jellyfin</em> credentials, not a separate Seerr password.</li>
+    </ul>
+
+    <h2>Still stuck?</h2>
+    <p><a href="https://github.com/P-YoungWebServices/cobalt-wolf/issues">Open an issue</a> and include:</p>
+    <ul>
+      <li>Device model, Android version, Jellyfin server version</li>
+      <li>The stats overlay output for playback problems</li>
+      <li>What you expected vs. what happened, and the steps to reproduce</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download — Cobalt Wolf</title>
+<meta name="description" content="Get Cobalt Wolf for Android phones, tablets, Android TV and Fire TV. Requirements, sideloading instructions and build-from-source guide.">
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="index.html"><img src="assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="features.html">Features</a>
+      <a href="download.html" class="active">Download</a>
+      <a href="wiki/index.html">Wiki</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="kicker">Download · Beta</span>
+      <h1>Get Cobalt Wolf</h1>
+      <p>Cobalt Wolf is distributed as a free, open-source APK. One build runs on phones, tablets, Android TV and Fire TV — the TV interface activates automatically on televisions.</p>
+    </div>
+
+    <div class="grid grid-2" style="margin-bottom:48px">
+      <div class="card">
+        <h3>⬇ Direct download</h3>
+        <p>The signed release APK, served right here. Current build: <strong>v0.1.0-beta</strong> (~75&nbsp;MB).</p>
+        <p style="margin-top:16px"><a class="btn btn-primary" href="https://github.com/P-YoungWebServices/cobalt-wolf/releases/download/v0.1.0-beta/cobalt-wolf-v0.1.0-beta.apk">Download APK</a></p>
+      </div>
+      <div class="card">
+        <h3>📦 GitHub Releases</h3>
+        <p>Every release, past and present, with notes and checksums on GitHub.</p>
+        <p style="margin-top:16px"><a class="btn btn-ghost" href="https://github.com/P-YoungWebServices/cobalt-wolf/releases">Browse releases</a></p>
+      </div>
+      <div class="card">
+        <h3>🔨 Build it yourself</h3>
+        <p>The whole codebase is GPL v3. Clone, build, install — no account needed.</p>
+        <p style="margin-top:16px"><a class="btn btn-ghost" href="wiki/building.html">Build guide →</a></p>
+      </div>
+    </div>
+
+    <h2>Requirements</h2>
+    <table class="spec" style="margin-bottom:48px">
+      <tr><th>Requirement</th><th>Minimum</th></tr>
+      <tr><td>Jellyfin server</td><td>12.0 or newer (Emby is not supported)</td></tr>
+      <tr><td>Android version</td><td>7.0 (API 24) or newer</td></tr>
+      <tr><td>Devices</td><td>Phones, tablets, Android TV, Fire TV — one APK</td></tr>
+      <tr><td>Optional services</td><td>Seerr/Jellyseerr, Radarr, Sonarr, qBittorrent, Bazarr, Prowlarr</td></tr>
+    </table>
+
+    <h2>Install on a phone or tablet</h2>
+    <div class="steps" style="margin-bottom:48px">
+      <div class="step"><div><h3>Download the APK</h3><p>On the device, tap <a href="https://github.com/P-YoungWebServices/cobalt-wolf/releases/download/v0.1.0-beta/cobalt-wolf-v0.1.0-beta.apk">Download APK</a> above (or grab it from <a href="https://github.com/P-YoungWebServices/cobalt-wolf/releases">GitHub Releases</a>).</p></div></div>
+      <div class="step"><div><h3>Allow the install</h3><p>Android will ask to allow installs from your browser or file manager — accept it. You can revoke the permission afterwards.</p></div></div>
+      <div class="step"><div><h3>Connect to your server</h3><p>Open Cobalt Wolf, enter your Jellyfin server address and sign in — or use Quick Connect. See the <a href="wiki/getting-started.html">getting started guide</a>.</p></div></div>
+    </div>
+
+    <h2>Install on Android TV / Fire TV</h2>
+    <p style="color:var(--text-dim)">The simplest option is a downloader app on the TV. Alternatively, install over <code>adb</code> from a computer:</p>
+    <pre><code># Android TV / Fire TV over network adb
+adb connect &lt;tv-ip-address&gt;
+adb -s &lt;tv-ip-address&gt; install cobalt-wolf-v0.1.0-beta.apk</code></pre>
+    <p style="color:var(--text-dim)">On Fire TV, enable <strong>Developer options → ADB debugging</strong> and <strong>Apps from unknown sources</strong> first. The TV layout appears automatically — there's nothing to configure.</p>
+
+    <div class="note">
+      <strong>Staying up to date:</strong> releases are published on GitHub. Reinstalling a newer APK over the top keeps your settings, servers and profiles — your sign-in tokens live in the Android Keystore.
+    </div>
+
+    <div class="warnbox">
+      Cobalt Wolf is a third-party app and is not affiliated with or endorsed by the Jellyfin project. It is not distributed through Google Play or the Amazon Appstore at this time — only install APKs from the official GitHub releases page or builds you made yourself.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <img src="assets/logo.svg" alt="Cobalt Wolf">
+        <p>A third-party Jellyfin client for Android and Android TV. Not affiliated with or endorsed by the Jellyfin project.</p>
+      </div>
+      <div>
+        <h4>App</h4>
+        <a href="features.html">Features</a>
+        <a href="download.html">Download</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div>
+        <h4>Wiki</h4>
+        <a href="wiki/getting-started.html">Getting started</a>
+        <a href="wiki/playback.html">Playback</a>
+        <a href="wiki/admin.html">Admin dashboard</a>
+        <a href="wiki/troubleshooting.html">Troubleshooting</a>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <a href="https://github.com/P-YoungWebServices/cobalt-wolf">Source code</a>
+        <a href="https://github.com/P-YoungWebServices/cobalt-wolf/issues">Report a bug</a>
+        <a href="wiki/building.html">Build from source</a>
+      </div>
+    </div>
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Jellyfin is a trademark of the Jellyfin project. Cobalt Wolf is not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

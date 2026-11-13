@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendar &amp; media manager — Cobalt Wolf Wiki</title>
+<meta name="description" content="Radarr/Sonarr calendars and media management, qBittorrent monitoring, Bazarr subtitles and Prowlarr indexers in Cobalt Wolf.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="building.html">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html">Playback engine</a>
+    <a href="tv.html">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html">Watch together</a>
+    <a href="downloads.html">Offline downloads</a>
+    <a href="multi-server.html">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html">Requests (Seerr)</a>
+    <a href="media-management.html" class="active">Calendar &amp; media manager</a>
+    <a href="admin.html">Admin dashboard</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Calendar &amp; media manager</div>
+    <h1>Calendar &amp; media manager</h1>
+    <p>Cobalt Wolf talks to the whole *arr stack: Radarr and Sonarr for calendars and media management, qBittorrent for transfers, Bazarr for subtitles and Prowlarr for indexers.</p>
+
+    <h2>Connecting services</h2>
+    <p>Open service settings (phone: More → Services; TV: the services entry under the dashboard) and add each service:</p>
+    <table class="spec">
+      <tr><th>Service</th><th>Needs</th><th>Used for</th></tr>
+      <tr><td>Radarr</td><td>URL + API key</td><td>Movie calendar, media manager</td></tr>
+      <tr><td>Sonarr</td><td>URL + API key</td><td>Episode calendar, media manager</td></tr>
+      <tr><td>qBittorrent</td><td>URL + username + password</td><td>Downloads monitor &amp; control</td></tr>
+      <tr><td>Bazarr</td><td>URL + API key</td><td>Wanted subtitles, provider search</td></tr>
+      <tr><td>Prowlarr</td><td>URL + API key</td><td>Indexer health, stats, retests</td></tr>
+    </table>
+    <div class="note">API keys and passwords are encrypted at rest via the Android Keystore. Each service fails independently — a dead Sonarr won't take the Radarr calendar down with it.</div>
+
+    <h2>Calendar</h2>
+    <ul>
+      <li>Merges upcoming episodes (Sonarr) and releases (Radarr) into one view.</li>
+      <li><strong>Three modes:</strong> List, Week (Monday-first) and Month grid — the app fetches exactly the visible range.</li>
+      <li>Available on both phone and TV; on TV it gets its own top-bar entry.</li>
+    </ul>
+
+    <h2>Media manager (admin only)</h2>
+    <p>Full control of Radarr movies and Sonarr series:</p>
+    <ul>
+      <li><strong>Browse</strong> the movie and series libraries each service manages.</li>
+      <li><strong>Edit</strong> monitored status, quality profile, root folder and tags. Edits preserve fields the app doesn't model, so nothing is silently dropped.</li>
+      <li><strong>Monitor</strong> seasons and episodes individually.</li>
+      <li><strong>Rename</strong> files with a preview before committing.</li>
+      <li><strong>Search &amp; grab</strong> — automatic and interactive release searches; pick a release and grab it.</li>
+      <li><strong>Manual import</strong> for files already on disk.</li>
+      <li><strong>Delete</strong> — with the choice of removing files or just the record.</li>
+    </ul>
+
+    <h2>qBittorrent monitor</h2>
+    <ul>
+      <li>Live <code>torrents/info</code> + <code>transfer/info</code> polling while the screen is open.</li>
+      <li>Pause/resume torrents — uses the v5 API and falls back to the legacy endpoints on older qBittorrent.</li>
+      <li>Toggle alternative speed limits ("turtle mode").</li>
+      <li>Cookie-based auth with automatic re-login when the session expires.</li>
+    </ul>
+
+    <h2>Bazarr</h2>
+    <ul>
+      <li>The <strong>wanted</strong> list shows movies and episodes missing subtitles.</li>
+      <li>Search subtitle providers for an item and download a subtitle directly.</li>
+    </ul>
+
+    <h2>Prowlarr</h2>
+    <ul>
+      <li>Overview merging indexers, stats, auto-disable status and health.</li>
+      <li>Retest a single indexer or test them all; failure details from validation errors are surfaced.</li>
+    </ul>
+
+    <h2>Access control</h2>
+    <p>The media manager, downloads monitor and service credentials are <strong>admin-only</strong> destinations — hidden and unreachable for regular users even though parts of the underlying screens are general-purpose. The calendar is available to everyone.</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

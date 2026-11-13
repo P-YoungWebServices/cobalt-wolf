@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cobalt Wolf — Jellyfin client for Android &amp; Android TV</title>
+<meta name="description" content="Cobalt Wolf is a free, open-source Jellyfin client for Android phones, tablets, Android TV and Fire TV — a full media player, server admin dashboard and media manager in one app.">
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="index.html"><img src="assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="features.html">Features</a>
+      <a href="download.html">Download</a>
+      <a href="wiki/index.html">Wiki</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-inner">
+    <div>
+      <span class="eyebrow">Free &amp; open source · GPL v3</span>
+      <h1>Your Jellyfin server,<br>unleashed.</h1>
+      <p class="lead">Cobalt Wolf combines a full-featured media player, a server admin dashboard and a media-management toolkit in one app — for Android phones, tablets, Android TV and Fire TV.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/P-YoungWebServices/cobalt-wolf/releases/download/v0.1.0-beta/cobalt-wolf-v0.1.0-beta.apk">Download APK</a>
+        <a class="btn btn-ghost" href="download.html">All download options</a>
+        <a class="btn btn-ghost" href="wiki/index.html">Read the wiki</a>
+      </div>
+      <div class="badge-row">
+        <span class="chip">v0.1.0-beta</span>
+        <span class="chip">Android 7.0+</span>
+        <span class="chip">Android TV &amp; Fire TV</span>
+        <span class="chip">Jellyfin 12.0+</span>
+        <span class="chip">4K · HDR · Dolby Vision</span>
+      </div>
+    </div>
+    <div>
+      <img class="wolf-hero" src="assets/logo.svg" alt="Cobalt Wolf — low-poly wolf logo">
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="kicker">One app, three jobs</span>
+      <h2>Watch it. Run it. Manage it.</h2>
+      <p>Most Jellyfin clients play media. Cobalt Wolf plays media, administers the server and manages the automation stack behind it — no switching between three apps.</p>
+    </div>
+    <div class="grid grid-3">
+      <div class="card">
+        <h3><span class="icon">▶</span>A serious player</h3>
+        <p>Direct play up to your device's limits with a graceful three-level fallback — direct play, on-device FFmpeg decode, then server transcode.</p>
+        <ul>
+          <li>4K, HDR10, HDR10+, HLG, Dolby Vision P5/P7/P8</li>
+          <li>H.264, HEVC, AV1, VP9</li>
+          <li>TrueHD Atmos, DTS-HD MA, DTS:X passthrough</li>
+          <li>ASS/SSA styling, PGS, SRT with delay offset</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><span class="icon">📺</span>A real TV app</h3>
+        <p>A dedicated 10-foot interface built with Compose for TV activates automatically on televisions — not a stretched phone layout.</p>
+        <ul>
+          <li>D-pad focus model tuned for remotes</li>
+          <li>Frame-rate &amp; HDR display matching</li>
+          <li>Home-screen channels where supported</li>
+          <li>Skip intro, next episode, ends-at clock</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><span class="icon">🛠</span>Server in your pocket</h3>
+        <p>Full admin dashboard for Jellyfin administrators, plus the whole *arr stack — from the same sign-in.</p>
+        <ul>
+          <li>Sessions, users, tasks, logs, libraries, plugins</li>
+          <li>Seerr requests &amp; approval queue</li>
+          <li>Radarr/Sonarr calendar &amp; media manager</li>
+          <li>qBittorrent, Bazarr, Prowlarr</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap split">
+    <div>
+      <span class="kicker">Best-for-the-device playback</span>
+      <h2>The highest-quality path your hardware can handle</h2>
+      <p style="color:var(--text-dim)">Every time you press play, Cobalt Wolf probes the device's decoders, display and audio output, then picks the best supported path — and falls back gracefully instead of failing.</p>
+      <ul class="tick-list">
+        <li><strong>Dolby Vision</strong> plays where the decoder and display support it; elsewhere it falls back to its HDR10/HLG/SDR base layer.</li>
+        <li><strong>Lossless audio passthrough</strong> when the HDMI sink reports the format — otherwise clean PCM decode on-device.</li>
+        <li><strong>Frame-rate matching</strong> on TV switches the output to the content's cadence; HDR is signalled only while HDR plays.</li>
+        <li><strong>Stats overlay</strong> shows codec, bitrate, HDR type, audio output, channels and dropped frames in real time.</li>
+      </ul>
+    </div>
+    <div class="mock">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span></div>
+      <div class="mock-title">Now playing — 4K HDR10</div>
+      <div class="poster" style="aspect-ratio:16/9"><i></i></div>
+      <div class="mock-stats">
+        stats · codec <b>hevc</b> · decoder <b>c2.exynos.hevc.sec</b><br>
+        hdr <b>HDR10</b> · audio <b>TrueHD → passthrough (Atmos)</b><br>
+        out <b>3840×2160 @ 23.976</b> · dropped <b>0</b>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="wrap split">
+    <div class="mock mock-tv">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span></div>
+      <div class="mock-title">Continue Watching</div>
+      <div class="mock-row"><div class="poster"><i></i></div><div class="poster"><i></i></div><div class="poster"><i></i></div><div class="poster"><i></i></div><div class="poster"><i></i></div></div>
+      <div class="mock-title">Recently Added</div>
+      <div class="mock-row"><div class="poster"><i></i></div><div class="poster"><i></i></div><div class="poster"><i></i></div><div class="poster"><i></i></div><div class="poster"><i></i></div></div>
+    </div>
+    <div>
+      <span class="kicker">Android TV &amp; Fire TV</span>
+      <h2>Built for the couch, not ported to it</h2>
+      <p style="color:var(--text-dim)">On a television, Cobalt Wolf swaps to a dedicated D-pad interface with its own navigation, focus model and player controls — same codebase, different experience.</p>
+      <ul class="tick-list">
+        <li><strong>Top-bar navigation</strong> — Home, Search, Seerr, Calendar and a More menu, always reachable.</li>
+        <li><strong>Home-screen channels</strong> for Continue Watching and Recently Added on Android TV.</li>
+        <li><strong>Remote transport keys</strong> — play/pause, fast-forward, rewind and stop just work.</li>
+        <li><strong>Context menus</strong> on every poster: play, mark watched, favourite, queue.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="kicker">Requests &amp; automation</span>
+      <h2>Your whole media stack, in one place</h2>
+      <p>Connect the services you already run and manage them without leaving the app.</p>
+    </div>
+    <div class="grid grid-4">
+      <div class="card"><h3>Seerr</h3><p>Browse trending titles, request movies and series, track request status. Admins get the approval queue.</p></div>
+      <div class="card"><h3>Radarr &amp; Sonarr</h3><p>Release calendars, plus a full media manager: edit, monitor, rename, search, grab and import.</p></div>
+      <div class="card"><h3>qBittorrent</h3><p>Live transfer monitor with pause/resume and alternative speed-limit toggling.</p></div>
+      <div class="card"><h3>Bazarr &amp; Prowlarr</h3><p>Search and download subtitles; check indexer health, stats and retest failures.</p></div>
+    </div>
+    <p style="text-align:center;margin-top:30px"><a class="btn btn-ghost" href="features.html">See every feature →</a></p>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="wrap">
+    <div class="section-head center">
+      <span class="kicker">Get started</span>
+      <h2>Ready in minutes</h2>
+      <p>All you need is a Jellyfin 12.0+ server and an Android device. No accounts, no paywalls, no ads.</p>
+      <div class="cta-row" style="justify-content:center">
+        <a class="btn btn-primary" href="https://github.com/P-YoungWebServices/cobalt-wolf/releases/download/v0.1.0-beta/cobalt-wolf-v0.1.0-beta.apk">Download APK</a>
+        <a class="btn btn-ghost" href="wiki/getting-started.html">Setup guide</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <img src="assets/logo.svg" alt="Cobalt Wolf">
+        <p>A third-party Jellyfin client for Android and Android TV. Not affiliated with or endorsed by the Jellyfin project.</p>
+      </div>
+      <div>
+        <h4>App</h4>
+        <a href="features.html">Features</a>
+        <a href="download.html">Download</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div>
+        <h4>Wiki</h4>
+        <a href="wiki/getting-started.html">Getting started</a>
+        <a href="wiki/playback.html">Playback</a>
+        <a href="wiki/admin.html">Admin dashboard</a>
+        <a href="wiki/troubleshooting.html">Troubleshooting</a>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <a href="https://github.com/P-YoungWebServices/cobalt-wolf">Source code</a>
+        <a href="https://github.com/P-YoungWebServices/cobalt-wolf/issues">Report a bug</a>
+        <a href="wiki/building.html">Build from source</a>
+      </div>
+    </div>
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Jellyfin is a trademark of the Jellyfin project. Cobalt Wolf is not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

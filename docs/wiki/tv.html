@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Android TV &amp; Fire TV — Cobalt Wolf Wiki</title>
+<meta name="description" content="Cobalt Wolf on Android TV and Fire TV: the 10-foot interface, D-pad navigation, home-screen channels and TV playback features.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="building.html">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html">Playback engine</a>
+    <a href="tv.html" class="active">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html">Watch together</a>
+    <a href="downloads.html">Offline downloads</a>
+    <a href="multi-server.html">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html">Requests (Seerr)</a>
+    <a href="media-management.html">Calendar &amp; media manager</a>
+    <a href="admin.html">Admin dashboard</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Android TV &amp; Fire TV</div>
+    <h1>Android TV &amp; Fire TV</h1>
+    <p>One APK, two interfaces. When Cobalt Wolf runs on a device that reports itself as a television, it automatically loads a dedicated 10-foot UI built with Compose for TV — a different layout, navigation model and player overlay, sharing all the same ViewModels and logic.</p>
+
+    <h2>Layout &amp; navigation</h2>
+    <ul>
+      <li><strong>Persistent top bar</strong> — the wolf icon plus Home, Search, Seerr, Calendar and a More menu (My requests, Servers, Settings, Server dashboard for admins, Sign out).</li>
+      <li><strong>Always dark</strong> — the TV theme is a fixed dark navy palette; it never uses the device's dynamic colours.</li>
+      <li><strong>D-pad focus model</strong> — autofocus on screen load, focus restoration when you go Back, and scroll-to-top behaviour tuned for remotes.</li>
+      <li><strong>Watch together</strong> isn't a nav item — it lives on detail pages, same as on phone.</li>
+      <li><strong>Back behaviour</strong> — pops pushed screens first, returns to Home, then exits.</li>
+    </ul>
+
+    <h2>Text entry with a remote</h2>
+    <p>Text fields stay read-only until you focus them and press centre/enter — then the on-screen keyboard appears. No accidental keyboard popups while scrolling.</p>
+    <div class="note">Signing in on a TV is much easier with <strong>Quick Connect</strong>: enter the code from any signed-in Jellyfin client instead of typing a password with the D-pad.</div>
+
+    <h2>Browsing</h2>
+    <ul>
+      <li>Poster rows and grids navigated entirely by D-pad.</li>
+      <li><strong>Context menus</strong> on every card (menu button or long-press): play, mark watched, favourite, add to queue and more — scoped to the item under focus.</li>
+      <li>Detail pages get a backdrop masthead and an icon action bar mirroring the phone layout.</li>
+      <li>Playlist reordering, the play queue and album track lists are all designed for the remote.</li>
+    </ul>
+
+    <h2>TV playback</h2>
+    <ul>
+      <li><strong>Remote transport keys</strong> — play/pause, fast-forward, rewind and stop are mapped.</li>
+      <li><strong>Focus-aware overlay</strong> — controls get a white ring + fill on focus; play/pause is focused when controls appear.</li>
+      <li><strong>Frame-rate matching</strong> — the display's refresh rate switches to match the content, and HDR is signalled only while HDR content plays.</li>
+      <li><strong>Skip intro/outro</strong> — the skip button auto-focuses when a segment is playing.</li>
+      <li><strong>Next episode</strong> — auto-advances at the end of an episode, and a controller next button once the next item resolves.</li>
+      <li><strong>"Ends at"</strong> — a wall-clock time in the overlay corner.</li>
+    </ul>
+    <div class="note">Picture-in-picture is deliberately disabled on TV — Fire OS declares the feature but Home → PiP behaves incorrectly there.</div>
+
+    <h2>Home-screen channels</h2>
+    <p>On devices with the Android TV provider, Cobalt Wolf publishes <strong>Continue Watching</strong> and <strong>Recently Added</strong> channels to the launcher home screen. Selecting a program deep-links straight into the item's detail page (<code>cobaltwolf://item/&lt;id&gt;</code>). Devices without the TV provider — including Fire TV — simply skip this.</p>
+
+    <h2>Admin on TV</h2>
+    <p>Admin features aren't separate TV screens — the phone admin screens run as <strong>pushed routes</strong> and are fully D-pad navigable. Downloads and service credentials are admin-only routes opened from the Server dashboard.</p>
+
+    <h2>Fire TV notes</h2>
+    <ul>
+      <li>Install over network adb or a downloader app — see the <a href="../download.html">download page</a>.</li>
+      <li>Enable <em>Developer options → ADB debugging</em> and <em>Apps from unknown sources</em> for sideloading.</li>
+      <li>Home-screen channels are not available on Fire TV (no TV provider); everything else works.</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

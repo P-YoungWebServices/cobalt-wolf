@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ — Cobalt Wolf</title>
+<meta name="description" content="Frequently asked questions about Cobalt Wolf, the open-source Jellyfin client for Android and Android TV.">
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="index.html"><img src="assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="features.html">Features</a>
+      <a href="download.html">Download</a>
+      <a href="wiki/index.html">Wiki</a>
+      <a href="faq.html" class="active">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap" style="max-width:820px">
+    <div class="section-head">
+      <span class="kicker">FAQ</span>
+      <h1>Frequently asked questions</h1>
+      <p>Can't find your answer? Check the <a href="wiki/index.html">wiki</a> or <a href="https://github.com/P-YoungWebServices/cobalt-wolf/issues">open an issue</a>.</p>
+    </div>
+
+    <details class="faq" open>
+      <summary>Is Cobalt Wolf free?</summary>
+      <p>Yes — completely. Cobalt Wolf is free and open-source software licensed under GPL v3. Every feature is included; there are no paywalls, ads, tracking or premium tiers.</p>
+    </details>
+
+    <details class="faq">
+      <summary>What do I need to use it?</summary>
+      <p>A Jellyfin server running <strong>12.0 or newer</strong> and an Android device on <strong>Android 7.0+</strong>. The same APK works on phones, tablets, Android TV and Fire TV.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Is this an official Jellyfin app?</summary>
+      <p>No. Cobalt Wolf is a third-party client and is <strong>not affiliated with or endorsed by the Jellyfin project</strong>. It's built on the official Jellyfin Kotlin SDK.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Does it support Emby?</summary>
+      <p>No — Cobalt Wolf is Jellyfin-only by design.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Will it direct-play my 4K HDR files?</summary>
+      <p>If your device can decode them, yes. Cobalt Wolf probes the device's decoders, display and audio output each time playback starts and picks the best supported path: H.264, HEVC, AV1 and VP9 up to 4K; HDR10, HDR10+, HLG and Dolby Vision (profiles 5, 7, 8). If a format isn't supported it falls back — first to on-device FFmpeg decoding, then to a server transcode — instead of failing. See the <a href="wiki/playback.html">playback wiki page</a> for the exact fallback order.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Does it do audio passthrough (Atmos, DTS:X)?</summary>
+      <p>Yes — Dolby Digital, Digital Plus/Atmos, TrueHD/Atmos, DTS and DTS-HD MA/DTS:X are passed through when the connected HDMI sink reports support for the format. Otherwise audio is decoded to PCM on-device. There's also a night mode / loudness normalization option.</p>
+    </details>
+
+    <details class="faq">
+      <summary>How does the TV version work?</summary>
+      <p>There's one APK. On a device that reports itself as a television (Android TV, Fire TV, Google TV), Cobalt Wolf automatically swaps to a dedicated 10-foot interface with D-pad navigation, remote transport keys, frame-rate matching and home-screen channels where the platform supports them. See the <a href="wiki/tv.html">TV wiki page</a>.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Why can't I see the admin dashboard?</summary>
+      <p>Admin features are gated by your Jellyfin user policy — only users with the administrator flag see the management sections (sessions control, users, tasks, logs, media manager, downloads). Regular users still get a reduced dashboard with recently added media. Ask your server admin to check your account's permissions.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Which companion services does it integrate with?</summary>
+      <ul>
+        <li><strong>Seerr / Jellyseerr</strong> — discovery, requests, approval queue</li>
+        <li><strong>Radarr &amp; Sonarr</strong> — calendars plus a full media manager</li>
+        <li><strong>qBittorrent</strong> — live transfer monitor and control</li>
+        <li><strong>Bazarr</strong> — wanted subtitles and provider search</li>
+        <li><strong>Prowlarr</strong> — indexer health, stats and retests</li>
+      </ul>
+      <p>All of them are optional — enter a URL and API key (or credentials for qBittorrent) in the app's service settings. API keys are stored encrypted via the Android Keystore.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Can I use more than one server or account?</summary>
+      <p>Yes. Cobalt Wolf saves server profiles and lets you switch between servers and accounts without signing out. Tokens are stored per-profile in the Android Keystore and excluded from backups.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Is there an iOS version?</summary>
+      <p>Not yet. The business logic lives in a Kotlin Multiplatform shared module specifically so an iOS app can be added later, but Android is the only shipping platform today.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Where is it distributed?</summary>
+      <p>As an APK — <a href="download.html">directly from this site</a> or from <a href="https://github.com/P-YoungWebServices/cobalt-wolf/releases">GitHub Releases</a> — or build it yourself from source. It's currently in beta; Play Store / Amazon Appstore distribution is still an open decision. Only install APKs from this site, the official releases page or your own builds.</p>
+    </details>
+
+    <details class="faq">
+      <summary>Something's broken — where do I report it?</summary>
+      <p>First check the <a href="wiki/troubleshooting.html">troubleshooting page</a>. If it's still broken, <a href="https://github.com/P-YoungWebServices/cobalt-wolf/issues">open a GitHub issue</a> with your device model, Android version, Jellyfin server version and what you were playing.</p>
+    </details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <img src="assets/logo.svg" alt="Cobalt Wolf">
+        <p>A third-party Jellyfin client for Android and Android TV. Not affiliated with or endorsed by the Jellyfin project.</p>
+      </div>
+      <div>
+        <h4>App</h4>
+        <a href="features.html">Features</a>
+        <a href="download.html">Download</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div>
+        <h4>Wiki</h4>
+        <a href="wiki/getting-started.html">Getting started</a>
+        <a href="wiki/playback.html">Playback</a>
+        <a href="wiki/admin.html">Admin dashboard</a>
+        <a href="wiki/troubleshooting.html">Troubleshooting</a>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <a href="https://github.com/P-YoungWebServices/cobalt-wolf">Source code</a>
+        <a href="https://github.com/P-YoungWebServices/cobalt-wolf/issues">Report a bug</a>
+        <a href="wiki/building.html">Build from source</a>
+      </div>
+    </div>
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Jellyfin is a trademark of the Jellyfin project. Cobalt Wolf is not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watch together — Cobalt Wolf Wiki</title>
+<meta name="description" content="SyncPlay watch-together groups in Cobalt Wolf: create or join a group and keep playback in sync with friends.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="building.html">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html">Playback engine</a>
+    <a href="tv.html">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html" class="active">Watch together</a>
+    <a href="downloads.html">Offline downloads</a>
+    <a href="multi-server.html">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html">Requests (Seerr)</a>
+    <a href="media-management.html">Calendar &amp; media manager</a>
+    <a href="admin.html">Admin dashboard</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Watch together</div>
+    <h1>Watch together</h1>
+    <p>Cobalt Wolf supports Jellyfin SyncPlay — groups that keep play, pause and seek synchronized across everyone's devices in real time.</p>
+
+    <h2>Starting a group</h2>
+    <p>There's no navigation entry for SyncPlay — it starts from the content:</p>
+    <ul>
+      <li>Open any movie or episode's detail page.</li>
+      <li>Tap <strong>Watch together</strong>.</li>
+      <li>Create a new group or join an existing one. The item you came from is queued for the whole group.</li>
+    </ul>
+
+    <h2>How sync works</h2>
+    <ul>
+      <li>One shared transport: anyone's play, pause or seek applies to the group.</li>
+      <li>Your device reports its position and buffering state back, so the group waits rather than drifting apart.</li>
+      <li>Works across phone, tablet and TV — everyone can be on different devices.</li>
+      <li>The group lives independently of screens: navigating away doesn't drop your membership.</li>
+    </ul>
+
+    <h2>Good to know</h2>
+    <ul>
+      <li><strong>Auto-advance is off in groups</strong> — episodes don't auto-play the next one, so nobody gets left behind. Use the group's controls to queue the next item.</li>
+      <li><strong>Same item, different versions</strong> — each member plays the media source that works for their device; sync is by position, not by bytes.</li>
+      <li><strong>Leave anytime</strong> — leaving the group returns your player to normal local control.</li>
+      <li>SyncPlay requires all members to be on the <strong>same Jellyfin server</strong>.</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multiple servers — Cobalt Wolf Wiki</title>
+<meta name="description" content="Save multiple Jellyfin servers and accounts in Cobalt Wolf and switch between them without signing out.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="building.html">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html">Playback engine</a>
+    <a href="tv.html">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html">Watch together</a>
+    <a href="downloads.html">Offline downloads</a>
+    <a href="multi-server.html" class="active">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html">Requests (Seerr)</a>
+    <a href="media-management.html">Calendar &amp; media manager</a>
+    <a href="admin.html">Admin dashboard</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Multiple servers</div>
+    <h1>Multiple servers &amp; accounts</h1>
+    <p>Cobalt Wolf saves a profile for every server/account combination you sign into. Switch between them in seconds — no signing out, no re-entering credentials.</p>
+
+    <h2>Adding profiles</h2>
+    <ul>
+      <li>Sign in to a server and it becomes a saved profile automatically.</li>
+      <li>Open the <strong>Servers</strong> screen (phone: top-bar More menu; TV: the Servers entry in the More menu) to add another server or a different account on the same server.</li>
+      <li>Each profile stores its own session token, so switching never logs the other profile out.</li>
+    </ul>
+
+    <h2>Switching</h2>
+    <p>Tap a profile to swap the active session. The whole app — libraries, dashboards, requests, service settings — reloads against that server. Your admin status is re-evaluated per server: you can be an admin on one and a viewer on another.</p>
+
+    <h2>Security</h2>
+    <ul>
+      <li>Profiles are stored with <strong>Android Keystore AES-GCM encryption</strong>, the same scheme used for the main session.</li>
+      <li>Profile storage is <strong>excluded from device backups</strong> — tokens never leave the device in plaintext.</li>
+      <li>Removing a profile or signing out drops its stored credentials completely.</li>
+    </ul>
+
+    <h2>Removing profiles</h2>
+    <ul>
+      <li><strong>Remove profile</strong> — drops a saved server/account you're not currently using.</li>
+      <li><strong>Sign out</strong> — ends the active session and removes that profile.</li>
+      <li>If a server invalidates your token, the profile is dropped automatically and you're asked to sign in again.</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

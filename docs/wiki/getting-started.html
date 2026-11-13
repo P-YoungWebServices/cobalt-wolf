@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting started — Cobalt Wolf Wiki</title>
+<meta name="description" content="Install Cobalt Wolf, connect to your Jellyfin server and sign in.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html" class="active">Getting started</a>
+    <a href="building.html">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html">Playback engine</a>
+    <a href="tv.html">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html">Watch together</a>
+    <a href="downloads.html">Offline downloads</a>
+    <a href="multi-server.html">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html">Requests (Seerr)</a>
+    <a href="media-management.html">Calendar &amp; media manager</a>
+    <a href="admin.html">Admin dashboard</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Getting started</div>
+    <h1>Getting started</h1>
+    <p>From a fresh install to playing your first item in a few minutes.</p>
+
+    <h2>1. Check the requirements</h2>
+    <table class="spec">
+      <tr><th>Requirement</th><th>Minimum</th></tr>
+      <tr><td>Jellyfin server</td><td>12.0 or newer</td></tr>
+      <tr><td>Android</td><td>7.0 (API 24) or newer — phone, tablet, Android TV or Fire TV</td></tr>
+      <tr><td>Network</td><td>The device must be able to reach the server (local network or a reachable external address)</td></tr>
+    </table>
+
+    <h2>2. Install the app</h2>
+    <p>Download the APK <a href="../download.html">directly from this site</a> or from <a href="https://github.com/P-YoungWebServices/cobalt-wolf/releases">GitHub Releases</a> and open it, or install over <code>adb</code>:</p>
+    <pre><code>adb install cobalt-wolf-v0.1.0-beta.apk          # USB
+adb -s &lt;tv-ip&gt; install cobalt-wolf-v0.1.0-beta.apk  # Android TV / Fire TV over the network</code></pre>
+    <p>The <a href="../download.html">download page</a> has step-by-step instructions for phones and TVs.</p>
+
+    <h2>3. Connect to your server</h2>
+    <p>On first launch, Cobalt Wolf asks for your Jellyfin server address. Enter it as a full URL:</p>
+    <ul>
+      <li><code>http://192.168.1.10:8096</code> — typical local address</li>
+      <li><code>https://jellyfin.example.com</code> — a remote server behind HTTPS</li>
+    </ul>
+    <div class="note">The address is normalized for you — a bare hostname or IP gets the default port and scheme applied automatically.</div>
+
+    <h2>4. Sign in</h2>
+    <p>Two ways in:</p>
+    <ul>
+      <li><strong>Username and password</strong> — your normal Jellyfin credentials.</li>
+      <li><strong>Quick Connect</strong> — start Quick Connect in the app, then approve the code from any signed-in Jellyfin client (e.g. the web UI) under <em>Dashboard → Quick Connect</em>. Useful on TVs where typing is painful.</li>
+    </ul>
+    <p>Your access token is stored in the <strong>Android Keystore</strong> (AES-GCM encrypted), not in plain text, and is excluded from device backups.</p>
+
+    <h2>5. What you see next</h2>
+    <ul>
+      <li><strong>Phone/tablet:</strong> a bottom-nav layout with your library rows — Continue Watching, Next Up, Recently Added.</li>
+      <li><strong>TV:</strong> the 10-foot interface loads automatically with a persistent top bar. Nothing to enable.</li>
+      <li><strong>Admins:</strong> if your Jellyfin user policy has the administrator flag, the dashboard and management destinations appear automatically.</li>
+    </ul>
+
+    <h2>6. Optional: connect services</h2>
+    <p>Open <strong>More → Services</strong> (phone) or the service settings entry on TV to add:</p>
+    <ul>
+      <li><strong>Seerr</strong> — for discovery and requests (signs in with your Jellyfin account)</li>
+      <li><strong>Radarr / Sonarr</strong> — URL + API key, for the calendar and media manager</li>
+      <li><strong>qBittorrent</strong> — URL + username + password, for the downloads monitor</li>
+      <li><strong>Bazarr / Prowlarr</strong> — URL + API key</li>
+    </ul>
+    <p>All service credentials are encrypted at rest. See <a href="requests.html">Requests</a> and <a href="media-management.html">Calendar &amp; media manager</a> for details.</p>
+
+    <h2>Next steps</h2>
+    <div class="wiki-cards">
+      <a href="playback.html"><b>Playback engine</b><span>Understand (or override) how playback paths are chosen.</span></a>
+      <a href="tv.html"><b>Android TV &amp; Fire TV</b><span>Get the most out of the couch interface.</span></a>
+      <a href="multi-server.html"><b>Multiple servers</b><span>Add more servers or accounts.</span></a>
+      <a href="troubleshooting.html"><b>Troubleshooting</b><span>Something not working? Start here.</span></a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

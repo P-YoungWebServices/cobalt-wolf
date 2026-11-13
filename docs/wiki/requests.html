@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Requests (Seerr) — Cobalt Wolf Wiki</title>
+<meta name="description" content="Request movies and series through Seerr/Jellyseerr inside Cobalt Wolf: browsing, requesting, tracking and the admin approval queue.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="building.html">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html">Playback engine</a>
+    <a href="tv.html">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html">Watch together</a>
+    <a href="downloads.html">Offline downloads</a>
+    <a href="multi-server.html">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html" class="active">Requests (Seerr)</a>
+    <a href="media-management.html">Calendar &amp; media manager</a>
+    <a href="admin.html">Admin dashboard</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Requests (Seerr)</div>
+    <h1>Requests with Seerr</h1>
+    <p>Cobalt Wolf integrates with Seerr (Overseerr/Jellyseerr-compatible) so everyone on the server can discover and request media without leaving the app — and admins can approve requests from the couch.</p>
+
+    <h2>Connecting Seerr</h2>
+    <ul>
+      <li>Enter your Seerr server's URL in service settings.</li>
+      <li>Sign in <strong>with your Jellyfin account</strong> — the same credentials you used for the server.</li>
+      <li>The session is kept in encrypted storage; the app reports its state as Checking, Signed in, Signed out or Not configured.</li>
+    </ul>
+    <div class="note">Seerr is optional. If none is configured, the Seerr sections simply don't appear — the rest of the app is unaffected.</div>
+
+    <h2>Discovering &amp; requesting</h2>
+    <ul>
+      <li>Browse <strong>trending and popular</strong> movies and series.</li>
+      <li><strong>Search once, get both:</strong> the app's search runs Jellyfin and Seerr queries together, showing "On this server" and "From Seerr" sections on one page.</li>
+      <li>Request a <strong>movie</strong> or a <strong>series</strong> — for shows you can pick which seasons to request.</li>
+      <li>Requests respect your Seerr permissions, quotas and approval requirements.</li>
+    </ul>
+
+    <h2>Tracking your requests</h2>
+    <ul>
+      <li><strong>My requests</strong> lists everything you've asked for with its status: pending, approved, available or declined.</li>
+      <li>Local notifications tell you when a request is approved or becomes available — a watcher polls while you're signed in.</li>
+    </ul>
+
+    <h2>The approval queue (admins)</h2>
+    <ul>
+      <li>Admins get a dedicated <strong>request queue</strong> destination.</li>
+      <li>Approve or decline pending requests one by one, in bulk or as a queue.</li>
+      <li>On TV it sits under the Server dashboard's management section and is fully D-pad navigable.</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

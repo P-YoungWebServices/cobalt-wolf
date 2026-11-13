@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Features — Cobalt Wolf</title>
+<meta name="description" content="Every feature in Cobalt Wolf: high-end playback, a TV interface, server administration, requests, and the full *arr stack.">
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="index.html"><img src="assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="features.html" class="active">Features</a>
+      <a href="download.html">Download</a>
+      <a href="wiki/index.html">Wiki</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="kicker">Feature overview</span>
+      <h1>Everything Cobalt Wolf does</h1>
+      <p>Cobalt Wolf is three apps in one: a media player, a server admin console and a media-management toolkit. Here's the full list.</p>
+    </div>
+
+    <h2>Watching</h2>
+    <div class="grid grid-3" style="margin-bottom:48px">
+      <div class="card"><h3>Library browsing</h3><ul>
+        <li>Movies, series, music, live TV, home videos, music videos and mixed libraries</li>
+        <li>List/card views, card sizes and image-type choices</li>
+        <li>Continue Watching, Next Up, Recently Added, suggestions and upcoming rows</li>
+        <li>Global Favorites page</li>
+      </ul></div>
+      <div class="card"><h3>Detail pages</h3><ul>
+        <li>Movies, episodes, series, seasons, people, artists and albums</li>
+        <li>Cast &amp; crew, chapters, media info and related items</li>
+        <li>Video quality and audio profile summaries</li>
+      </ul></div>
+      <div class="card"><h3>Playback control</h3><ul>
+        <li>Audio and subtitle track pickers</li>
+        <li>Version / media source selection</li>
+        <li>Playback speed and repeat modes</li>
+        <li>Play Next, Add to Queue, Play All From Here, shuffle</li>
+        <li>Resume and play-from-start</li>
+      </ul></div>
+      <div class="card"><h3>Playlists &amp; collections</h3><ul>
+        <li>Create, reorder and manage items</li>
+        <li>Multi-select mode and long-press context menus</li>
+        <li>Share / copy stream URL</li>
+        <li>Media deletion and admin metadata tools</li>
+      </ul></div>
+      <div class="card"><h3>Music</h3><ul>
+        <li>Audio playback with a now-playing experience</li>
+        <li>Music mixes and synced lyrics</li>
+      </ul></div>
+      <div class="card"><h3>Live TV</h3><ul>
+        <li>Channel browsing and playback</li>
+        <li>EPG guide</li>
+        <li>Recording management</li>
+      </ul></div>
+      <div class="card"><h3>Search</h3><ul>
+        <li>Searches your library and Seerr at once</li>
+        <li>Filter chips: type, genre, rating, runtime, year, play state, quality, features</li>
+      </ul></div>
+      <div class="card"><h3>Offline</h3><ul>
+        <li>Downloads for offline playback on phone and tablet</li>
+      </ul></div>
+      <div class="card"><h3>Watch together</h3><ul>
+        <li>SyncPlay groups — play, pause and seek in sync with friends</li>
+        <li>Start a group from any detail page</li>
+      </ul></div>
+    </div>
+
+    <h2>High-end playback</h2>
+    <div class="grid grid-2" style="margin-bottom:48px">
+      <div class="card"><h3>Video</h3><ul>
+        <li>H.264, HEVC, AV1 and VP9 up to the device's decoder limits — 4K where available</li>
+        <li>HDR10, HDR10+, HLG and Dolby Vision (profiles 5, 7 and 8) when decoder <em>and</em> display support them</li>
+        <li>Unsupported Dolby Vision falls back to its HDR10/HLG/SDR base layer; HDR10+ falls back to HDR10; HDR on an SDR display is tone-mapped by the server</li>
+      </ul></div>
+      <div class="card"><h3>Audio</h3><ul>
+        <li>Dolby Digital, Digital Plus (incl. Atmos), TrueHD (incl. Atmos), DTS and DTS-HD MA (incl. DTS:X) passthrough when the HDMI sink reports the format</li>
+        <li>Otherwise decoded to PCM on-device</li>
+        <li>Night mode / loudness normalization for late-night listening</li>
+      </ul></div>
+      <div class="card"><h3>Fallback chain</h3><ul>
+        <li>Direct play → local FFmpeg software decoding → server transcode</li>
+        <li>Configurable codec preference and codec-level caps</li>
+        <li>A decoder that fails mid-playback moves down the chain and resumes where it stopped</li>
+      </ul></div>
+      <div class="card"><h3>Subtitles &amp; tools</h3><ul>
+        <li>Styled ASS/SSA via libass, plus PGS and SRT</li>
+        <li>Per-track delay offset for external text subtitles</li>
+        <li>Stats overlay: codec, bitrate, HDR type, audio output, sample rate, channels, dropped frames</li>
+        <li>Gesture controls (brightness, volume, seek) and trickplay seek thumbnails</li>
+        <li>Playback settings page listing detected capabilities with manual overrides</li>
+      </ul></div>
+    </div>
+
+    <h2>Server admin dashboard</h2>
+    <p style="color:var(--text-dim)">Available to Jellyfin administrators; everyone else gets a reduced view with recently added media.</p>
+    <div class="grid grid-3" style="margin-bottom:48px">
+      <div class="card"><h3>Sessions</h3><ul>
+        <li>Real-time active sessions with per-user activity</li>
+        <li>Session details: who, what, progress, codecs, transcoding</li>
+        <li>Playback control and messages to sessions</li>
+        <li>Home-screen widget listing live sessions</li>
+      </ul></div>
+      <div class="card"><h3>Management</h3><ul>
+        <li>User management: view, create, edit, delete</li>
+        <li>Device management</li>
+        <li>Libraries, plugins and server settings pages</li>
+      </ul></div>
+      <div class="card"><h3>Monitoring</h3><ul>
+        <li>Scheduled tasks: start, stop, monitor</li>
+        <li>Live server logs with filters</li>
+        <li>Activity log and API key administration</li>
+        <li>System info and update status</li>
+      </ul></div>
+      <div class="card"><h3>Multi-server</h3><ul>
+        <li>Save profiles for several servers and accounts</li>
+        <li>Switch without signing out — tokens stored in Android Keystore</li>
+      </ul></div>
+      <div class="card"><h3>Request queue</h3><ul>
+        <li>Approve or decline Seerr requests</li>
+        <li>Notifications for request events</li>
+      </ul></div>
+      <div class="card"><h3>Sign-in</h3><ul>
+        <li>Username/password and Quick Connect</li>
+        <li>Role detection from the Jellyfin user policy — admin routes stay hidden for viewers</li>
+      </ul></div>
+    </div>
+
+    <h2>Requests, calendar &amp; media management</h2>
+    <div class="grid grid-3" style="margin-bottom:48px">
+      <div class="card"><h3>Seerr / Jellyseerr</h3><ul>
+        <li>Browse trending and popular titles</li>
+        <li>Request movies and series, with season selection</li>
+        <li>Track your own requests: pending, approved, available, declined</li>
+        <li>Sign in with your Jellyfin account</li>
+      </ul></div>
+      <div class="card"><h3>Calendar</h3><ul>
+        <li>Upcoming episodes and releases from Radarr and Sonarr</li>
+        <li>List, week and month views</li>
+      </ul></div>
+      <div class="card"><h3>Media manager (admin)</h3><ul>
+        <li>Browse Radarr movies and Sonarr series</li>
+        <li>Edit monitored status, quality profile, root folder, tags</li>
+        <li>Season/episode monitoring, rename files</li>
+        <li>Interactive release search + grab, manual import, delete</li>
+      </ul></div>
+      <div class="card"><h3>qBittorrent</h3><ul>
+        <li>Live transfer monitor, refreshed every few seconds</li>
+        <li>Pause/resume torrents (v5 and legacy API)</li>
+        <li>Alternative speed-limit toggle</li>
+      </ul></div>
+      <div class="card"><h3>Bazarr</h3><ul>
+        <li>Wanted subtitles list</li>
+        <li>Search providers and download a subtitle for a movie or episode</li>
+      </ul></div>
+      <div class="card"><h3>Prowlarr</h3><ul>
+        <li>Indexer overview, stats and health</li>
+        <li>Per-indexer retest and test-all</li>
+      </ul></div>
+    </div>
+
+    <h2>Android TV &amp; Fire TV</h2>
+    <div class="grid grid-3">
+      <div class="card"><h3>10-foot UI</h3><ul>
+        <li>Dedicated Compose for TV interface, always dark navy</li>
+        <li>Persistent top bar: Home, Search, Seerr, Calendar, More</li>
+        <li>Autofocus, focus restoration and scroll-to-top tuned for remotes</li>
+      </ul></div>
+      <div class="card"><h3>TV playback</h3><ul>
+        <li>Frame-rate matching and HDR signalling on TV</li>
+        <li>Remote transport keys mapped</li>
+        <li>Skip-intro button auto-focused when a segment plays</li>
+        <li>Next-episode auto-advance; "Ends at" wall-clock</li>
+      </ul></div>
+      <div class="card"><h3>Platform integration</h3><ul>
+        <li>Home-screen channels for Continue Watching and Recently Added (where the TV provider exists)</li>
+        <li>Deep links: <code>cobaltwolf://item/&lt;id&gt;</code></li>
+        <li>Admin screens reachable via D-pad as pushed routes</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <img src="assets/logo.svg" alt="Cobalt Wolf">
+        <p>A third-party Jellyfin client for Android and Android TV. Not affiliated with or endorsed by the Jellyfin project.</p>
+      </div>
+      <div>
+        <h4>App</h4>
+        <a href="features.html">Features</a>
+        <a href="download.html">Download</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div>
+        <h4>Wiki</h4>
+        <a href="wiki/getting-started.html">Getting started</a>
+        <a href="wiki/playback.html">Playback</a>
+        <a href="wiki/admin.html">Admin dashboard</a>
+        <a href="wiki/troubleshooting.html">Troubleshooting</a>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <a href="https://github.com/P-YoungWebServices/cobalt-wolf">Source code</a>
+        <a href="https://github.com/P-YoungWebServices/cobalt-wolf/issues">Report a bug</a>
+        <a href="wiki/building.html">Build from source</a>
+      </div>
+    </div>
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Jellyfin is a trademark of the Jellyfin project. Cobalt Wolf is not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>
