@@ -42,6 +42,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.blur
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -122,9 +124,19 @@ private fun DetailContent(
         item(key = "header") {
             Column {
                 Box(Modifier.fillMaxWidth()) {
+                    val options = com.pyoungws.bluewolfplayer.ui.common.rememberDisplayOptions().first
                     val image = item.backdropUrl ?: item.landscapeUrl
-                    if (image != null) {
-                        AsyncImage(model = image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().height(220.dp))
+                    if (image != null && options.showBackdrops) {
+                        AsyncImage(
+                            model = image,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxWidth().height(220.dp)
+                                .then(if (options.blurBackdrops) Modifier.blur(16.dp) else Modifier),
+                        )
+                        if (options.blurBackdrops) {
+                            Box(Modifier.fillMaxWidth().height(220.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))
+                        }
                     } else {
                         Box(Modifier.fillMaxWidth().height(120.dp))
                     }

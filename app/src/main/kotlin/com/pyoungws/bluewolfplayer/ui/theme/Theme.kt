@@ -50,5 +50,11 @@ fun BlueWolfTheme(
     darkTheme: Boolean = isSystemInDarkTheme() || LocalContext.current.isTelevision(),
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(colorScheme = if (darkTheme) DarkColors else LightColors, content = content)
+    val themePref = com.pyoungws.bluewolfplayer.ui.common.rememberDisplayOptions().first.theme
+    val dark = when (themePref) {
+        com.pyoungws.bluewolfplayer.ui.common.AppTheme.Dark -> true
+        com.pyoungws.bluewolfplayer.ui.common.AppTheme.Light -> false
+        com.pyoungws.bluewolfplayer.ui.common.AppTheme.System -> darkTheme
+    } || LocalContext.current.isTelevision()
+    MaterialTheme(colorScheme = if (dark) DarkColors else LightColors, content = content)
 }

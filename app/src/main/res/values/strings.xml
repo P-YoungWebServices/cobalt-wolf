@@ -884,4 +884,16 @@
     <string name="row_live_tv">Live TV</string>
     <string name="home_resume_audio">Resume audio</string>
     <string name="home_live_tv">Live TV</string>
+    <string name="display_backdrops">Backdrops</string>
+    <string name="display_backdrops_summary">Fanart behind detail pages</string>
+    <string name="display_blur">Blur backdrops</string>
+    <string name="display_blur_summary">Softens the artwork so text stays readable</string>
+    <string name="display_watched_badge">Watched indicators</string>
+    <string name="display_watched_badge_summary">Check marks and counts on cards</string>
+    <string name="display_clock">Clock</string>
+    <string name="display_clock_summary">Time in the TV top bar</string>
+    <string name="display_theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
 </resources>

@@ -88,6 +88,7 @@ fun PlaybackSettingsScreen(onBack: () -> Unit, viewModel: PlaybackSettingsViewMo
             item { Header(R.string.playback_section_overrides) }
             item { Overrides(state, viewModel) }
             item { Header(R.string.home_rows_title) }
+            item { DisplayOptionsSection() }
             item { HomeRows(state, viewModel) }
             item { Header(R.string.playback_section_detected) }
             item { Detected(state.capabilities) }
@@ -223,6 +224,23 @@ private fun Overrides(state: PlaybackSettingsUiState, viewModel: PlaybackSetting
         OutlinedButton(onClick = viewModel::resetToAutomatic, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(stringResource(R.string.playback_reset))
         }
+    }
+}
+
+@Composable
+private fun DisplayOptionsSection() {
+    val (options, setOptions) = com.pyoungws.bluewolfplayer.ui.common.rememberDisplayOptions()
+    Column {
+        Toggle(R.string.display_backdrops, R.string.display_backdrops_summary, options.showBackdrops) { setOptions(options.copy(showBackdrops = it)) }
+        Toggle(R.string.display_blur, R.string.display_blur_summary, options.blurBackdrops) { setOptions(options.copy(blurBackdrops = it)) }
+        Toggle(R.string.display_watched_badge, R.string.display_watched_badge_summary, options.watchedBadge) { setOptions(options.copy(watchedBadge = it)) }
+        Toggle(R.string.display_clock, R.string.display_clock_summary, options.clock) { setOptions(options.copy(clock = it)) }
+        Choice(
+            R.string.display_theme, options.theme, { setOptions(options.copy(theme = it)) },
+            com.pyoungws.bluewolfplayer.ui.common.AppTheme.System to R.string.theme_system,
+            com.pyoungws.bluewolfplayer.ui.common.AppTheme.Light to R.string.theme_light,
+            com.pyoungws.bluewolfplayer.ui.common.AppTheme.Dark to R.string.theme_dark,
+        )
     }
 }
 

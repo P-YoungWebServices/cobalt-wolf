@@ -95,6 +95,7 @@ fun MediaItem.cardTitle(): String = if (kind == MediaKind.Episode) seriesName ?:
 /** Watched-check / unwatched-count badge drawn over card artwork's top end, like the official clients. */
 @Composable
 fun WatchedBadge(item: MediaItem, modifier: Modifier = Modifier) {
+    if (!rememberDisplayOptions().first.watchedBadge) return
     val count = item.unplayedCount
     when {
         item.isPlayed -> Box(

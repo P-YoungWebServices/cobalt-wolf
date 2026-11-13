@@ -59,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.draw.blur
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
@@ -159,9 +160,19 @@ private fun TvDetailContent(
     LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(bottom = 48.dp)) {
         item(key = "backdrop") {
             Box(Modifier.fillMaxWidth()) {
+                val options = com.pyoungws.bluewolfplayer.ui.common.rememberDisplayOptions().first
                 val image = item.backdropUrl ?: item.landscapeUrl
-                if (image != null) {
-                    AsyncImage(model = image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().height(260.dp))
+                if (image != null && options.showBackdrops) {
+                    AsyncImage(
+                        model = image,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().height(260.dp)
+                            .then(if (options.blurBackdrops) Modifier.blur(20.dp) else Modifier),
+                    )
+                    if (options.blurBackdrops) {
+                        Box(Modifier.fillMaxWidth().height(260.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)))
+                    }
                 } else {
                     Box(Modifier.fillMaxWidth().height(100.dp))
                 }

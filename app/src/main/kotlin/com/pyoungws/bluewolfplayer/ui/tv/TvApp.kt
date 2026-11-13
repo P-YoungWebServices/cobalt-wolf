@@ -320,6 +320,16 @@ private fun TvTopBar(
         if (userName != null) {
             Text(userName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        if (com.pyoungws.bluewolfplayer.ui.common.rememberDisplayOptions().first.clock) {
+            var now by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date())) }
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                while (true) {
+                    kotlinx.coroutines.delay(30_000)
+                    now = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date())
+                }
+            }
+            Text(now, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         if (isSigningOut) {
             androidx.compose.material3.CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp)
         }
