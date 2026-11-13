@@ -208,4 +208,22 @@ class FakeAdminDataSource : JellyfinAdminDataSource {
         calls += "systemInfo"
         return systemInfo()
     }
+
+    override suspend fun getActivityLog(session: Session, startIndex: Int, limit: Int): List<com.pyoungws.bluewolfplayer.shared.admin.ActivityEntry> {
+        calls += "activityLog($startIndex,$limit)"
+        return emptyList()
+    }
+
+    override suspend fun getApiKeys(session: Session): List<com.pyoungws.bluewolfplayer.shared.admin.ServerApiKey> {
+        calls += "apiKeys"
+        return emptyList()
+    }
+
+    override suspend fun createApiKey(session: Session, appName: String) {
+        calls += "createApiKey($appName)"
+    }
+
+    override suspend fun revokeApiKey(session: Session, key: String) {
+        calls += "revokeApiKey($key)"
+    }
 }

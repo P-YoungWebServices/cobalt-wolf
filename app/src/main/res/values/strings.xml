@@ -896,4 +896,13 @@
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+    <string name="admin_activity_title">Activity log</string>
+    <string name="admin_activity_subtitle">Events the server recorded</string>
+    <string name="admin_apikeys_title">API keys</string>
+    <string name="admin_apikeys_subtitle">Keys registered on the server</string>
+    <string name="admin_apikeys_new">New key</string>
+    <string name="admin_apikeys_name">Application name</string>
+    <string name="admin_apikeys_create">Create</string>
+    <string name="admin_apikeys_revoke">Revoke</string>
+    <string name="admin_apikeys_revoke_confirm">Revoke the key for %1$s?</string>
 </resources>

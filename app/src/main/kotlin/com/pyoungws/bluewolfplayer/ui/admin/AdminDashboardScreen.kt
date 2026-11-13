@@ -235,6 +235,8 @@ private fun manageTitle(destination: NavDestination): String = when (destination
     NavDestination.Libraries -> stringResource(R.string.admin_manage_libraries)
     NavDestination.Tasks -> stringResource(R.string.admin_manage_tasks)
     NavDestination.Logs -> stringResource(R.string.admin_manage_logs)
+    NavDestination.ActivityLog -> stringResource(R.string.admin_activity_title)
+    NavDestination.ApiKeys -> stringResource(R.string.admin_apikeys_title)
     NavDestination.SystemInfo -> stringResource(R.string.admin_manage_system)
     else -> ""
 }
@@ -250,6 +252,8 @@ private fun manageSubtitle(destination: NavDestination): String = when (destinat
     NavDestination.Libraries -> stringResource(R.string.admin_manage_libraries_subtitle)
     NavDestination.Tasks -> stringResource(R.string.admin_manage_tasks_subtitle)
     NavDestination.Logs -> stringResource(R.string.admin_manage_logs_subtitle)
+    NavDestination.ActivityLog -> stringResource(R.string.admin_activity_subtitle)
+    NavDestination.ApiKeys -> stringResource(R.string.admin_apikeys_subtitle)
     NavDestination.SystemInfo -> stringResource(R.string.admin_manage_system_subtitle)
     else -> ""
 }

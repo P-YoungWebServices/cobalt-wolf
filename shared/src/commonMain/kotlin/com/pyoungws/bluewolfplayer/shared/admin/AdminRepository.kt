@@ -70,6 +70,14 @@ class AdminRepository(
 
     suspend fun systemInfo(): Outcome<SystemInformation> = guard.run { dataSource.getSystemInfo(it) }
 
+    suspend fun activityLog(startIndex: Int = 0, limit: Int = 50): Outcome<List<ActivityEntry>> = guard.run { dataSource.getActivityLog(it, startIndex, limit) }
+
+    suspend fun apiKeys(): Outcome<List<ServerApiKey>> = guard.run { dataSource.getApiKeys(it) }
+
+    suspend fun createApiKey(appName: String): Outcome<Unit> = guard.run { dataSource.createApiKey(it, appName) }
+
+    suspend fun revokeApiKey(key: String): Outcome<Unit> = guard.run { dataSource.revokeApiKey(it, key) }
+
     private companion object {
         const val RECENT_LIMIT = 16
     }

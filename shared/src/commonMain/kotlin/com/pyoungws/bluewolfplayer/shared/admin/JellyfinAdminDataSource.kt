@@ -10,6 +10,7 @@ import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.HttpMethod
+import org.jellyfin.sdk.api.client.extensions.authenticationApi
 import org.jellyfin.sdk.api.client.extensions.deviceApi
 import org.jellyfin.sdk.api.client.extensions.libraryApi
 import org.jellyfin.sdk.api.client.extensions.libraryStructureApi
@@ -63,6 +64,10 @@ interface JellyfinAdminDataSource {
     suspend fun getLogContent(session: Session, fileName: String): String
 
     suspend fun getSystemInfo(session: Session): SystemInformation
+    suspend fun getActivityLog(session: Session, startIndex: Int, limit: Int): List<ActivityEntry>
+    suspend fun getApiKeys(session: Session): List<ServerApiKey>
+    suspend fun createApiKey(session: Session, appName: String)
+    suspend fun revokeApiKey(session: Session, key: String)
 }
 
 class SdkJellyfinAdminDataSource(
@@ -188,6 +193,34 @@ class SdkJellyfinAdminDataSource(
         request(HttpMethod.GET, "/System/Logs/Log", queryParameters = mapOf("name" to fileName))
             .createContent<ByteArray>()
             .decodeToString()
+    }
+
+    override suspend fun getActivityLog(session: Session, startIndex: Int, limit: Int) = call(session) {
+        systemApi.getLogEntries(startIndex = startIndex, limit = limit).content.items.orEmpty().map {
+            ActivityEntry(
+                id = it.id,
+                name = it.name.orEmpty(),
+                type = it.type,
+                overview = it.shortOverview ?: it.overview,
+                severity = it.severity?.serialName,
+                userId = it.userId?.toString(),
+                date = it.date?.toString(),
+            )
+        }
+    }
+
+    override suspend fun getApiKeys(session: Session) = call(session) {
+        authenticationApi.getKeys().content.items.orEmpty().map {
+            ServerApiKey(id = it.id, appName = it.appName, accessToken = it.accessToken.orEmpty(), deviceId = it.deviceId)
+        }
+    }
+
+    override suspend fun createApiKey(session: Session, appName: String) {
+        call(session) { authenticationApi.createKey(appName) }
+    }
+
+    override suspend fun revokeApiKey(session: Session, key: String) {
+        call(session) { authenticationApi.revokeKey(key) }
     }
 
     override suspend fun getSystemInfo(session: Session) = call(session) {

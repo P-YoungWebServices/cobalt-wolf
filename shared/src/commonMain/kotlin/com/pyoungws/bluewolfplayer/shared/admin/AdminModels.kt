@@ -51,7 +51,7 @@ data class AdminDashboard(
  * by privilege. [Sessions] and the management screens behind the dashboard exist for
  * administrators only.
  */
-enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard, Sessions, RequestQueue, Users, Devices, Libraries, Tasks, Logs, SystemInfo, MediaManager, Downloads, Bazarr, Prowlarr, Services }
+enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard, Sessions, RequestQueue, Users, Devices, Libraries, Tasks, Logs, SystemInfo, ActivityLog, ApiKeys, MediaManager, Downloads, Bazarr, Prowlarr, Services }
 
 /** The admin management screens reachable from the dashboard. */
 val MANAGEMENT_DESTINATIONS = listOf(
@@ -65,6 +65,8 @@ val MANAGEMENT_DESTINATIONS = listOf(
     NavDestination.Libraries,
     NavDestination.Tasks,
     NavDestination.Logs,
+    NavDestination.ActivityLog,
+    NavDestination.ApiKeys,
     NavDestination.SystemInfo,
     NavDestination.Services,
 )
@@ -82,3 +84,22 @@ fun UserProfile.navDestinations(): List<NavDestination> = buildList {
 }
 
 fun UserProfile.canNavigateTo(destination: NavDestination): Boolean = destination in navDestinations()
+
+/** One server activity-log entry. */
+data class ActivityEntry(
+    val id: Long,
+    val name: String,
+    val type: String?,
+    val overview: String?,
+    val severity: String?,
+    val userId: String?,
+    val date: String?,
+)
+
+/** A server-registered API key. */
+data class ServerApiKey(
+    val id: Long,
+    val appName: String?,
+    val accessToken: String,
+    val deviceId: String?,
+)

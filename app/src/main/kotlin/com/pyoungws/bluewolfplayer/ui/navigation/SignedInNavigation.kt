@@ -26,6 +26,8 @@ import com.pyoungws.bluewolfplayer.shared.seerr.SeerrMediaType
 import com.pyoungws.bluewolfplayer.ui.admin.AdminDashboardScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminDevicesScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminLibrariesScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminActivityLogScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminApiKeysScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminLogsScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminRequestsScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminSessionsScreen
@@ -80,6 +82,8 @@ internal sealed interface Route {
     data object AdminTasks : Route
     data object AdminLogs : Route
     data object AdminSystem : Route
+    data object AdminActivityLog : Route
+    data object AdminApiKeys : Route
     data object Sessions : Route
     data object MediaManager : Route
     data class MediaDetail(val service: ArrService, val itemId: Int) : Route
@@ -114,6 +118,8 @@ internal fun Route.encode(): String = when (this) {
     Route.AdminTasks -> "admintasks"
     Route.AdminLogs -> "adminlogs"
     Route.AdminSystem -> "adminsystem"
+    Route.AdminActivityLog -> "adminactivity"
+    Route.AdminApiKeys -> "adminapikeys"
     Route.Sessions -> "sessions"
     Route.MediaManager -> "mediamanager"
     is Route.MediaDetail -> listOf("mediadetail", service.name, itemId).joinToString(SEPARATOR)
@@ -147,6 +153,8 @@ internal fun decodeRoute(value: String): Route? {
         "admintasks" -> Route.AdminTasks
         "adminlogs" -> Route.AdminLogs
         "adminsystem" -> Route.AdminSystem
+        "adminactivity" -> Route.AdminActivityLog
+        "adminapikeys" -> Route.AdminApiKeys
         "sessions" -> Route.Sessions
         "mediamanager" -> Route.MediaManager
         "mediadetail" -> parts.getOrNull(2)?.toIntOrNull()?.let { itemId ->
@@ -176,6 +184,8 @@ internal fun Route.adminDestination(): NavDestination? = when (this) {
     Route.AdminTasks -> NavDestination.Tasks
     Route.AdminLogs -> NavDestination.Logs
     Route.AdminSystem -> NavDestination.SystemInfo
+    Route.AdminActivityLog -> NavDestination.ActivityLog
+    Route.AdminApiKeys -> NavDestination.ApiKeys
     Route.MediaManager, is Route.MediaDetail -> NavDestination.MediaManager
     Route.Downloads -> NavDestination.Downloads
     Route.Bazarr -> NavDestination.Bazarr
@@ -203,6 +213,8 @@ internal fun managementRoute(destination: NavDestination): Route? = when (destin
     NavDestination.Libraries -> Route.AdminLibraries
     NavDestination.Tasks -> Route.AdminTasks
     NavDestination.Logs -> Route.AdminLogs
+    NavDestination.ActivityLog -> Route.AdminActivityLog
+    NavDestination.ApiKeys -> Route.AdminApiKeys
     NavDestination.SystemInfo -> Route.AdminSystem
     else -> null
 }
@@ -278,6 +290,8 @@ fun SignedInNavigation() {
         Route.AdminLibraries -> AdminLibrariesScreen(onBack = pop)
         Route.AdminTasks -> AdminTasksScreen(onBack = pop)
         Route.AdminLogs -> AdminLogsScreen(onBack = pop)
+        Route.AdminActivityLog -> AdminActivityLogScreen(onBack = pop)
+        Route.AdminApiKeys -> AdminApiKeysScreen(onBack = pop)
         Route.AdminSystem -> AdminSystemInfoScreen(onBack = pop)
         Route.MediaManager -> MediaManagerScreen(
             onBack = pop,
