@@ -16,7 +16,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -57,25 +57,34 @@ fun TvTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier
-            .onKeyEvent { event ->
+            .onPreviewKeyEvent { event ->
+                // Preview, not onKeyEvent: an editable text field consumes direction keys
+                // for cursor movement before a regular handler ever sees them, so the
+                // remote stays trapped once edit mode is on. Preview sees keys first.
                 val dir = dpadExit[event.key]
-                if (event.type == KeyEventType.KeyDown && dir != null) {
-                    // A focused text field swallows D-pad keys for cursor movement — even
-                    // readOnly — so the remote can never leave it. Exit edit mode if needed
-                    // and always hand the direction to the focus system instead.
-                    if (editable) {
+                when {
+                    event.type != KeyEventType.KeyDown -> false
+                    dir != null && !(editable && (dir == FocusDirection.Left || dir == FocusDirection.Right)) -> {
+                        // Left/right keep their cursor role while editing; everything else
+                        // exits edit mode and moves focus — a single-line field has no
+                        // vertical cursor movement anyway.
+                        if (editable) {
+                            editable = false
+                            keyboard?.hide()
+                        }
+                        focusManager.moveFocus(dir)
+                        true
+                    }
+                    editable && event.key == Key.Back -> {
                         editable = false
                         keyboard?.hide()
+                        true
                     }
-                    focusManager.moveFocus(dir)
-                    true
-                } else if (!editable && event.type == KeyEventType.KeyUp &&
-                    (event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter)
-                ) {
-                    editable = true
-                    true
-                } else {
-                    false
+                    !editable && (event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter) -> {
+                        editable = true
+                        true
+                    }
+                    else -> false
                 }
             }
             .onFocusChanged { if (!it.isFocused) editable = false },
