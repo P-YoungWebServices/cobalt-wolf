@@ -173,9 +173,15 @@ Conventions and rules for contributing to Cobalt Wolf.
   play/pause when controls show; `PlayerActivity.onKeyDown` maps remote
   transport keys (play/pause, fast-forward, rewind, stop). Frame rate matching
   (`DisplayModeController`) already applies on TV via `capabilities.isTv`.
-  The overlay shows the item title top-left, icon buttons top-right (white
-  ring + fill on focus), and an "Ends at" wall-clock time + skip button
-  bottom-right. Next-episode goes through the controller's own next button:
+  The overlay shows the item title + close button top, transport controls
+  centered, position/duration + "Ends at" wall-clock above the seek bar
+  (`exo_time` is reparented out of Media3's bottom bar at runtime), a custom
+  icon row bottom-left (white ring + fill on focus) and Media3's settings
+  gear bottom-right. Compose↔View focus bridging is explicit — View-side
+  search cannot see Compose controls, so `exo_progress` DOWN, `exo_settings`
+  LEFT, row-end RIGHT and row UP are wired by hand — and a preview key
+  handler on the Compose rows calls `showController()` so D-pad navigation
+  resets Media3's auto-hide timer. Next-episode goes through the controller's own next button:
   a `ForwardingPlayer` advertises `COMMAND_SEEK_TO_NEXT` once
   `PlayerViewModel.nextItem` resolves and routes `seekToNext()` to
   `playNext`; episodes also auto-advance on `STATE_ENDED` (not in SyncPlay
