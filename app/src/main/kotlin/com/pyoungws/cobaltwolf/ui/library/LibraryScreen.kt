@@ -1,0 +1,261 @@
+package com.pyoungws.cobaltwolf.ui.library
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.pyoungws.cobaltwolf.R
+import com.pyoungws.cobaltwolf.shared.library.ItemQuery
+import com.pyoungws.cobaltwolf.shared.library.LibraryRepository
+import com.pyoungws.cobaltwolf.shared.model.MediaKind
+import com.pyoungws.cobaltwolf.shared.model.GenreInfo
+import com.pyoungws.cobaltwolf.shared.model.Library
+import com.pyoungws.cobaltwolf.shared.model.LibraryType
+import com.pyoungws.cobaltwolf.shared.model.MediaItem
+import com.pyoungws.cobaltwolf.shared.model.episodeLabel
+import com.pyoungws.cobaltwolf.shared.model.Outcome
+import com.pyoungws.cobaltwolf.ui.common.PosterCard
+import org.koin.compose.koinInject
+
+private enum class LibraryView(val labelRes: Int) {
+    Grid(R.string.view_grid), Genres(R.string.view_genres), Letters(R.string.view_letters), Suggested(R.string.view_suggested),
+    Upcoming(R.string.view_upcoming), Networks(R.string.view_networks),
+}
+
+private enum class MusicView(val labelRes: Int, val kind: MediaKind) {
+    Albums(R.string.view_albums, MediaKind.MusicAlbum),
+    Artists(R.string.view_artists, MediaKind.MusicArtist),
+    Songs(R.string.view_songs, MediaKind.Song),
+}
+
+/** Browses one library: paged grid with sort/filter plus genre, letter and suggested views. */
+@Composable
+fun LibraryScreen(library: Library, onBack: () -> Unit, onOpenItem: (String) -> Unit) {
+    val repository: LibraryRepository = koinInject()
+    var view by remember { mutableStateOf(LibraryView.Grid) }
+    var genreName by remember { mutableStateOf<String?>(null) }
+    var letter by remember { mutableStateOf<String?>(null) }
+    var studioId by remember { mutableStateOf<String?>(null) }
+    var musicView by remember { mutableStateOf(MusicView.Albums) }
+    val isMusic = library.type == LibraryType.Music
+    val views = remember(library.type) {
+        if (library.type == LibraryType.TvShows) LibraryView.entries else LibraryView.entries - LibraryView.Upcoming - LibraryView.Networks
+    }
+
+    val genres by produceState<List<GenreInfo>>(emptyList(), library.id) {
+        value = (repository.genres(library.id) as? Outcome.Success)?.value.orEmpty()
+    }
+    val suggestions by produceState<List<MediaItem>>(emptyList(), library.id, view) {
+        if (view == LibraryView.Suggested) value = (repository.suggestions(library) as? Outcome.Success)?.value.orEmpty()
+    }
+    val upcoming by produceState<List<MediaItem>>(emptyList(), library.id, view) {
+        if (view == LibraryView.Upcoming) value = (repository.upcomingEpisodes(library.id) as? Outcome.Success)?.value.orEmpty()
+    }
+    val studios by produceState<List<MediaItem>>(emptyList(), library.id) {
+        value = (repository.studios(library.id) as? Outcome.Success)?.value.orEmpty()
+    }
+
+    val kind = when {
+        isMusic -> musicView.kind
+        else -> when (library.type) {
+        LibraryType.TvShows -> MediaKind.Series
+        LibraryType.MusicVideos -> MediaKind.MusicVideo
+        LibraryType.LiveTv -> MediaKind.TvChannel
+        LibraryType.HomeVideos -> MediaKind.Video
+        LibraryType.BoxSets -> MediaKind.BoxSet
+        LibraryType.Playlists -> MediaKind.Playlist
+        LibraryType.Mixed -> null
+        else -> MediaKind.Movie
+        }
+    }
+    val query = ItemQuery(
+        libraryId = library.id,
+        includeItemKinds = kind?.let(::setOf).orEmpty(),
+        recursive = library.type != LibraryType.Mixed,
+        genres = genreName?.let(::listOf).orEmpty(),
+        nameStartsWith = letter,
+        studioIds = studioId?.let(::listOf).orEmpty(),
+    )
+
+    when (view) {
+        LibraryView.Suggested -> SuggestedView(library.name, suggestions, onBack = onBack, onOpenItem = onOpenItem, view = view, views = views, onViewChange = {
+            view = it; genreName = null; letter = null; studioId = null
+        })
+        LibraryView.Upcoming -> Column(Modifier.fillMaxSize().statusBarsPadding()) {
+            ViewModeRow(view = view, views = views, genres = emptyList(), genreName = null, letter = null,
+                onViewChange = { view = it; genreName = null; letter = null; studioId = null }, onGenre = {}, onLetter = {})
+            if (upcoming.isEmpty()) {
+                Text(stringResource(R.string.library_empty), modifier = Modifier.padding(32.dp))
+            } else {
+                androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize()) {
+                    items(upcoming, key = { it.id }) { episode ->
+                        UpcomingRow(episode, onClick = { onOpenItem(episode.id) })
+                    }
+                }
+            }
+        }
+        else -> {
+            var title = library.name
+            genreName?.let { title += " · $it" }
+            letter?.let { title += " · $it" }
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
+                ViewModeRow(view = view, views = views, genres = genres, genreName = genreName, letter = letter,
+                    onViewChange = { view = it; genreName = null; letter = null; studioId = null },
+                    onGenre = { genreName = it; letter = null; studioId = null },
+                    onLetter = { letter = it; genreName = null; studioId = null })
+                if (view == LibraryView.Networks) {
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        FilterChip(selected = studioId == null, onClick = { studioId = null }, label = { Text(stringResource(R.string.filter_all)) })
+                        studios.forEach { studio ->
+                            FilterChip(selected = studioId == studio.id, onClick = { studioId = studio.id }, label = { Text(studio.name) })
+                        }
+                    }
+                }
+                if (isMusic && view == LibraryView.Grid) {
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        MusicView.entries.forEach { entry ->
+                            FilterChip(selected = musicView == entry, onClick = { musicView = entry }, label = { Text(stringResource(entry.labelRes)) })
+                        }
+                    }
+                }
+                Box(Modifier.fillMaxSize()) { ItemBrowseScreen(title, query, onBack = onBack, onOpenItem = onOpenItem, prefsKey = library.id) }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SuggestedView(title: String, items: List<MediaItem>, onBack: () -> Unit, onOpenItem: (String) -> Unit, view: LibraryView, views: List<LibraryView>, onViewChange: (LibraryView) -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nav_back)) } },
+            )
+        },
+    ) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            ViewModeRow(view = view, views = views, genres = emptyList(), genreName = null, letter = null,
+                onViewChange = onViewChange, onGenre = {}, onLetter = {})
+            if (items.isEmpty()) {
+                Text(stringResource(R.string.library_empty), modifier = Modifier.align(Alignment.CenterHorizontally).padding(32.dp))
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(120.dp),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(items, key = { it.id }) { PosterCard(it, onClick = { onOpenItem(it.id) }, width = 120.dp) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ViewModeRow(
+    view: LibraryView,
+    views: List<LibraryView>,
+    genres: List<GenreInfo>,
+    genreName: String?,
+    letter: String?,
+    onViewChange: (LibraryView) -> Unit,
+    onGenre: (String?) -> Unit,
+    onLetter: (String?) -> Unit,
+) {
+    Column {
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            views.forEach { entry ->
+                FilterChip(selected = view == entry, onClick = { onViewChange(entry) }, label = { Text(stringResource(entry.labelRes)) })
+            }
+        }
+        if (view == LibraryView.Genres) {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(selected = genreName == null, onClick = { onGenre(null) }, label = { Text(stringResource(R.string.filter_all)) })
+                genres.forEach { genre ->
+                    FilterChip(selected = genreName == genre.name, onClick = { onGenre(genre.name) }, label = { Text(genre.name) })
+                }
+            }
+        }
+        if (view == LibraryView.Letters) {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(selected = letter == null, onClick = { onLetter(null) }, label = { Text(stringResource(R.string.filter_all)) })
+                (listOf("#") + ('A'..'Z').map { it.toString() }).forEach { l ->
+                    FilterChip(selected = letter == l, onClick = { onLetter(l) }, label = { Text(l) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpcomingRow(episode: MediaItem, onClick: () -> Unit) {
+    androidx.compose.foundation.layout.Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        com.pyoungws.cobaltwolf.ui.common.Artwork(episode.landscapeUrl, aspectRatio = 16f / 9f, modifier = Modifier.width(140.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                listOfNotNull(episode.seriesName, episode.episodeLabel() ?: episode.name).joinToString(" — "),
+                style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+            episode.programInfo?.start?.let { start ->
+                Text(start.toLocalDate().toString(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}

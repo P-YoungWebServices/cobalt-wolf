@@ -140,11 +140,11 @@ Conventions and rules for contributing to Cobalt Wolf.
   pages render `videoQualityLabel`/`audioProfileLabel` summaries, and
   `LibraryType.MusicVideos`/`MediaKind.MusicVideo` make music-video
   libraries browsable like any other.
-- `app/`: Android app (`com.pyoungws.bluewolfplayer`, minSdk 24), Jetpack
+- `app/`: Android app (`com.pyoungws.cobaltwolf`, minSdk 24), Jetpack
   Compose + Material 3 UI only; no business logic. `player/` holds the Media3
   glue (`PlayerEngine`, stats collector, display mode controller).
 - `app/ui/tv/`: the Android TV / Fire TV experience (Compose for TV, always
-  dark — `BlueWolfTheme` forces dark and never uses dynamic device colours;
+  dark — `CobaltWolfTheme` forces dark and never uses dynamic device colours;
   tv-material3's `LocalContentColor` is provided from `TvColors` so text is
   light on the navy palette). `MainActivity` picks it at runtime via
   `UiModeManager` when `isTelevision()` (`DeviceInfo.kt`) is true.
@@ -165,7 +165,7 @@ Conventions and rules for contributing to Cobalt Wolf.
   home screen channels (Continue Watching, Recently Added) via
   androidx.tvprovider when `supportsHomeScreenChannels()` — skipped where
   the TV provider does not exist (Fire TV). Programs deep-link
-  `bluewolf://item/<id>` into the item detail screen. The TV banner is
+  `cobaltwolf://item/<id>` into the item detail screen. The TV banner is
   `res/drawable-xhdpi/tv_banner.png` (320x180, original wolf artwork +
   wordmark). The phone top bar mirrors the same structure: Search,
   Requests, More (Servers, Calendar, Playback, Dashboard, Sign out).
@@ -227,7 +227,7 @@ Conventions and rules for contributing to Cobalt Wolf.
   Glance `GlanceAppWidget`) listing the server's active sessions via
   `AdminRepository.sessions()`; session→row mapping lives in `SessionRow.kt`
   and is unit-tested in `app/src/test`. The widget reads repositories through
-  the Koin `GlobalContext` started by `BlueWolfApplication`.
+  the Koin `GlobalContext` started by `CobaltWolfApplication`.
 - `shared/.../arrs/` is the Radarr/Sonarr integration: `ArrSettingsRepository`
   (per-service URL + API key), `KtorArrDataSource` (`X-Api-Key` header,
   `/api/v3/calendar` + `system/status`), `ArrRepository` (merges both

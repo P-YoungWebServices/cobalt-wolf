@@ -136,7 +136,7 @@ yet (Fire TV) and files that are not on a server can be tested. Release
 builds do not contain them.
 
 ```sh
-APP=com.pyoungws.bluewolfplayer
+APP=com.pyoungws.cobaltwolf
 # Play a file or URL directly (no server involved; the last fallback level is not available)
 adb shell am start -n $APP/.player.DebugPlayerActivity -d http://192.168.1.10:8089/sample.mkv --ez stats true
 # Play a library item of the signed-in user (all three fallback levels)

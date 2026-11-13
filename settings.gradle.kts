@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "blue-wolf-player"
+rootProject.name = "cobalt-wolf"
 
 include(":shared")
 include(":app")

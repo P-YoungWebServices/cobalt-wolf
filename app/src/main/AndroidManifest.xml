@@ -12,7 +12,7 @@
     <uses-feature android:name="android.hardware.faketouch" android:required="false" />
 
     <application
-        android:name=".BlueWolfApplication"
+        android:name=".CobaltWolfApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="false"
@@ -41,7 +41,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="bluewolf" android:host="item" />
+                <data android:scheme="cobaltwolf" android:host="item" />
             </intent-filter>
             <!-- Android TV global/voice search queries land on the search section. -->
             <intent-filter>
@@ -66,7 +66,7 @@
 
         <meta-data
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
-            android:value="com.pyoungws.bluewolfplayer.player.WolfCastOptionsProvider" />
+            android:value="com.pyoungws.cobaltwolf.player.WolfCastOptionsProvider" />
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />

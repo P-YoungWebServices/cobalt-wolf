@@ -15,11 +15,11 @@ val releaseSigning = Properties().apply {
 }
 
 android {
-    namespace = "com.pyoungws.bluewolfplayer"
+    namespace = "com.pyoungws.cobaltwolf"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.pyoungws.bluewolfplayer"
+        applicationId = "com.pyoungws.cobaltwolf"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
