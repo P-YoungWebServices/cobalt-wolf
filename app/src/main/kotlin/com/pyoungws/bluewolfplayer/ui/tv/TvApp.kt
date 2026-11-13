@@ -37,6 +37,7 @@ import androidx.tv.material3.Text
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.isTelevision
 import com.pyoungws.bluewolfplayer.player.PlayerActivity
+import com.pyoungws.bluewolfplayer.shared.library.ItemQuery
 import com.pyoungws.bluewolfplayer.shared.admin.NavDestination
 import com.pyoungws.bluewolfplayer.shared.admin.canNavigateTo
 import com.pyoungws.bluewolfplayer.shared.auth.SessionState
@@ -65,6 +66,7 @@ import com.pyoungws.bluewolfplayer.ui.navigation.encode
 import com.pyoungws.bluewolfplayer.ui.navigation.isAllowedFor
 import com.pyoungws.bluewolfplayer.ui.navigation.managementRoute
 import com.pyoungws.bluewolfplayer.ui.prowlarr.ProwlarrScreen
+import com.pyoungws.bluewolfplayer.ui.settings.AboutScreen
 import com.pyoungws.bluewolfplayer.ui.settings.PlaybackSettingsActivity
 import com.pyoungws.bluewolfplayer.ui.tv.channels.TvHomeChannels
 import kotlinx.coroutines.Dispatchers
@@ -117,7 +119,7 @@ private fun tvSection(name: String): TvSection =
 
 /** Routes that can be pushed over the current section. */
 private fun decodeTvRoute(value: String): Route? = when (val route = decodeRoute(value)) {
-    is Route.LibraryRoute, is Route.Detail, is Route.SeerrDetail, is Route.SyncPlay,
+    is Route.LibraryRoute, is Route.Detail, is Route.Person, is Route.SeerrDetail, is Route.SyncPlay, Route.About,
     Route.Dashboard, Route.Sessions, Route.AdminRequests, Route.AdminUsers, Route.AdminDevices,
     Route.AdminLibraries, Route.AdminTasks, Route.AdminLogs, Route.AdminSystem,
     Route.MediaManager, is Route.MediaDetail, Route.ArrSettings, Route.Downloads,
@@ -144,6 +146,7 @@ private fun TvSignedInNavigation(
     val push = { route: Route -> stack = stack + route.encode() }
     val pop = { stack = stack.dropLast(1) }
     val play = { itemId: String -> context.startActivity(PlayerActivity.intent(context, itemId)) }
+            val playVersion = { itemId: String, mediaSourceId: String -> context.startActivity(PlayerActivity.intent(context, itemId, mediaSourceId = mediaSourceId)) }
 
     // A channel or deep link opens the matching item on top of Home.
     LaunchedEffect(initialItemId) {
@@ -189,9 +192,18 @@ private fun TvSignedInNavigation(
                 is Route.Detail -> TvDetailScreen(
                     route.itemId,
                     onPlay = play,
+                    onPlayVersion = playVersion,
                     onOpenItem = { push(Route.Detail(it)) },
                     onWatchTogether = { push(Route.SyncPlay(it)) },
+                    onPlayFromBeginning = { itemId -> context.startActivity(PlayerActivity.intent(context, itemId, startPositionMs = 0)) },
+                    onOpenPerson = { id, name -> push(Route.Person(id, name)) },
                 )
+                is Route.Person -> TvItemBrowseScreen(
+                    title = route.name,
+                    query = ItemQuery(personIds = listOf(route.personId)),
+                    onOpenItem = { push(Route.Detail(it)) },
+                )
+                Route.About -> AboutScreen(onBack = pop)
                 is Route.SeerrDetail -> TvSeerrDetailScreen(route.type, route.tmdbId)
                 is Route.SyncPlay -> TvWatchTogetherScreen(onWatch = play, queueItemId = route.itemId)
                 Route.Dashboard -> AdminDashboardScreen(
@@ -201,6 +213,7 @@ private fun TvSignedInNavigation(
                     onOpenSessions = { push(Route.Sessions) },
                     onOpenServers = { stack = emptyList(); section = TvSection.Servers.name },
                     onOpenPlayback = { context.startActivity(PlaybackSettingsActivity.intent(context)) },
+                    onAbout = { push(Route.About) },
                 )
                 Route.Sessions -> AdminSessionsScreen(onBack = pop)
                 Route.AdminRequests -> AdminRequestsScreen(onBack = pop)
@@ -225,6 +238,8 @@ private fun TvSignedInNavigation(
                         feedViewModel = feedViewModel,
                         onOpenLibrary = { push(Route.LibraryRoute(it)) },
                         onOpenItem = { push(Route.Detail(it)) },
+                        onPlay = play,
+                        onWatchTogether = { push(Route.SyncPlay(it)) },
                     )
                     TvSection.Search -> TvSearchScreen(
                         onOpenItem = { push(Route.Detail(it)) },
@@ -293,6 +308,7 @@ private fun TvTopBar(
                 }
                 // Servers and Settings live on the dashboard now.
                 TvMenuItem(R.string.home_dashboard) { menuOpen = false; onOpenRoute(Route.Dashboard) }
+                TvMenuItem(R.string.about_title) { menuOpen = false; onOpenRoute(Route.About) }
                 TvMenuItem(R.string.home_sign_out) { menuOpen = false; onSignOut() }
             }
         }

@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.outlined.AspectRatio
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.HighQuality
 import androidx.compose.material.icons.outlined.PictureInPictureAlt
@@ -42,6 +43,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,12 +79,16 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import androidx.media3.ui.TimeBar
 import com.pyoungws.bluewolfplayer.BuildConfig
+import coil3.compose.AsyncImage
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.isTelevision
 import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
 import com.pyoungws.bluewolfplayer.shared.playback.MediaSegmentKind
+import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackLevel
 import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
@@ -186,6 +192,9 @@ private fun PlayerContent(
     var tracks by remember(player) { mutableStateOf(Tracks.EMPTY) }
     var controlsVisible by remember(player) { mutableStateOf(true) }
     var dialog by remember(player) { mutableStateOf<TrackDialog?>(null) }
+    var zoomMode by remember(player) { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
+    var scrubPositionMs by remember(player) { mutableStateOf<Long?>(null) }
+    var nextCountdownCancelled by remember(ready.generation) { mutableStateOf(false) }
     var showBitrateDialog by remember(player) { mutableStateOf(false) }
     var showStats by remember { mutableStateOf(debugShowStats) }
     var positionMs by remember(player) { mutableLongStateOf(request.startPositionMs) }
@@ -397,7 +406,16 @@ private fun PlayerContent(
     // shows the controller on select. When the controls appear, play/pause takes the focus.
     val isTv = remember { context.isTelevision() }
     val rootFocusRequester = remember { FocusRequester() }
-    val activeSegment = segments.firstOrNull { it.contains(positionMs) }
+    val behavior = when {
+        segments.firstOrNull { it.contains(positionMs) }?.kind == MediaSegmentKind.Intro -> request.settings.introBehavior
+        segments.firstOrNull { it.contains(positionMs) }?.kind == MediaSegmentKind.Outro -> request.settings.outroBehavior
+        else -> SegmentBehavior.Ask
+    }
+    val activeSegment = segments.firstOrNull { it.contains(positionMs) }?.takeIf { behavior != SegmentBehavior.Off }
+    LaunchedEffect(activeSegment?.startMs) {
+        val segment = activeSegment
+        if (segment != null && behavior == SegmentBehavior.Auto) player.seekTo(segment.endMs)
+    }
     LaunchedEffect(isTv, controlsVisible, activeSegment) {
         if (!isTv) return@LaunchedEffect
         when {
@@ -444,13 +462,45 @@ private fun PlayerContent(
                         // A single stream has no previous item; a permanently greyed button only confuses.
                         setShowPreviousButton(false)
                         setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { controlsVisible = it == android.view.View.VISIBLE })
+                        val chapters = request.item.chapters
+                        (findViewById<android.view.View>(androidx.media3.ui.R.id.exo_progress) as? TimeBar)?.let { bar ->
+                            if (chapters.isNotEmpty()) {
+                                bar.setAdGroupTimesMs(
+                                    chapters.map { it.startTicks / 10_000L }.toLongArray(),
+                                    BooleanArray(chapters.size),
+                                    chapters.size,
+                                )
+                            }
+                            if (request.item.trickplay != null) {
+                                bar.addListener(object : TimeBar.OnScrubListener {
+                                    override fun onScrubStart(timeBar: TimeBar, position: Long) { scrubPositionMs = position }
+                                    override fun onScrubMove(timeBar: TimeBar, position: Long) { scrubPositionMs = position }
+                                    override fun onScrubStop(timeBar: TimeBar, position: Long, canceled: Boolean) { scrubPositionMs = null }
+                                })
+                            }
+                        }
                     }
                 },
-                update = { it.useController = !isInPip },
+                update = {
+                it.useController = !isInPip
+                it.resizeMode = zoomMode
+                it.subtitleView?.setFractionalTextSize(0.0533f * request.settings.subtitleScale)
+            },
                 modifier = Modifier.fillMaxSize(),
             )
         }
         if (showStats && !isInPip) StatsOverlay(stats, Modifier.align(Alignment.TopStart).statusBarsPadding().padding(start = 8.dp, top = 56.dp))
+        scrubPositionMs?.let { scrubMs ->
+            request.item.trickplay?.let { tiles ->
+                val index = (scrubMs / tiles.interval).toInt().coerceIn(0, tiles.thumbnailCount - 1)
+                AsyncImage(
+                    model = tiles.tileUrl(index / (tiles.tileWidth * tiles.tileHeight)),
+                    contentDescription = null,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp)
+                        .border(2.dp, Color.White),
+                )
+            }
+        }
         if (controlsVisible && !isInPip) {
             Row(
                 Modifier.align(Alignment.TopEnd).fillMaxWidth().statusBarsPadding().padding(8.dp),
@@ -476,6 +526,17 @@ private fun PlayerContent(
                 ControlButton(onClick = { dialog = TrackDialog.Audio }, icon = Icons.AutoMirrored.Outlined.VolumeUp, description = stringResource(R.string.player_audio))
                 ControlButton(onClick = { dialog = TrackDialog.Subtitles }, icon = Icons.Outlined.Subtitles, description = stringResource(R.string.player_subtitles))
                 ControlButton(onClick = { showBitrateDialog = true }, icon = Icons.Outlined.HighQuality, description = stringResource(R.string.player_bitrate))
+                ControlButton(
+                    onClick = {
+                        zoomMode = when (zoomMode) {
+                            AspectRatioFrameLayout.RESIZE_MODE_FIT -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                            AspectRatioFrameLayout.RESIZE_MODE_FILL -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        }
+                    },
+                    icon = Icons.Outlined.AspectRatio,
+                    description = stringResource(R.string.player_zoom),
+                )
                 ControlButton(onClick = { showStats = !showStats }, icon = Icons.Outlined.QueryStats, description = stringResource(R.string.player_stats))
                 if (!isTv) {
                     ControlButton(onClick = onEnterPip, icon = Icons.Outlined.PictureInPictureAlt, description = stringResource(R.string.player_pip))
@@ -509,6 +570,28 @@ private fun PlayerContent(
                         }
                         else -> Button(onClick = { player.seekTo(segment.endMs) }, modifier = buttonModifier) {
                             Text(stringResource(if (segment.kind == MediaSegmentKind.Intro) R.string.player_skip_intro else R.string.player_skip_credits))
+                        }
+                    }
+                }
+                if (!nextCountdownCancelled && nextItem != null && membership == null) {
+                    val remainingMs = duration - positionMs
+                    if (remainingMs in 1..NEXT_UP_COUNTDOWN_MS) {
+                        var secondsLeft by remember(nextItem) { mutableIntStateOf((remainingMs / 1000L).toInt().coerceIn(1, 99)) }
+                        LaunchedEffect(nextItem) {
+                            while (true) {
+                                kotlinx.coroutines.delay(1000L)
+                                val left = ((player.duration - player.currentPosition) / 1000L).toInt()
+                                secondsLeft = left.coerceAtLeast(0)
+                                if (left <= 0) { viewModel.playNext(player.currentPosition); break }
+                            }
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.background(Color.Black.copy(alpha = 0.7f), CircleShape).padding(start = 12.dp),
+                        ) {
+                            Text(stringResource(R.string.player_next_in, secondsLeft), color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                            TextButton(onClick = { nextCountdownCancelled = true }) { Text(stringResource(R.string.player_cancel_next)) }
                         }
                     }
                 }
@@ -649,3 +732,5 @@ private fun TrackSelectionDialog(title: String, options: List<TrackOption>, onSe
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.player_close)) } },
     )
 }
+
+private const val NEXT_UP_COUNTDOWN_MS = 15_000L

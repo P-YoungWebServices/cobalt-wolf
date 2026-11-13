@@ -53,6 +53,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.DiscoverViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.DownloadsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.ItemBrowseViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.BazarrViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MediaDetailViewModel
@@ -106,7 +107,7 @@ val sharedModule = module {
     single<JellyfinLibraryDataSource> { SdkJellyfinLibraryDataSource(get()) }
     single<JellyfinPlaybackDataSource> { SdkJellyfinPlaybackDataSource(get(), playbackHttpClient()) }
     single<JellyfinAdminDataSource> { SdkJellyfinAdminDataSource(get()) }
-    single { LibraryRepository(get(), get()) }
+    single { LibraryRepository(get(), get(), get()) }
     single { AdminRepository(get(), get()) }
     single { PlaybackSettingsRepository(get()) }
     single { PlaybackRepository(get(), get(), get(), get(), get()) }
@@ -139,6 +140,7 @@ val sharedModule = module {
     viewModelOf(::LibraryHomeViewModel)
     viewModel { SearchViewModel(get(), get()) }
     viewModel { (library: Library) -> LibraryViewModel(library, get()) }
+    viewModel { (query: com.pyoungws.bluewolfplayer.shared.library.ItemQuery) -> ItemBrowseViewModel(query, get()) }
     viewModel { (itemId: String) -> ItemDetailViewModel(itemId, get()) }
     viewModel { (target: PlaybackTarget) -> PlayerViewModel(target, get(), get(), get()) }
     viewModelOf(::SyncPlayViewModel)

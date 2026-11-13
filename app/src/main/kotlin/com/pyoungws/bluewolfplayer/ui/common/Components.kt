@@ -14,13 +14,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +32,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -83,10 +88,45 @@ fun MediaItem.cardSubtitle(): String? = when (kind) {
 
 fun MediaItem.cardTitle(): String = if (kind == MediaKind.Episode) seriesName ?: name else name
 
+/** Watched-check / unwatched-count badge drawn over card artwork's top end, like the official clients. */
+@Composable
+fun WatchedBadge(item: MediaItem, modifier: Modifier = Modifier) {
+    val count = item.unplayedCount
+    when {
+        item.isPlayed -> Box(
+            modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.padding(2.dp).height(14.dp))
+        }
+        count != null && count > 0 -> Text(
+            "$count",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimary,
+            modifier = modifier.clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.primary).padding(horizontal = 6.dp, vertical = 2.dp),
+        )
+    }
+}
+
+/** Artwork with the progress bar and status badge overlaid — the shared card face for both card shapes. */
+@Composable
+private fun CardFace(item: MediaItem, url: String?, aspectRatio: Float, modifier: Modifier = Modifier) {
+    Box {
+        Artwork(url, aspectRatio = aspectRatio, modifier = modifier)
+        item.progressFraction?.let {
+            LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth().height(4.dp).align(Alignment.BottomCenter))
+        }
+        if (item.isPlayed || (item.unplayedCount ?: 0) > 0) {
+            Box(Modifier.align(Alignment.TopEnd).padding(6.dp)) { WatchedBadge(item) }
+        }
+    }
+}
+
 @Composable
 fun PosterCard(item: MediaItem, onClick: () -> Unit, width: Dp = 120.dp, modifier: Modifier = Modifier) {
     Column(modifier.width(width).clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick)) {
-        Artwork(item.posterUrl, aspectRatio = 2f / 3f, modifier = Modifier.fillMaxWidth())
+        CardFace(item, item.posterUrl ?: item.landscapeUrl, aspectRatio = 2f / 3f, modifier = Modifier.fillMaxWidth())
         Text(item.cardTitle(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
         item.cardSubtitle()?.let {
             Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -97,12 +137,7 @@ fun PosterCard(item: MediaItem, onClick: () -> Unit, width: Dp = 120.dp, modifie
 @Composable
 fun LandscapeCard(item: MediaItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.width(240.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick)) {
-        Box {
-            Artwork(item.landscapeUrl ?: item.posterUrl, aspectRatio = 16f / 9f, modifier = Modifier.fillMaxWidth())
-            item.progressFraction?.let {
-                LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth().height(4.dp).align(Alignment.BottomCenter))
-            }
-        }
+        CardFace(item, item.landscapeUrl ?: item.posterUrl, aspectRatio = 16f / 9f, modifier = Modifier.fillMaxWidth())
         Text(item.cardTitle(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
         item.cardSubtitle()?.let {
             Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

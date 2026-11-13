@@ -21,6 +21,7 @@ import org.jellyfin.sdk.api.client.extensions.mediaSegmentApi
 import org.jellyfin.sdk.api.client.extensions.sessionApi
 import org.jellyfin.sdk.api.client.extensions.userApi
 import org.jellyfin.sdk.model.UUID
+import org.jellyfin.sdk.model.serializer.toUUID
 import org.jellyfin.sdk.model.api.DeviceProfile
 import org.jellyfin.sdk.model.api.MediaSegmentType
 import org.jellyfin.sdk.model.api.MediaSourceInfo
@@ -37,7 +38,7 @@ import org.jellyfin.sdk.model.api.SubtitleDeliveryMethod
 /** Jellyfin playback calls. Implementations throw the SDK's `ApiClientException` subtypes on failure. */
 interface JellyfinPlaybackDataSource {
     /** [profile] tells the server what the device plays itself; [forceTranscode] skips direct play regardless. */
-    suspend fun getPlaybackSource(session: Session, itemId: String, startPositionTicks: Long, profile: DeviceProfile, forceTranscode: Boolean, maxBitrate: Int? = null): PlaybackSource
+    suspend fun getPlaybackSource(session: Session, itemId: String, startPositionTicks: Long, profile: DeviceProfile, forceTranscode: Boolean, maxBitrate: Int? = null, mediaSourceId: String? = null): PlaybackSource
     /** Whether the server re-encodes video for this user; false when their policy disables video transcoding. */
     suspend fun canTranscodeVideo(session: Session): Boolean
     /** Intro/outro markers the server has for the item (from its media segment provider). */
@@ -73,12 +74,13 @@ class SdkJellyfinPlaybackDataSource(
         profile: DeviceProfile,
         forceTranscode: Boolean,
         maxBitrate: Int?,
+        mediaSourceId: String?,
     ) = call(session) {
-        val id = UUID.fromString(itemId)
+        val id = itemId.toUUID()
         val response = mediaInfoApi.getPostedPlaybackInfo(
             id,
             PlaybackInfoDto(
-                userId = UUID.fromString(session.userId),
+                userId = session.userId.toUUID(),
                 startTimeTicks = startPositionTicks.takeIf { it > 0 },
                 deviceProfile = profile,
                 maxStreamingBitrate = maxBitrate,
@@ -86,9 +88,11 @@ class SdkJellyfinPlaybackDataSource(
                 enableDirectStream = !forceTranscode,
                 enableTranscoding = true,
                 autoOpenLiveStream = true,
+                mediaSourceId = mediaSourceId,
             ),
         ).content
-        val source = response.mediaSources.firstOrNull() ?: throw noPlayableSource()
+        val source = mediaSourceId?.let { wanted -> response.mediaSources.firstOrNull { it.id == wanted } }
+            ?: response.mediaSources.firstOrNull() ?: throw noPlayableSource()
         val playbackSource = source.toPlaybackSource(session, itemId, response.playSessionId)
         val isMatroska = source.container.equals("mkv", ignoreCase = true) || source.container.equals("webm", ignoreCase = true)
         if (!isMatroska || playbackSource.method == PlaybackMethod.Transcode) return@call playbackSource
@@ -112,7 +116,7 @@ class SdkJellyfinPlaybackDataSource(
     }
 
     override suspend fun getMediaSegments(session: Session, itemId: String): List<MediaSegment> = call(session) {
-        mediaSegmentApi.getItemSegments(UUID.fromString(itemId)).content.items.mapNotNull {
+        mediaSegmentApi.getItemSegments(itemId.toUUID()).content.items.mapNotNull {
             val kind = when (it.type) {
                 MediaSegmentType.INTRO -> MediaSegmentKind.Intro
                 MediaSegmentType.OUTRO -> MediaSegmentKind.Outro
@@ -126,7 +130,7 @@ class SdkJellyfinPlaybackDataSource(
         sessionApi.reportPlaybackStart(
             PlaybackStartInfo(
                 canSeek = true,
-                itemId = UUID.fromString(report.itemId),
+                itemId = report.itemId.toUUID(),
                 mediaSourceId = report.mediaSourceId,
                 playSessionId = report.playSessionId,
                 positionTicks = report.positionTicks,
@@ -144,7 +148,7 @@ class SdkJellyfinPlaybackDataSource(
         sessionApi.reportPlaybackProgress(
             PlaybackProgressInfo(
                 canSeek = true,
-                itemId = UUID.fromString(report.itemId),
+                itemId = report.itemId.toUUID(),
                 mediaSourceId = report.mediaSourceId,
                 playSessionId = report.playSessionId,
                 positionTicks = report.positionTicks,
@@ -161,7 +165,7 @@ class SdkJellyfinPlaybackDataSource(
     override suspend fun reportStopped(session: Session, report: PlaybackReport) = call(session) {
         sessionApi.reportPlaybackStopped(
             PlaybackStopInfo(
-                itemId = UUID.fromString(report.itemId),
+                itemId = report.itemId.toUUID(),
                 mediaSourceId = report.mediaSourceId,
                 playSessionId = report.playSessionId,
                 positionTicks = report.positionTicks,

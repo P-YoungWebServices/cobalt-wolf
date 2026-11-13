@@ -24,6 +24,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.TravelExplore
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,6 +48,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pyoungws.bluewolfplayer.R
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
+import org.koin.compose.koinInject
 import com.pyoungws.bluewolfplayer.shared.model.HomeFeed
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.presentation.HomeViewModel
@@ -65,6 +76,7 @@ fun HomeScreen(
     onDiscover: () -> Unit,
     onCalendar: () -> Unit,
     onDashboard: () -> Unit,
+    onOffline: () -> Unit,
     viewModel: LibraryHomeViewModel = koinViewModel(),
     accountViewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -100,22 +112,31 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = onSearch) { Text(stringResource(R.string.home_search)) }
-                    TextButton(onClick = onDiscover) { Text(stringResource(R.string.home_requests)) }
+                    IconButton(onClick = onSearch) {
+                        Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.home_search))
+                    }
+                    IconButton(onClick = onDiscover) {
+                        Icon(Icons.Outlined.TravelExplore, contentDescription = stringResource(R.string.home_requests))
+                    }
                     if (isSigningOut) {
                         CircularProgressIndicator(modifier = Modifier.padding(horizontal = 16.dp).size(20.dp), strokeWidth = 2.dp)
                     } else {
+                        IconButton(onClick = onCalendar) {
+                            Icon(Icons.Outlined.DateRange, contentDescription = stringResource(R.string.home_calendar))
+                        }
                         Box {
-                            TextButton(onClick = { moreMenuOpen = true }) { Text(stringResource(R.string.home_more)) }
+                            IconButton(onClick = { moreMenuOpen = true }) {
+                                Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.home_more))
+                            }
                             DropdownMenu(expanded = moreMenuOpen, onDismissRequest = { moreMenuOpen = false }) {
                                 // Servers and Playback live on the admin dashboard now.
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.home_calendar)) },
-                                    onClick = { moreMenuOpen = false; onCalendar() },
-                                )
-                                DropdownMenuItem(
                                     text = { Text(stringResource(R.string.home_dashboard)) },
                                     onClick = { moreMenuOpen = false; onDashboard() },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.offline_title)) },
+                                    onClick = { moreMenuOpen = false; onOffline() },
                                 )
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.home_sign_out)) },
@@ -163,19 +184,35 @@ private fun HomeFeedContent(feed: HomeFeed, onOpenLibrary: (Library) -> Unit, on
         }
         return
     }
+    val settingsRepo: PlaybackSettingsRepository = koinInject()
+    val settings by settingsRepo.settings.collectAsStateWithLifecycle()
+    val order = (settings.homeRowOrder + PlaybackSettingsViewModel.HOME_ROW_IDS).distinct()
+        .filter { it !in settings.hiddenHomeRows }
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (feed.continueWatching.isNotEmpty()) {
-            item(key = "continue") {
-                Column {
-                    SectionTitle(stringResource(R.string.home_continue_watching))
-                    CardRow(feed.continueWatching, key = { it.id }) { LandscapeCard(it, onClick = { onOpenItem(it.id) }) }
+        order.forEach { rowId ->
+            when (rowId) {
+                PlaybackSettings.ROW_LIBRARIES -> item(key = "libraries") {
+                    Column {
+                        SectionTitle(stringResource(R.string.home_libraries))
+                        CardRow(feed.libraries, key = { it.id }) { LibraryCard(it, onClick = { onOpenLibrary(it) }) }
+                    }
                 }
-            }
-        }
-        item(key = "libraries") {
-            Column {
-                SectionTitle(stringResource(R.string.home_libraries))
-                CardRow(feed.libraries, key = { it.id }) { LibraryCard(it, onClick = { onOpenLibrary(it) }) }
+                PlaybackSettings.ROW_CONTINUE -> if (feed.continueWatching.isNotEmpty()) {
+                    item(key = "continue") {
+                        Column {
+                            SectionTitle(stringResource(R.string.home_continue_watching))
+                            CardRow(feed.continueWatching, key = { it.id }) { LandscapeCard(it, onClick = { onOpenItem(it.id) }) }
+                        }
+                    }
+                }
+                PlaybackSettings.ROW_NEXT_UP -> if (feed.nextUp.isNotEmpty()) {
+                    item(key = "nextup") {
+                        Column {
+                            SectionTitle(stringResource(R.string.detail_next_up))
+                            CardRow(feed.nextUp, key = { it.id }) { LandscapeCard(it, onClick = { onOpenItem(it.id) }) }
+                        }
+                    }
+                }
             }
         }
         items(feed.recentlyAdded, key = { "recent-${it.library.id}" }) { row ->

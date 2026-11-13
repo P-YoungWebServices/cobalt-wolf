@@ -73,7 +73,7 @@ fun TvLibraryScreen(library: Library, onOpenItem: (String) -> Unit) {
 
 /** Requests the next page when the last few items scroll into view. */
 @Composable
-private fun TvLoadMoreEffect(gridState: LazyGridState, onLoadMore: () -> Unit) {
+internal fun TvLoadMoreEffect(gridState: LazyGridState, onLoadMore: () -> Unit) {
     LaunchedEffect(gridState) {
         snapshotFlow {
             val info = gridState.layoutInfo

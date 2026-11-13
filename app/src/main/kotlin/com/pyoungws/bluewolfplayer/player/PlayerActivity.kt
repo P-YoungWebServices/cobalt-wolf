@@ -163,7 +163,14 @@ class PlayerActivity : ComponentActivity() {
      */
     private fun playbackTarget(intent: Intent): PlaybackTarget {
         val uri = intent.data?.takeIf { BuildConfig.DEBUG }
-        return if (uri != null) PlaybackTarget.DirectUri(uri.toString()) else PlaybackTarget.Item(requireNotNull(intent.getStringExtra(EXTRA_ITEM_ID)))
+        if (uri != null) return PlaybackTarget.DirectUri(uri.toString())
+        intent.getStringExtra(EXTRA_LOCAL_URI)?.let {
+            return PlaybackTarget.DirectUri(it, intent.getStringExtra(EXTRA_LOCAL_TITLE) ?: it.substringAfterLast('/'))
+        }
+        val startMs = if (intent.hasExtra(EXTRA_START_MS)) intent.getLongExtra(EXTRA_START_MS, 0L) else null
+        val startPaused = intent.getBooleanExtra(EXTRA_START_PAUSED, false)
+        val mediaSourceId = intent.getStringExtra(EXTRA_MEDIA_SOURCE_ID)
+        return PlaybackTarget.Item(requireNotNull(intent.getStringExtra(EXTRA_ITEM_ID)), startPositionMs = startMs, startPaused = startPaused, mediaSourceId = mediaSourceId)
     }
 
     /**
@@ -196,8 +203,22 @@ class PlayerActivity : ComponentActivity() {
 
     companion object {
         private const val EXTRA_ITEM_ID = "item_id"
+        private const val EXTRA_START_MS = "start_ms"
+        private const val EXTRA_START_PAUSED = "start_paused"
+        private const val EXTRA_MEDIA_SOURCE_ID = "media_source_id"
+        private const val EXTRA_LOCAL_URI = "local_uri"
+        private const val EXTRA_LOCAL_TITLE = "local_title"
 
-        fun intent(context: Context, itemId: String) =
-            Intent(context, PlayerActivity::class.java).putExtra(EXTRA_ITEM_ID, itemId)
+        fun intent(context: Context, itemId: String = "", startPositionMs: Long? = null, startPaused: Boolean = false, mediaSourceId: String? = null, localUri: String? = null, title: String? = null): Intent {
+            val i = Intent(context, PlayerActivity::class.java)
+            if (localUri != null) {
+                return i.putExtra(EXTRA_LOCAL_URI, localUri).putExtra(EXTRA_LOCAL_TITLE, title)
+            }
+            i.putExtra(EXTRA_ITEM_ID, itemId)
+            startPositionMs?.let { i.putExtra(EXTRA_START_MS, it) }
+            i.putExtra(EXTRA_START_PAUSED, startPaused)
+            mediaSourceId?.let { i.putExtra(EXTRA_MEDIA_SOURCE_ID, it) }
+            return i
+        }
     }
 }

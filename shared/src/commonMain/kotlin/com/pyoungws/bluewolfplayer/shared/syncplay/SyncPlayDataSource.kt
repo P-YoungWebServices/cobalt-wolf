@@ -14,6 +14,7 @@ import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.syncPlayApi
 import org.jellyfin.sdk.model.UUID
+import org.jellyfin.sdk.model.serializer.toUUID
 import org.jellyfin.sdk.model.api.BufferRequestDto
 import org.jellyfin.sdk.model.api.GroupInfoDto
 import org.jellyfin.sdk.model.api.GroupQueueMode
@@ -91,7 +92,7 @@ class SdkSyncPlayDataSource(
     }
 
     override suspend fun joinGroup(session: Session, groupId: String) = call(session) {
-        syncPlayApi.syncPlayJoinGroup(JoinGroupRequestDto(UUID.fromString(groupId)))
+        syncPlayApi.syncPlayJoinGroup(JoinGroupRequestDto(groupId.toUUID()))
         Unit
     }
 
@@ -132,24 +133,24 @@ class SdkSyncPlayDataSource(
     }
 
     override suspend fun nextItem(session: Session, playlistItemId: String) = call(session) {
-        syncPlayApi.syncPlayNextItem(NextItemRequestDto(UUID.fromString(playlistItemId)))
+        syncPlayApi.syncPlayNextItem(NextItemRequestDto(playlistItemId.toUUID()))
         Unit
     }
 
     override suspend fun previousItem(session: Session, playlistItemId: String) = call(session) {
-        syncPlayApi.syncPlayPreviousItem(PreviousItemRequestDto(UUID.fromString(playlistItemId)))
+        syncPlayApi.syncPlayPreviousItem(PreviousItemRequestDto(playlistItemId.toUUID()))
         Unit
     }
 
     override suspend fun buffering(session: Session, positionTicks: Long, isPlaying: Boolean, playlistItemId: String) =
         call(session) {
-            syncPlayApi.syncPlayBuffering(BufferRequestDto(utcNow(), positionTicks, isPlaying, UUID.fromString(playlistItemId)))
+            syncPlayApi.syncPlayBuffering(BufferRequestDto(utcNow(), positionTicks, isPlaying, playlistItemId.toUUID()))
             Unit
         }
 
     override suspend fun ready(session: Session, positionTicks: Long, isPlaying: Boolean, playlistItemId: String) =
         call(session) {
-            syncPlayApi.syncPlayReady(ReadyRequestDto(utcNow(), positionTicks, isPlaying, UUID.fromString(playlistItemId)))
+            syncPlayApi.syncPlayReady(ReadyRequestDto(utcNow(), positionTicks, isPlaying, playlistItemId.toUUID()))
             Unit
         }
 

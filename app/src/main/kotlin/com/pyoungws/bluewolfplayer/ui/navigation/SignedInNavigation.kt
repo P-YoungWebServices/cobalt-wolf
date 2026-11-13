@@ -12,6 +12,8 @@ import com.pyoungws.bluewolfplayer.player.PlayerActivity
 import com.pyoungws.bluewolfplayer.shared.admin.NavDestination
 import com.pyoungws.bluewolfplayer.shared.admin.canNavigateTo
 import com.pyoungws.bluewolfplayer.shared.arrs.ArrService
+import com.pyoungws.bluewolfplayer.shared.library.ItemQuery
+import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.LibraryType
 import com.pyoungws.bluewolfplayer.shared.model.UserProfile
@@ -35,15 +37,20 @@ import com.pyoungws.bluewolfplayer.ui.discover.DiscoverScreen
 import com.pyoungws.bluewolfplayer.ui.discover.MyRequestsScreen
 import com.pyoungws.bluewolfplayer.ui.discover.SeerrDetailScreen
 import com.pyoungws.bluewolfplayer.ui.home.HomeScreen
+import com.pyoungws.bluewolfplayer.ui.library.ItemBrowseScreen
 import com.pyoungws.bluewolfplayer.ui.library.LibraryScreen
 import com.pyoungws.bluewolfplayer.ui.prowlarr.ProwlarrScreen
 import com.pyoungws.bluewolfplayer.ui.search.SearchScreen
 import com.pyoungws.bluewolfplayer.ui.calendar.ArrSettingsScreen
 import com.pyoungws.bluewolfplayer.ui.calendar.CalendarScreen
 import com.pyoungws.bluewolfplayer.ui.downloads.DownloadsScreen
+import com.pyoungws.bluewolfplayer.ui.downloads.OfflineScreen
+import com.pyoungws.bluewolfplayer.ui.downloads.OfflineDownloads
 import com.pyoungws.bluewolfplayer.ui.servers.ServersScreen
+import com.pyoungws.bluewolfplayer.ui.settings.AboutScreen
 import com.pyoungws.bluewolfplayer.ui.settings.PlaybackSettingsActivity
 import com.pyoungws.bluewolfplayer.ui.syncplay.WatchTogetherScreen
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /** Screens above the home screen. Encoded as strings so the back stack survives process death. */
@@ -55,8 +62,10 @@ internal sealed interface Route {
     data class SyncPlay(val itemId: String? = null) : Route
     data object Servers : Route
     data object Calendar : Route
+    data object About : Route
     data object ArrSettings : Route
     data object Downloads : Route
+    data object Offline : Route
     data object Bazarr : Route
     data object Prowlarr : Route
     data object Dashboard : Route
@@ -73,7 +82,11 @@ internal sealed interface Route {
     data class SeerrDetail(val type: SeerrMediaType, val tmdbId: Int) : Route
     data class LibraryRoute(val library: Library) : Route
     data class Detail(val itemId: String) : Route
+    /** Filmography grid for a cast/crew member. */
+    data class Person(val personId: String, val name: String) : Route
 }
+
+private val PLAYABLE_KINDS = setOf(MediaKind.Movie, MediaKind.Episode, MediaKind.MusicVideo, MediaKind.Video)
 
 internal fun Route.encode(): String = when (this) {
     Route.Search -> "search"
@@ -82,8 +95,10 @@ internal fun Route.encode(): String = when (this) {
     is Route.SyncPlay -> itemId?.let { listOf("syncplay", it).joinToString(SEPARATOR) } ?: "syncplay"
     Route.Servers -> "servers"
     Route.Calendar -> "calendar"
+    Route.About -> "about"
     Route.ArrSettings -> "arrsettings"
     Route.Downloads -> "downloads"
+    Route.Offline -> "offline"
     Route.Bazarr -> "bazarr"
     Route.Prowlarr -> "prowlarr"
     Route.Dashboard -> "dashboard"
@@ -100,6 +115,7 @@ internal fun Route.encode(): String = when (this) {
     is Route.SeerrDetail -> listOf("seerr", type.name, tmdbId).joinToString(SEPARATOR)
     is Route.LibraryRoute -> listOf("library", library.id, library.type.name, library.name).joinToString(SEPARATOR)
     is Route.Detail -> "detail$SEPARATOR$itemId"
+    is Route.Person -> listOf("person", personId, name).joinToString(SEPARATOR)
 }
 
 internal fun decodeRoute(value: String): Route? {
@@ -111,8 +127,10 @@ internal fun decodeRoute(value: String): Route? {
         "syncplay" -> Route.SyncPlay(parts.getOrNull(1))
         "servers" -> Route.Servers
         "calendar" -> Route.Calendar
+        "about" -> Route.About
         "arrsettings" -> Route.ArrSettings
         "downloads" -> Route.Downloads
+        "offline" -> Route.Offline
         "bazarr" -> Route.Bazarr
         "prowlarr" -> Route.Prowlarr
         "dashboard" -> Route.Dashboard
@@ -134,6 +152,7 @@ internal fun decodeRoute(value: String): Route? {
             Route.LibraryRoute(Library(parts[1], name, LibraryType.valueOf(parts[2]), imageUrl = null))
         }
         "detail" -> parts.getOrNull(1)?.let(Route::Detail)
+        "person" -> parts.getOrNull(2)?.let { Route.Person(parts[1], it) }
         else -> null
     }
 }
@@ -185,6 +204,7 @@ internal fun managementRoute(destination: NavDestination): Route? = when (destin
 @Composable
 fun SignedInNavigation() {
     val context = LocalContext.current
+    val offlineDownloads: OfflineDownloads = koinInject()
     val accountViewModel: HomeViewModel = koinViewModel()
     val accountState by accountViewModel.uiState.collectAsStateWithLifecycle()
     val user = (accountState as? HomeUiState.Loaded)?.user
@@ -193,8 +213,10 @@ fun SignedInNavigation() {
     val push = { route: Route -> stack = stack + route.encode() }
     val pop = { stack = stack.dropLast(1) }
     val play = { itemId: String -> context.startActivity(PlayerActivity.intent(context, itemId)) }
+    val playVersion = { itemId: String, mediaSourceId: String -> context.startActivity(PlayerActivity.intent(context, itemId, mediaSourceId = mediaSourceId)) }
 
-    BackHandler(enabled = stack.isNotEmpty()) { pop() }
+    // Always consume Back: pop pushed routes, and stay in the app at Home rather than exiting.
+    BackHandler { if (stack.isNotEmpty()) pop() }
 
     when (val route = routes.lastOrNull()) {
         null -> HomeScreen(
@@ -204,6 +226,7 @@ fun SignedInNavigation() {
             onDiscover = { push(Route.Discover) },
             onCalendar = { push(Route.Calendar) },
             onDashboard = { push(Route.Dashboard) },
+            onOffline = { push(Route.Offline) },
         )
         Route.Search -> SearchScreen(
             onBack = pop,
@@ -223,8 +246,13 @@ fun SignedInNavigation() {
             onSettings = { push(Route.ArrSettings) },
             canConfigureServices = user?.canNavigateTo(NavDestination.Services) == true,
         )
+        Route.About -> AboutScreen(onBack = pop)
         Route.ArrSettings -> ArrSettingsScreen(onBack = pop)
         Route.Downloads -> DownloadsScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
+        Route.Offline -> OfflineScreen(onBack = pop, onPlay = { id ->
+            offlineDownloads.items.value.firstOrNull { e -> e.itemId == id }
+                ?.let { context.startActivity(PlayerActivity.intent(context, localUri = "file://" + it.path, title = it.name)) }
+        })
         Route.Bazarr -> BazarrScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
         Route.Prowlarr -> ProwlarrScreen(onBack = pop, onSettings = { push(Route.ArrSettings) })
         Route.Dashboard -> AdminDashboardScreen(
@@ -234,6 +262,7 @@ fun SignedInNavigation() {
             onOpenSessions = { push(Route.Sessions) },
             onOpenServers = { push(Route.Servers) },
             onOpenPlayback = { context.startActivity(PlaybackSettingsActivity.intent(context)) },
+            onAbout = { push(Route.About) },
         )
         Route.Sessions -> AdminSessionsScreen(onBack = pop)
         Route.AdminRequests -> AdminRequestsScreen(onBack = pop)
@@ -251,12 +280,21 @@ fun SignedInNavigation() {
         is Route.MediaDetail -> MediaDetailScreen(route.service, route.itemId, onBack = pop)
         is Route.SeerrDetail -> SeerrDetailScreen(route.type, route.tmdbId, onBack = pop)
         is Route.LibraryRoute -> LibraryScreen(route.library, onBack = pop, onOpenItem = { push(Route.Detail(it)) })
+        is Route.Person -> ItemBrowseScreen(
+            title = route.name,
+            query = ItemQuery(personIds = listOf(route.personId), includeItemKinds = PLAYABLE_KINDS),
+            onBack = pop,
+            onOpenItem = { push(Route.Detail(it)) },
+        )
         is Route.Detail -> DetailScreen(
             route.itemId,
             onBack = pop,
             onPlay = play,
+            onPlayVersion = playVersion,
+            onPlayFromBeginning = { itemId -> context.startActivity(PlayerActivity.intent(context, itemId, startPositionMs = 0)) },
             onOpenItem = { push(Route.Detail(it)) },
             onWatchTogether = { push(Route.SyncPlay(it)) },
+            onOpenPerson = { id, name -> push(Route.Person(id, name)) },
         )
     }
 }

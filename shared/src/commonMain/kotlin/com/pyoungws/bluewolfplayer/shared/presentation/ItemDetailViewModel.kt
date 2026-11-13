@@ -24,6 +24,14 @@ sealed interface ItemDetailUiState {
         val episodes: List<MediaItem> = emptyList(),
         val isLoadingEpisodes: Boolean = false,
         val episodesError: LoadError? = null,
+        val similar: List<MediaItem> = emptyList(),
+        val nextUp: MediaItem? = null,
+        val specialFeatures: List<MediaItem> = emptyList(),
+        val localTrailers: List<MediaItem> = emptyList(),
+        val previousEpisode: MediaItem? = null,
+        val selectedMediaSourceId: String? = null,
+        /** Contents of a box set / playlist. */
+        val containerItems: List<MediaItem> = emptyList(),
     ) : ItemDetailUiState {
         /** What the main Play button starts: the item itself, or for a series the first unwatched (else first) episode. */
         val playTarget: MediaItem?
@@ -73,10 +81,28 @@ class ItemDetailViewModel(
                 return
             }
         }
+        // Supporting rows are best-effort: a failure leaves them empty rather than failing the page.
+        val similar = (repository.similarItems(itemId) as? Outcome.Success)?.value.orEmpty()
+        val specials = (repository.specialFeatures(itemId) as? Outcome.Success)?.value.orEmpty()
+        val trailers = (repository.localTrailers(itemId) as? Outcome.Success)?.value.orEmpty()
+        val previousEpisode = if (item.kind == MediaKind.Episode) {
+            (repository.previousEpisode(item) as? Outcome.Success)?.value
+        } else null
+        val containerItems = if (item.kind == MediaKind.BoxSet || item.kind == MediaKind.Playlist) {
+            (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(parentId = item.id, limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
+        } else emptyList()
         if (item.kind != MediaKind.Series) {
-            _uiState.value = ItemDetailUiState.Loaded(item)
+            _uiState.value = ItemDetailUiState.Loaded(
+                item,
+                similar = similar,
+                specialFeatures = specials,
+                localTrailers = trailers,
+                previousEpisode = previousEpisode,
+                containerItems = containerItems,
+            )
             return
         }
+        val nextUp = (repository.nextUpForSeries(item.id) as? Outcome.Success)?.value
         val seasons = when (val result = repository.seasons(item.id)) {
             is Outcome.Success -> result.value
             is Outcome.Failure -> {
@@ -86,8 +112,16 @@ class ItemDetailViewModel(
         }
         val previous = (_uiState.value as? ItemDetailUiState.Loaded)?.selectedSeasonId.takeIf { keepSelection }
         val selected = seasons.firstOrNull { it.id == previous } ?: seasons.firstOrNull { it.seasonNumber != 0 } ?: seasons.firstOrNull()
-        _uiState.value = ItemDetailUiState.Loaded(item, seasons = seasons, selectedSeasonId = selected?.id)
+        _uiState.value = ItemDetailUiState.Loaded(
+            item, seasons = seasons, selectedSeasonId = selected?.id,
+            similar = similar, nextUp = nextUp, specialFeatures = specials, localTrailers = trailers,
+        )
         if (selected != null) loadEpisodes(item, selected.id)
+    }
+
+    /** Chooses which media source (version) the Play action passes to the player. */
+    fun selectMediaSource(mediaSourceId: String) {
+        _uiState.update { (it as? ItemDetailUiState.Loaded)?.copy(selectedMediaSourceId = mediaSourceId) ?: it }
     }
 
     private fun loadEpisodes(series: MediaItem, seasonId: String) {
@@ -102,6 +136,20 @@ class ItemDetailViewModel(
                     is Outcome.Failure -> state.copy(isLoadingEpisodes = false, episodesError = result.error)
                 }
             }
+        }
+    }
+
+    fun toggleWatched() {
+        val state = _uiState.value as? ItemDetailUiState.Loaded ?: return
+        viewModelScope.launch {
+            if (repository.setPlayed(state.item, !state.item.isPlayed) is Outcome.Success) refresh()
+        }
+    }
+
+    fun toggleFavorite() {
+        val state = _uiState.value as? ItemDetailUiState.Loaded ?: return
+        viewModelScope.launch {
+            if (repository.setFavorite(state.item, !state.item.isFavorite) is Outcome.Success) refresh()
         }
     }
 

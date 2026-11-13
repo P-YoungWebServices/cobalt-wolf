@@ -17,6 +17,7 @@ class BlueWolfApplication : Application() {
             modules(
                 androidPlatformModule(clientName = getString(R.string.app_name), clientVersion = BuildConfig.VERSION_NAME),
                 sharedModule,
+                org.koin.dsl.module { single { com.pyoungws.bluewolfplayer.ui.downloads.OfflineDownloads(androidContext()) } },
             )
         }.koin
         RequestNotifier(this, koin.get<RequestWatcher>(), koin.get<CoroutineScope>()).start()

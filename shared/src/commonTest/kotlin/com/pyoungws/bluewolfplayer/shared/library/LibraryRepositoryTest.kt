@@ -22,7 +22,7 @@ class LibraryRepositoryTest {
     }
 
     @Test
-    fun `home combines libraries, continue watching and a recently added row per browsable library`() = runTest {
+    fun `home combines libraries, continue watching, next up and a recently added row per browsable library`() = runTest {
         dataSource.resume = { listOf(movie("m1", positionTicks = 100)) }
         dataSource.nextUp = { listOf(episode("e1", 2)) }
         dataSource.latest = { if (it == MOVIES.id) listOf(movie("m2")) else listOf(series("s1")) }
@@ -31,14 +31,15 @@ class LibraryRepositoryTest {
         val feed = (repository.loadHome() as Outcome.Success).value
 
         assertEquals(listOf(MOVIES, SHOWS, MUSIC), feed.libraries)
-        assertEquals(listOf("m1", "e1"), feed.continueWatching.map { it.id })
+        assertEquals(listOf("m1"), feed.continueWatching.map { it.id })
+        assertEquals(listOf("e1"), feed.nextUp.map { it.id })
         assertEquals(listOf(MOVIES, SHOWS), feed.recentlyAdded.map { it.library })
         assertEquals(listOf("m2"), feed.recentlyAdded[0].items.map { it.id })
         assertTrue("latest(${MUSIC.id})" !in dataSource.calls)
     }
 
     @Test
-    fun `home removes duplicates between resume and next up and drops empty rows`() = runTest {
+    fun `home removes next-up items already in resume and drops empty rows`() = runTest {
         dataSource.resume = { listOf(episode("e1", 1, positionTicks = 5)) }
         dataSource.nextUp = { listOf(episode("e1", 1), episode("e2", 2)) }
         dataSource.latest = { if (it == SHOWS.id) listOf(series("s1")) else emptyList() }
@@ -46,7 +47,8 @@ class LibraryRepositoryTest {
 
         val feed = (repository.loadHome() as Outcome.Success).value
 
-        assertEquals(listOf("e1", "e2"), feed.continueWatching.map { it.id })
+        assertEquals(listOf("e1"), feed.continueWatching.map { it.id })
+        assertEquals(listOf("e2"), feed.nextUp.map { it.id })
         assertEquals(listOf(SHOWS), feed.recentlyAdded.map { it.library })
     }
 

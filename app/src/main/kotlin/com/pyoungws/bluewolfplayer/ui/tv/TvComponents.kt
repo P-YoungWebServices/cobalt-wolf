@@ -11,7 +11,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.onKeyEvent
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -36,7 +50,9 @@ import coil3.compose.AsyncImage
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
+import com.pyoungws.bluewolfplayer.shared.model.MediaPerson
 import com.pyoungws.bluewolfplayer.shared.seerr.SeerrTitle
+import com.pyoungws.bluewolfplayer.ui.common.WatchedBadge
 import com.pyoungws.bluewolfplayer.ui.common.cardSubtitle
 import com.pyoungws.bluewolfplayer.ui.common.cardTitle
 import com.pyoungws.bluewolfplayer.ui.discover.SeerrStatusBadge
@@ -44,10 +60,14 @@ import com.pyoungws.bluewolfplayer.ui.message
 
 /** Card chrome shared by every focusable item: scale + a bright border and glow when focused. */
 @Composable
-private fun TvCard(onClick: () -> Unit, modifier: Modifier = Modifier, shape: Shape = RoundedCornerShape(8.dp), content: @Composable () -> Unit) {
+private fun TvCard(onClick: () -> Unit, modifier: Modifier = Modifier, shape: Shape = RoundedCornerShape(8.dp), onMenu: (() -> Unit)? = null, content: @Composable () -> Unit) {
     Card(
         onClick = onClick,
-        modifier = modifier,
+        modifier = if (onMenu == null) modifier else modifier.onKeyEvent { ev ->
+            val n = ev.nativeKeyEvent
+            if (n.action == android.view.KeyEvent.ACTION_DOWN &&
+                n.keyCode == android.view.KeyEvent.KEYCODE_MENU) { onMenu(); true } else false
+        },
         shape = CardDefaults.shape(shape),
         scale = CardDefaults.scale(focusedScale = 1.06f),
         border = CardDefaults.border(
@@ -58,7 +78,7 @@ private fun TvCard(onClick: () -> Unit, modifier: Modifier = Modifier, shape: Sh
 }
 
 @Composable
-private fun CardArtwork(url: String?, aspectRatio: Float, modifier: Modifier = Modifier) {
+fun CardArtwork(url: String?, aspectRatio: Float, modifier: Modifier = Modifier) {
     Box(modifier.aspectRatio(aspectRatio).clip(RoundedCornerShape(6.dp))) {
         if (url != null) {
             AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -69,7 +89,7 @@ private fun CardArtwork(url: String?, aspectRatio: Float, modifier: Modifier = M
 }
 
 @Composable
-private fun CardLabel(title: String, subtitle: String?, modifier: Modifier = Modifier) {
+fun CardLabel(title: String, subtitle: String?, modifier: Modifier = Modifier) {
     Column(modifier.padding(top = 6.dp)) {
         Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
         if (subtitle != null) {
@@ -80,18 +100,28 @@ private fun CardLabel(title: String, subtitle: String?, modifier: Modifier = Mod
 
 /** 2:3 poster card for movies/series. */
 @Composable
-fun TvPosterCard(item: MediaItem, onClick: () -> Unit, modifier: Modifier = Modifier, width: Int = 150) {
+fun TvPosterCard(item: MediaItem, onClick: () -> Unit, modifier: Modifier = Modifier, width: Int = 150, onMenu: (() -> Unit)? = null) {
     Column(modifier.width(width.dp)) {
-        TvCard(onClick = onClick) { CardArtwork(item.posterUrl ?: item.landscapeUrl, aspectRatio = 2f / 3f, modifier = Modifier.fillMaxWidth()) }
+        TvCard(onClick = onClick, onMenu = onMenu) {
+            Box {
+                CardArtwork(item.posterUrl ?: item.landscapeUrl, aspectRatio = 2f / 3f, modifier = Modifier.fillMaxWidth())
+                item.progressFraction?.let {
+                    LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth().height(4.dp).align(Alignment.BottomCenter))
+                }
+                if (item.isPlayed || (item.unplayedCount ?: 0) > 0) {
+                    Box(Modifier.align(Alignment.TopEnd).padding(6.dp)) { WatchedBadge(item) }
+                }
+            }
+        }
         CardLabel(item.cardTitle(), item.cardSubtitle())
     }
 }
 
 /** 16:9 card for in-progress items and episodes, with a progress bar. */
 @Composable
-fun TvLandscapeCard(item: MediaItem, onClick: () -> Unit, modifier: Modifier = Modifier, width: Int = 260) {
+fun TvLandscapeCard(item: MediaItem, onClick: () -> Unit, modifier: Modifier = Modifier, width: Int = 260, onMenu: (() -> Unit)? = null) {
     Column(modifier.width(width.dp)) {
-        TvCard(onClick = onClick) {
+        TvCard(onClick = onClick, onMenu = onMenu) {
             Box {
                 CardArtwork(item.landscapeUrl ?: item.posterUrl, aspectRatio = 16f / 9f, modifier = Modifier.fillMaxWidth())
                 item.progressFraction?.let {
@@ -99,6 +129,9 @@ fun TvLandscapeCard(item: MediaItem, onClick: () -> Unit, modifier: Modifier = M
                         progress = { it },
                         modifier = Modifier.fillMaxWidth().height(4.dp).align(Alignment.BottomCenter),
                     )
+                }
+                if (item.isPlayed || (item.unplayedCount ?: 0) > 0) {
+                    Box(Modifier.align(Alignment.TopEnd).padding(6.dp)) { WatchedBadge(item) }
                 }
             }
         }
@@ -172,3 +205,55 @@ fun <T> TvCardRow(items: List<T>, key: (T) -> Any, content: @Composable (T) -> U
 
 /** Horizontal content edge padding used across the TV screens. */
 val TvContentPadding = 48.dp
+
+/** One row in a TV item context menu (remote "menu" button). */
+data class TvMenuOption(val label: String, val action: () -> Unit)
+
+/** Centered context list shown by the remote "menu" button on item cards and detail pages. */
+@Composable
+fun TvItemOptionsOverlay(title: String, options: List<TvMenuOption>, onDismiss: () -> Unit) {
+    val first = remember { FocusRequester() }
+    Box(
+        Modifier.fillMaxSize().background(Color(0xAA000000)).clickable { onDismiss() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            Modifier.width(360.dp).background(Color(0xFF10233A)).padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = Color.White,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 6.dp))
+            options.forEachIndexed { i, opt ->
+                var focused by remember { mutableStateOf(false) }
+                Text(
+                    opt.label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (focused) Color.Black else Color.White,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(if (i == 0) Modifier.focusRequester(first) else Modifier)
+                        .onFocusChanged { focused = it.isFocused }
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(if (focused) Color.White else Color.Transparent)
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .clickable { opt.action() },
+                )
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        repeat(20) {
+            if (runCatching { first.requestFocus() }.getOrDefault(false)) return@LaunchedEffect
+            delay(50)
+        }
+    }
+}
+
+/** Square person card for the detail page's Cast & crew row: face, name, role. */
+@Composable
+fun TvPersonCard(person: MediaPerson, modifier: Modifier = Modifier, width: Int = 110, onClick: () -> Unit = {}) {
+    Column(modifier.width(width.dp)) {
+        TvCard(onClick = onClick) { CardArtwork(person.imageUrl, aspectRatio = 1f, modifier = Modifier.fillMaxWidth()) }
+        CardLabel(person.name, person.role)
+    }
+}
