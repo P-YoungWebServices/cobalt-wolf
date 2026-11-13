@@ -25,17 +25,22 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pyoungws.bluewolfplayer.R
+import com.pyoungws.bluewolfplayer.isTelevision
 import com.pyoungws.bluewolfplayer.shared.model.LiveTimer
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.presentation.LiveTvUiState
@@ -57,14 +62,21 @@ fun LiveTvScreen(onBack: () -> Unit, onOpenItem: (String) -> Unit) {
     val viewModel: LiveTvViewModel = koinViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(LiveTvTab.Channels) }
+    // On TV the pushed screen shares the top bar — grab focus onto the tab row
+    // so the D-pad reaches it instead of staying on the nav buttons.
+    val firstTab = remember { FocusRequester() }
+    if (LocalContext.current.isTelevision()) {
+        LaunchedEffect(Unit) { runCatching { firstTab.requestFocus() } }
+    }
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            LiveTvTab.entries.forEach { entry ->
+            LiveTvTab.entries.forEachIndexed { index, entry ->
                 FilterChip(
+                    modifier = if (index == 0) Modifier.focusRequester(firstTab) else Modifier,
                     selected = tab == entry,
                     onClick = {
                         tab = entry
