@@ -809,4 +809,5 @@
     <string name="settings_external_player_summary">Send streams to an installed player (VLC, mpv, MX Player)</string>
     <string name="player_lock">Lock controls</string>
     <string name="player_unlock">Unlock controls</string>
+    <string name="external_player_unavailable">No external player found — using the built-in player</string>
 </resources>

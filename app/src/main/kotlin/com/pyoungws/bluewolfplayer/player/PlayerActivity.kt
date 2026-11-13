@@ -17,12 +17,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.pyoungws.bluewolfplayer.BuildConfig
+import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.isTelevision
 import com.pyoungws.bluewolfplayer.shared.playback.AudioOutputPreference
 import com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector
@@ -35,6 +37,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
 import com.pyoungws.bluewolfplayer.ui.theme.BlueWolfTheme
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -60,6 +63,31 @@ class PlayerActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         if (BuildConfig.DEBUG) applyDebugOverrides(intent)
 
+        // External-player handoff: fire the direct-play URL at a player app and leave.
+        val itemTarget = target as? PlaybackTarget.Item
+        if (itemTarget != null && !isTelevision() && get<PlaybackSettingsRepository>().settings.value.externalPlayer) {
+            val repository = get<com.pyoungws.bluewolfplayer.shared.library.LibraryRepository>()
+            lifecycleScope.launch {
+                val url = (repository.item(itemTarget.itemId) as? com.pyoungws.bluewolfplayer.shared.model.Outcome.Success)
+                    ?.value?.let(repository::streamUrl)
+                val external = url?.let {
+                    Intent(Intent.ACTION_VIEW, android.net.Uri.parse(it)).setDataAndType(android.net.Uri.parse(it), "video/*")
+                }
+                try {
+                    if (external == null) error("no stream")
+                    startActivity(external)
+                    finish()
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(this@PlayerActivity, R.string.external_player_unavailable, android.widget.Toast.LENGTH_LONG).show()
+                    startInternal()
+                }
+            }
+            return
+        }
+        startInternal()
+    }
+
+    private fun startInternal() {
         setContent {
             BlueWolfTheme {
                 PlayerScreen(

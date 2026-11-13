@@ -144,6 +144,10 @@ class LibraryRepository(
     suspend fun studios(libraryId: String): Outcome<List<MediaItem>> =
         guard.run { dataSource.getStudios(it, libraryId) }
 
+    /** Cinema-mode prerolls for a movie. */
+    suspend fun intros(itemId: String): Outcome<List<MediaItem>> =
+        guard.run { dataSource.getIntros(it, itemId) }
+
     suspend fun createPlaylist(name: String, itemIds: List<String>): Outcome<String> =
         guard.run { dataSource.createPlaylist(it, name, itemIds) }
 

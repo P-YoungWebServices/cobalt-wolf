@@ -81,6 +81,10 @@ class PlaybackRepository(
         return libraryDataSource.getEpisodes(session, seriesId, nextSeason.id).firstOrNull()
     }
 
+    /** Cinema-mode preroll items for a movie; empty on failure or when the server has none. */
+    suspend fun intros(itemId: String): List<MediaItem> =
+        (guard.run { libraryDataSource.getIntros(it, itemId) } as? Outcome.Success)?.value.orEmpty()
+
     /** Intro/outro markers for the item; empty when the server has none or they fail to load. */
     suspend fun mediaSegments(itemId: String): List<MediaSegment> =
         (guard.run { playbackDataSource.getMediaSegments(it, itemId) } as? Outcome.Success)?.value.orEmpty()

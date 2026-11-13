@@ -113,6 +113,9 @@ class PlayerViewModel(
     /** Episodes auto-advanced without any user interaction; resets on manual actions. */
     private var episodeStreak = 0
 
+    /** Cinema-mode intros were already queued once this player session. */
+    private var introsQueued = false
+
     init {
         // A player opened on something outside the queue starts a fresh single-item queue.
         val queued = playQueue.queue.value
@@ -408,6 +411,19 @@ class PlayerViewModel(
                         )
                     }
                     _uiState.value = PlayerUiState.Ready(request, ++generation)
+                    // Cinema mode: queue server intros ahead of the movie once per session.
+                    if (!introsQueued && membership.value == null && request.isServerItem &&
+                        request.settings.cinemaMode && request.item.kind == MediaKind.Movie
+                    ) {
+                        introsQueued = true
+                        viewModelScope.launch {
+                            val intros = repository.intros(request.item.id).filter { it.isPlayable }
+                            if (intros.isNotEmpty()) {
+                                playQueue.playNow(intros + request.item, 0)
+                                retarget(PlaybackTarget.Item(intros.first().id), positionMs = 0)
+                            }
+                        }
+                    }
                     _nextItem.value = null
                     _segments.value = emptyList()
                     if (request.isServerItem) {

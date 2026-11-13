@@ -126,6 +126,8 @@ interface JellyfinLibraryDataSource {
     suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem?
     suspend fun getSpecialFeatures(session: Session, itemId: String): List<MediaItem>
     suspend fun getLocalTrailers(session: Session, itemId: String): List<MediaItem>
+    /** Server "cinema" intros (trailers/custom prerolls) for a movie. */
+    suspend fun getIntros(session: Session, itemId: String): List<MediaItem>
     suspend fun getPreviousEpisode(session: Session, episode: MediaItem): MediaItem?
     suspend fun setPlayed(session: Session, itemId: String, played: Boolean)
     suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean)
@@ -374,6 +376,10 @@ class SdkJellyfinLibraryDataSource(
     override suspend fun getSpecialFeatures(session: Session, itemId: String) = call(session) {
         libraryApi.getSpecialFeatures(session.userId.toUuid(), itemId.toUuid()).content
             .map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getIntros(session: Session, itemId: String) = call(session) {
+        libraryApi.getIntros(session.userId.toUuid(), itemId.toUuid()).content.items.map { it.toMediaItem(session.serverAddress) }
     }
 
     override suspend fun getLocalTrailers(session: Session, itemId: String) = call(session) {

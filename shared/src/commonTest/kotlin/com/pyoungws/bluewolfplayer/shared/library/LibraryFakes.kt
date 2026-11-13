@@ -108,6 +108,7 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
     override suspend fun applyIdentify(session: Session, itemId: String, match: com.pyoungws.bluewolfplayer.shared.model.IdentifyMatch) { calls += "applyIdentify($itemId)" }
     override suspend fun searchRemoteSubtitles(session: Session, itemId: String, language: String): List<com.pyoungws.bluewolfplayer.shared.model.SubtitleMatch> = emptyList()
     override suspend fun downloadRemoteSubtitle(session: Session, itemId: String, subtitleId: String) { calls += "downloadRemoteSubtitle($subtitleId)" }
+    override suspend fun getIntros(session: Session, itemId: String): List<MediaItem> = emptyList()
     override suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem? = nextUpForSeries(seriesId).also { calls += "nextUpSeries($seriesId)" }
     override suspend fun setPlayed(session: Session, itemId: String, played: Boolean) { calls += "setPlayed($itemId,$played)" }
     override suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean) { calls += "setFavorite($itemId,$favorite)" }
