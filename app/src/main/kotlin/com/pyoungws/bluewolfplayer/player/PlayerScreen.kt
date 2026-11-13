@@ -698,6 +698,7 @@ private fun PlayerContent(
                         modifier = Modifier.padding(end = 8.dp),
                     )
                 }
+                ControlButton(onClick = onClose, icon = Icons.Outlined.Close, description = stringResource(R.string.player_close))
             }
             Row(
                 Modifier.align(Alignment.BottomStart).padding(8.dp).padding(bottom = 10.dp),
@@ -741,7 +742,6 @@ private fun PlayerContent(
                         modifier = Modifier.size(40.dp),
                     )
                 }
-                ControlButton(onClick = onClose, icon = Icons.Outlined.Close, description = stringResource(R.string.player_close))
             }
         }
         val duration = player.duration
