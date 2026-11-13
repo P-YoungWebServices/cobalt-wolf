@@ -824,4 +824,6 @@
     <string name="subtitle_mode_always">Always</string>
     <string name="subtitle_mode_forced">Forced only</string>
     <string name="subtitle_mode_none">None</string>
+    <string name="action_play_on">Play on…</string>
+    <string name="play_on_no_sessions">No active sessions</string>
 </resources>

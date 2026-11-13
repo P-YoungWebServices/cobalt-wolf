@@ -37,6 +37,8 @@ import org.jellyfin.sdk.api.client.extensions.userViewApi
 import org.jellyfin.sdk.api.client.extensions.itemUpdateApi
 import org.jellyfin.sdk.api.client.extensions.itemLookupApi
 import org.jellyfin.sdk.api.client.extensions.subtitleApi
+import org.jellyfin.sdk.api.client.extensions.sessionApi
+import org.jellyfin.sdk.model.api.PlayCommand
 import org.jellyfin.sdk.model.UUID
 import org.jellyfin.sdk.model.serializer.toUUID
 import org.jellyfin.sdk.model.api.BaseItemDto
@@ -133,6 +135,8 @@ interface JellyfinLibraryDataSource {
     suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean)
     /** Permanently deletes items from the server; caller gates on `canDelete`. */
     suspend fun deleteItems(session: Session, itemIds: List<String>)
+    /** Sends a Play Now command to another session on the server ("Play on" remote control). */
+    suspend fun playOnSession(session: Session, sessionId: String, itemIds: List<String>, command: com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand)
     /** Full raw DTO for the metadata editor; modify and pass to [updateItemDto]. */
     suspend fun getItemDto(session: Session, itemId: String): BaseItemDto
     suspend fun updateItemDto(session: Session, itemId: String, dto: BaseItemDto)
@@ -603,6 +607,22 @@ class SdkJellyfinLibraryDataSource(
 
     override suspend fun deleteItems(session: Session, itemIds: List<String>) {
         call(session) { libraryApi.deleteItems(itemIds.map { it.toUuid() }) }
+    }
+
+    override suspend fun playOnSession(session: Session, sessionId: String, itemIds: List<String>, command: com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand) {
+        call(session) {
+            sessionApi.play(
+                org.jellyfin.sdk.model.api.request.PlayRequest(
+                    sessionId = sessionId,
+                    playCommand = when (command) {
+                        com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand.PlayNow -> PlayCommand.PLAY_NOW
+                        com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand.PlayNext -> PlayCommand.PLAY_NEXT
+                        com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand.PlayLast -> PlayCommand.PLAY_LAST
+                    },
+                    itemIds = itemIds.map { it.toUuid() },
+                ),
+            )
+        }
     }
 
     override fun streamUrl(session: Session, item: MediaItem): String {

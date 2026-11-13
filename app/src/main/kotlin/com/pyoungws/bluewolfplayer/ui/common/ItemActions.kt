@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -11,6 +12,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +60,7 @@ fun ItemContextMenu(
     var showPlaylistPicker by remember { mutableStateOf(false) }
     var showCollectionPicker by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showPlayOn by remember { mutableStateOf(false) }
 
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         Text(
@@ -99,6 +102,10 @@ fun ItemContextMenu(
         }
         if (item.isPlayable) {
             DropdownMenuItem(
+                text = { Text(stringResource(R.string.action_play_on)) },
+                onClick = { showPlayOn = true },
+            )
+            DropdownMenuItem(
                 text = { Text(stringResource(R.string.action_copy_stream_url)) },
                 onClick = { repository.streamUrl(item)?.let { clipboard.setText(AnnotatedString(it)) }; onDismiss() },
             )
@@ -136,6 +143,9 @@ fun ItemContextMenu(
         )
     }
 
+    if (showPlayOn) {
+        PlayOnDialog(item = item, onDismiss = { showPlayOn = false }, onSent = onDismiss)
+    }
     if (showPlaylistPicker) {
         ItemPickerDialog(
             titleRes = R.string.action_add_to_playlist,
@@ -200,5 +210,46 @@ private fun ItemPickerDialog(
             ) { Text(stringResource(R.string.action_create)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+
+/** "Play on" remote control: pick an active session, the server tells that client to play [item]. */
+@Composable
+private fun PlayOnDialog(item: MediaItem, onDismiss: () -> Unit, onSent: () -> Unit) {
+    val admin: com.pyoungws.bluewolfplayer.shared.admin.AdminRepository = koinInject()
+    val repository: LibraryRepository = koinInject()
+    val scope = rememberCoroutineScope()
+    var sessions by remember { mutableStateOf<List<com.pyoungws.bluewolfplayer.shared.admin.ActiveSession>?>(null) }
+    var error by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        when (val result = admin.sessions()) {
+            is Outcome.Success -> sessions = result.value
+            is Outcome.Failure -> error = true
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.action_play_on)) },
+        text = {
+            Column {
+                when {
+                    error -> Text(stringResource(R.string.play_on_no_sessions))
+                    sessions == null -> CircularProgressIndicator(Modifier.padding(16.dp))
+                    sessions.orEmpty().isEmpty() -> Text(stringResource(R.string.play_on_no_sessions))
+                    else -> sessions.orEmpty().forEach { session ->
+                        TextButton(
+                            onClick = {
+                                scope.launch { repository.playOnSession(session.id, listOf(item.id)) }
+                                onDismiss(); onSent()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(listOfNotNull(session.deviceName, session.client, "(${session.userName})").joinToString(" · "), modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.player_close)) } },
     )
 }

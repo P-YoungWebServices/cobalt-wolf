@@ -57,6 +57,9 @@ data class LiveTimer(
 )
 
 /** One media stream of an item's primary media source: codec, resolution/HDR for video, layout for audio. */
+/** Remote-control commands sent to another session. */
+enum class RemotePlayCommand { PlayNow, PlayNext, PlayLast }
+
 data class MediaStreamInfo(
     val kind: StreamKind,
     /** Stream index inside the media source — matches the server's stream numbering. */

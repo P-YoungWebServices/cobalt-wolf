@@ -178,6 +178,10 @@ class LibraryRepository(
     suspend fun deleteItems(items: List<MediaItem>): Outcome<Unit> =
         guard.run { dataSource.deleteItems(it, items.map(MediaItem::id)) }
 
+    /** Sends a Play command to another session; needs a session id from AdminRepository.sessions(). */
+    suspend fun playOnSession(sessionId: String, itemIds: List<String>, command: com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand = com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand.PlayNow): Outcome<Unit> =
+        guard.run { dataSource.playOnSession(it, sessionId, itemIds, command) }
+
     /** Authenticated direct-play URL for sharing/copying. Never log it. */
     fun streamUrl(item: MediaItem): String? =
         guard.sessionOrNull()?.let { dataSource.streamUrl(it, item) }

@@ -100,6 +100,10 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
     override suspend fun addToCollection(session: Session, collectionId: String, itemIds: List<String>) { calls += "addToCollection($collectionId,${itemIds.size})" }
     override suspend fun removeFromCollection(session: Session, collectionId: String, itemIds: List<String>) { calls += "removeFromCollection($collectionId,${itemIds.size})" }
     override suspend fun deleteItems(session: Session, itemIds: List<String>) { calls += "deleteItems(${itemIds.size})" }
+
+    override suspend fun playOnSession(session: Session, sessionId: String, itemIds: List<String>, command: com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand) {
+        calls += "playOnSession($sessionId,${itemIds.size},$command)"
+    }
     override fun streamUrl(session: Session, item: MediaItem): String = "${session.serverAddress}/Videos/${item.id}/stream"
     override suspend fun getItemDto(session: Session, itemId: String): org.jellyfin.sdk.model.api.BaseItemDto = throw NotImplementedError("raw DTO unused in tests")
     override suspend fun updateItemDto(session: Session, itemId: String, dto: org.jellyfin.sdk.model.api.BaseItemDto) { calls += "updateItemDto($itemId)" }
