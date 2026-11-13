@@ -920,6 +920,16 @@
     <string name="admin_restart_confirm">Restart the Jellyfin server? Active playback sessions will be interrupted.</string>
     <string name="admin_shutdown_confirm">Shut down the Jellyfin server? It will be unreachable until started again.</string>
     <string name="admin_confirm">Confirm</string>
+    <string name="manage_artwork">Edit images</string>
+    <string name="artwork_title">Images</string>
+    <string name="artwork_empty">No images on this item</string>
+    <string name="artwork_delete">Delete</string>
+    <string name="artwork_pick">Pick image</string>
+    <string name="artwork_rotate">Rotate</string>
+    <string name="artwork_crop_poster">Crop poster</string>
+    <string name="artwork_crop_landscape">Crop landscape</string>
+    <string name="artwork_upload">Upload</string>
+    <string name="artwork_uploading">Uploading…</string>
     <string name="offline_wifi_only_on">Download over Wi-Fi only: on</string>
     <string name="offline_wifi_only_off">Download over Wi-Fi only: off</string>
     <string name="offline_storage_internal">Storage: internal</string>

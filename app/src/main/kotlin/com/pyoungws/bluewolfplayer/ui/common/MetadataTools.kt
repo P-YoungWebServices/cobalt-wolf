@@ -45,6 +45,7 @@ private sealed interface ManageDialog {
     data object Identify : ManageDialog
     data object Edit : ManageDialog
     data object Subtitles : ManageDialog
+    data object Artwork : ManageDialog
 }
 
 /**
@@ -70,6 +71,7 @@ fun ManageMediaButton(item: MediaItem, onChanged: () -> Unit = {}) {
         DropdownMenuItem(text = { Text(stringResource(R.string.manage_refresh)) }, onClick = { menuOpen = false; dialog = ManageDialog.Refresh })
         DropdownMenuItem(text = { Text(stringResource(R.string.manage_identify)) }, onClick = { menuOpen = false; dialog = ManageDialog.Identify })
         DropdownMenuItem(text = { Text(stringResource(R.string.manage_edit)) }, onClick = { menuOpen = false; dialog = ManageDialog.Edit })
+        DropdownMenuItem(text = { Text(stringResource(R.string.manage_artwork)) }, onClick = { menuOpen = false; dialog = ManageDialog.Artwork })
         if (item.isPlayable) {
             DropdownMenuItem(text = { Text(stringResource(R.string.manage_subtitles)) }, onClick = { menuOpen = false; dialog = ManageDialog.Subtitles })
         }
@@ -80,6 +82,7 @@ fun ManageMediaButton(item: MediaItem, onChanged: () -> Unit = {}) {
         ManageDialog.Identify -> IdentifyDialog(item, onDone = { dialog = null; onChanged() }, onDismiss = { dialog = null })
         ManageDialog.Edit -> EditMetadataDialog(item, onDone = { dialog = null; onChanged() }, onDismiss = { dialog = null })
         ManageDialog.Subtitles -> SubtitleSearchDialog(item, onDone = { dialog = null }, onDismiss = { dialog = null })
+        ManageDialog.Artwork -> ArtworkEditorDialog(item, onChanged = onChanged, onDismiss = { dialog = null })
         null -> Unit
     }
 }
@@ -108,6 +111,7 @@ fun ManageMediaDialog(item: MediaItem, onChanged: () -> Unit = {}, onDismiss: ()
                     TextButton(onClick = { dialog = ManageDialog.Refresh }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.manage_refresh), modifier = Modifier.fillMaxWidth()) }
                     TextButton(onClick = { dialog = ManageDialog.Identify }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.manage_identify), modifier = Modifier.fillMaxWidth()) }
                     TextButton(onClick = { dialog = ManageDialog.Edit }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.manage_edit), modifier = Modifier.fillMaxWidth()) }
+                    TextButton(onClick = { dialog = ManageDialog.Artwork }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.manage_artwork), modifier = Modifier.fillMaxWidth()) }
                     if (item.isPlayable) {
                         TextButton(onClick = { dialog = ManageDialog.Subtitles }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.manage_subtitles), modifier = Modifier.fillMaxWidth()) }
                     }
@@ -123,6 +127,7 @@ fun ManageMediaDialog(item: MediaItem, onChanged: () -> Unit = {}, onDismiss: ()
         ManageDialog.Identify -> IdentifyDialog(item, onDone = { dialog = null; onChanged(); onDismiss() }, onDismiss = { dialog = null })
         ManageDialog.Edit -> EditMetadataDialog(item, onDone = { dialog = null; onChanged(); onDismiss() }, onDismiss = { dialog = null })
         ManageDialog.Subtitles -> SubtitleSearchDialog(item, onDone = { dialog = null }, onDismiss = { dialog = null })
+        ManageDialog.Artwork -> ArtworkEditorDialog(item, onChanged = { dialog = null; onChanged(); onDismiss() }, onDismiss = { dialog = null })
         null -> Unit
     }
 }

@@ -29,6 +29,7 @@ import org.jellyfin.sdk.api.client.extensions.playlistApi
 import org.jellyfin.sdk.api.client.extensions.liveTvApi
 import org.jellyfin.sdk.api.client.extensions.lyricApi
 import org.jellyfin.sdk.api.client.extensions.genreApi
+import org.jellyfin.sdk.api.client.extensions.imageApi
 import org.jellyfin.sdk.api.client.extensions.showApi
 import org.jellyfin.sdk.api.client.extensions.studioApi
 import org.jellyfin.sdk.api.client.extensions.suggestionApi
@@ -143,6 +144,11 @@ interface JellyfinLibraryDataSource {
     suspend fun getItemDto(session: Session, itemId: String): BaseItemDto
     suspend fun updateItemDto(session: Session, itemId: String, dto: BaseItemDto)
     suspend fun refreshItem(session: Session, itemId: String, mode: MetadataRefresh)
+    /** Artwork attached to the item, for the admin image editor. */
+    suspend fun getItemImages(session: Session, itemId: String): List<com.pyoungws.bluewolfplayer.shared.model.ItemImageInfo>
+    /** Uploads artwork of [imageType] (a Jellyfin image type name, e.g. "Primary"). */
+    suspend fun setItemImage(session: Session, itemId: String, imageType: String, bytes: ByteArray, mediaType: String)
+    suspend fun deleteItemImage(session: Session, itemId: String, imageType: String, imageIndex: Int)
     /** Provider identify results for the item; empty for kinds with no lookup. */
     suspend fun identifySearch(session: Session, item: MediaItem, name: String, year: Int?): List<IdentifyMatch>
     suspend fun applyIdentify(session: Session, itemId: String, match: IdentifyMatch)
@@ -684,6 +690,32 @@ class SdkJellyfinLibraryDataSource(
         }
     }
 
+    override suspend fun getItemImages(session: Session, itemId: String) = call(session) {
+        imageApi.getItemImageInfos(itemId.toUuid()).content.mapNotNull { info ->
+            info.imageType?.let { type ->
+                com.pyoungws.bluewolfplayer.shared.model.ItemImageInfo(
+                    type = type.serialName,
+                    index = info.imageIndex ?: 0,
+                    width = info.width,
+                    height = info.height,
+                    size = info.size,
+                )
+            }
+        }
+    }
+
+    override suspend fun setItemImage(session: Session, itemId: String, imageType: String, bytes: ByteArray, mediaType: String) {
+        call(session) {
+            imageApi.setItemImage(itemId.toUuid(), imageType(imageType), org.jellyfin.sdk.model.FileInfo(bytes, mediaType))
+        }
+    }
+
+    override suspend fun deleteItemImage(session: Session, itemId: String, imageType: String, imageIndex: Int) {
+        call(session) {
+            imageApi.deleteItemImageByIndex(itemId.toUuid(), imageType(imageType), imageIndex)
+        }
+    }
+
     override suspend fun identifySearch(session: Session, item: MediaItem, name: String, year: Int?): List<IdentifyMatch> = call(session) {
         val itemId = item.id.toUuid()
         val results: List<RemoteSearchResult> = when (item.kind) {
@@ -772,6 +804,9 @@ class SdkJellyfinLibraryDataSource(
 }
 
 private fun String.toUuid(): UUID = toUUID()
+
+private fun imageType(serialName: String): org.jellyfin.sdk.model.api.ImageType =
+    org.jellyfin.sdk.model.api.ImageType.entries.first { it.serialName == serialName }
 
 private fun MediaKind.toBaseItemKind(): BaseItemKind? = when (this) {
     MediaKind.Movie -> BaseItemKind.MOVIE

@@ -210,6 +210,15 @@ class LibraryRepository(
     suspend fun refreshItem(itemId: String, mode: com.pyoungws.bluewolfplayer.shared.model.MetadataRefresh): Outcome<Unit> =
         guard.run { dataSource.refreshItem(it, itemId, mode) }
 
+    suspend fun itemImages(itemId: String): Outcome<List<com.pyoungws.bluewolfplayer.shared.model.ItemImageInfo>> =
+        guard.run { dataSource.getItemImages(it, itemId) }
+
+    suspend fun setItemImage(itemId: String, imageType: String, bytes: ByteArray, mediaType: String): Outcome<Unit> =
+        guard.run { dataSource.setItemImage(it, itemId, imageType, bytes, mediaType) }
+
+    suspend fun deleteItemImage(itemId: String, imageType: String, imageIndex: Int): Outcome<Unit> =
+        guard.run { dataSource.deleteItemImage(it, itemId, imageType, imageIndex) }
+
     suspend fun identifySearch(item: MediaItem, name: String, year: Int?): Outcome<List<com.pyoungws.bluewolfplayer.shared.model.IdentifyMatch>> =
         guard.run { dataSource.identifySearch(it, item, name, year) }
 

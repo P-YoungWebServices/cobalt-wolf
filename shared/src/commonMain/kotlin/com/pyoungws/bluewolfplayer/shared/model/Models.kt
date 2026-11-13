@@ -314,6 +314,16 @@ data class SubtitleMatch(
 /** How aggressively a metadata refresh replaces existing values. */
 enum class MetadataRefresh { ScanMissing, ReplaceMetadata, ReplaceAll }
 
+/** One artwork image attached to an item (primary, backdrop, …). */
+data class ItemImageInfo(
+    /** Jellyfin image type name (Primary, Backdrop, Thumb, …). */
+    val type: String,
+    val index: Int,
+    val width: Int?,
+    val height: Int?,
+    val size: Long,
+)
+
 sealed interface Outcome<out T> {
     data class Success<T>(val value: T) : Outcome<T>
     data class Failure(val error: LoadError) : Outcome<Nothing>

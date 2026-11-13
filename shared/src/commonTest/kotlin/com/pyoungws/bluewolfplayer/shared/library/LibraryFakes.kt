@@ -109,6 +109,9 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
     override suspend fun getItemDto(session: Session, itemId: String): org.jellyfin.sdk.model.api.BaseItemDto = throw NotImplementedError("raw DTO unused in tests")
     override suspend fun updateItemDto(session: Session, itemId: String, dto: org.jellyfin.sdk.model.api.BaseItemDto) { calls += "updateItemDto($itemId)" }
     override suspend fun refreshItem(session: Session, itemId: String, mode: com.pyoungws.bluewolfplayer.shared.model.MetadataRefresh) { calls += "refreshItem($itemId,$mode)" }
+    override suspend fun getItemImages(session: Session, itemId: String): List<com.pyoungws.bluewolfplayer.shared.model.ItemImageInfo> = emptyList()
+    override suspend fun setItemImage(session: Session, itemId: String, imageType: String, bytes: ByteArray, mediaType: String) { calls += "setItemImage($itemId,$imageType)" }
+    override suspend fun deleteItemImage(session: Session, itemId: String, imageType: String, imageIndex: Int) { calls += "deleteItemImage($itemId,$imageType,$imageIndex)" }
     override suspend fun identifySearch(session: Session, item: MediaItem, name: String, year: Int?): List<com.pyoungws.bluewolfplayer.shared.model.IdentifyMatch> = emptyList()
     override suspend fun applyIdentify(session: Session, itemId: String, match: com.pyoungws.bluewolfplayer.shared.model.IdentifyMatch) { calls += "applyIdentify($itemId)" }
     override suspend fun searchRemoteSubtitles(session: Session, itemId: String, language: String): List<com.pyoungws.bluewolfplayer.shared.model.SubtitleMatch> = emptyList()
