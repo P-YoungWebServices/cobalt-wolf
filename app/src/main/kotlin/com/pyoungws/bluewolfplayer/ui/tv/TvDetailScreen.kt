@@ -330,32 +330,37 @@ private fun TvDetailContent(
                 // fully-loaded item (resume + shuffle + all three pickers) overflows.
                 val audioStreams = item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }
                 if (audioStreams.isNotEmpty()) {
-                    androidx.tv.material3.FilterChip(
-                        selected = false,
-                        onClick = { subMenu = TvSubMenu.Audio },
-                        modifier = Modifier.align(Alignment.Top).padding(top = 10.dp),
-                        content = { Text(audioStreams.firstOrNull { it.index == state.selectedAudioStreamIndex }?.describe() ?: stringResource(R.string.detail_default_audio)) },
-                    )
+                    // 48dp box matches the icon-circle height, so the chip's centre
+                    // lands exactly on the circles' centre line.
+                    Box(Modifier.align(Alignment.Top).height(48.dp), contentAlignment = Alignment.Center) {
+                        androidx.tv.material3.FilterChip(
+                            selected = false,
+                            onClick = { subMenu = TvSubMenu.Audio },
+                            content = { Text(audioStreams.firstOrNull { it.index == state.selectedAudioStreamIndex }?.describe() ?: stringResource(R.string.detail_default_audio)) },
+                        )
+                    }
                 }
                 val subStreams = item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle }
                 if (subStreams.isNotEmpty()) {
-                    androidx.tv.material3.FilterChip(
-                        selected = false,
-                        onClick = { subMenu = TvSubMenu.Subtitles },
-                        modifier = Modifier.align(Alignment.Top).padding(top = 10.dp),
-                        content = { Text(when {
-                            state.selectedSubtitleStreamIndex == -1 -> stringResource(R.string.player_subtitles_off)
-                            else -> subStreams.firstOrNull { it.index == state.selectedSubtitleStreamIndex }?.describe() ?: stringResource(R.string.detail_default_subtitle)
-                        }) },
-                    )
+                    Box(Modifier.align(Alignment.Top).height(48.dp), contentAlignment = Alignment.Center) {
+                        androidx.tv.material3.FilterChip(
+                            selected = false,
+                            onClick = { subMenu = TvSubMenu.Subtitles },
+                            content = { Text(when {
+                                state.selectedSubtitleStreamIndex == -1 -> stringResource(R.string.player_subtitles_off)
+                                else -> subStreams.firstOrNull { it.index == state.selectedSubtitleStreamIndex }?.describe() ?: stringResource(R.string.detail_default_subtitle)
+                            }) },
+                        )
+                    }
                 }
                 if (item.mediaSources.size > 1) {
-                    androidx.tv.material3.FilterChip(
-                        selected = false,
-                        onClick = { subMenu = TvSubMenu.Versions },
-                        modifier = Modifier.align(Alignment.Top).padding(top = 10.dp),
-                        content = { Text(item.mediaSources.firstOrNull { it.id == state.selectedMediaSourceId }?.name ?: stringResource(R.string.detail_select_version)) },
-                    )
+                    Box(Modifier.align(Alignment.Top).height(48.dp), contentAlignment = Alignment.Center) {
+                        androidx.tv.material3.FilterChip(
+                            selected = false,
+                            onClick = { subMenu = TvSubMenu.Versions },
+                            content = { Text(item.mediaSources.firstOrNull { it.id == state.selectedMediaSourceId }?.name ?: stringResource(R.string.detail_select_version)) },
+                        )
+                    }
                 }
                 TvActionButton(icon = Icons.Outlined.MoreVert, label = stringResource(R.string.home_more), onClick = { optionsOpen = true })
             }
