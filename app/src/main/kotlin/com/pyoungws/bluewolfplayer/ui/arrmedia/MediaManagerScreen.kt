@@ -13,9 +13,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -58,7 +62,7 @@ fun MediaManagerScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.media_manager_title)) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.nav_back)) } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nav_back)) } },
                 actions = {
                     if (state.configuredServices.isNotEmpty()) {
                         TextButton(onClick = viewModel::refresh) { Text(stringResource(R.string.admin_refresh)) }

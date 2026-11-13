@@ -9,8 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -51,7 +55,7 @@ fun BazarrScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.bazarr_title)) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.nav_back)) } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nav_back)) } },
                 actions = {
                     TextButton(onClick = onSettings) { Text(stringResource(R.string.calendar_settings)) }
                     TextButton(onClick = viewModel::refresh) { Text(stringResource(R.string.admin_refresh)) }

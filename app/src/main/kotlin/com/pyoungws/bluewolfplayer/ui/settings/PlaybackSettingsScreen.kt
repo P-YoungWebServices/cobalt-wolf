@@ -11,8 +11,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
@@ -79,7 +83,7 @@ fun PlaybackSettingsScreen(onBack: () -> Unit, viewModel: PlaybackSettingsViewMo
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.playback_settings_title)) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.nav_back)) } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nav_back)) } },
                 actions = { TextButton(onClick = viewModel::refresh) { Text(stringResource(R.string.playback_refresh)) } },
             )
         },

@@ -25,8 +25,12 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items as listItems
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -150,8 +154,10 @@ fun ItemBrowseScreen(title: String, query: ItemQuery, onBack: () -> Unit, onOpen
             TopAppBar(
                 title = { Text(if (selecting) stringResource(R.string.select_count, selected.size) else title) },
                 navigationIcon = {
-                    TextButton(onClick = { if (selecting) selected = emptySet() else onBack() }) {
-                        Text(stringResource(if (selecting) R.string.action_cancel else R.string.nav_back))
+                    if (selecting) {
+                        TextButton(onClick = { selected = emptySet() }) { Text(stringResource(R.string.action_cancel)) }
+                    } else {
+                        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nav_back)) }
                     }
                 },
                 actions = { if (selecting) SelectionActions(selected, state.items, onDone = { selected = emptySet() }) else ViewMenu(viewPrefs, setViewPrefs) },
