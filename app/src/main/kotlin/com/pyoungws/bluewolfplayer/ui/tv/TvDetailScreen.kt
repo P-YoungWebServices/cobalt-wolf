@@ -128,6 +128,7 @@ private fun TvDetailContent(
     val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var trackMenuIndex by remember { mutableStateOf<Int?>(null) }
+    var episodeMenuItem by remember { mutableStateOf<MediaItem?>(null) }
     // The first thing on the page is "what can I do with this": hand focus to Play/Resume once,
     // on first load — not again when a season switch swaps the episode behind the button.
     val playFocusRequester = remember { FocusRequester() }
@@ -185,11 +186,21 @@ private fun TvDetailContent(
     ) {
     Box(Modifier.fillMaxSize().focusGroup().focusProperties {
         enter = { if (entryReady) playFocusRequester else FocusRequester.Cancel }
-    }.onPreviewKeyEvent { ev ->
+    // onKeyEvent (bubbles up after the focused child) rather than onPreviewKeyEvent
+    // (parent-first): episode cards and playlist rows claim MENU for their own
+    // context menus; it only opens the page menu when nothing below consumed it.
+    }.onKeyEvent { ev ->
         val n = ev.nativeKeyEvent
         when {
             n.action == android.view.KeyEvent.ACTION_DOWN &&
-                n.keyCode == android.view.KeyEvent.KEYCODE_MENU -> { optionsOpen = !optionsOpen; true }
+                n.keyCode == android.view.KeyEvent.KEYCODE_MENU -> {
+                when {
+                    episodeMenuItem != null -> episodeMenuItem = null
+                    trackMenuIndex != null -> trackMenuIndex = null
+                    else -> optionsOpen = !optionsOpen
+                }
+                true
+            }
             optionsOpen && n.action == android.view.KeyEvent.ACTION_DOWN &&
                 n.keyCode == android.view.KeyEvent.KEYCODE_BACK -> { optionsOpen = false; true }
             else -> false
@@ -429,7 +440,7 @@ private fun TvDetailContent(
                 }
                 else -> item(key = "episodes") {
                     TvCardRow(state.episodes, key = { it.id }) { episode ->
-                        TvLandscapeCard(episode, onClick = { onPlay(episode.id) })
+                        TvLandscapeCard(episode, onClick = { onPlay(episode.id) }, onMenu = { episodeMenuItem = episode })
                     }
                 }
             }
@@ -463,6 +474,26 @@ private fun TvDetailContent(
                 onDismiss = { trackMenuIndex = null },
             )
         }
+    }
+    episodeMenuItem?.let { episode ->
+        TvItemOptionsOverlay(
+            title = episode.name,
+            options = buildList {
+                add(TvMenuOption(stringResource(R.string.detail_options_details)) { onOpenItem(episode.id); episodeMenuItem = null })
+                if (episode.isPlayable) {
+                    add(TvMenuOption(stringResource(if (episode.hasProgress) R.string.detail_resume else R.string.detail_play)) { onPlay(episode.id); episodeMenuItem = null })
+                }
+                add(TvMenuOption(stringResource(if (episode.isPlayed) R.string.detail_mark_unwatched else R.string.detail_mark_watched)) {
+                    scope.launch { repository.setPlayed(episode, !episode.isPlayed); viewModel.refresh() }
+                    episodeMenuItem = null
+                })
+                add(TvMenuOption(stringResource(if (episode.isFavorite) R.string.detail_unfavorite else R.string.detail_favorite)) {
+                    scope.launch { repository.setFavorite(episode, !episode.isFavorite); viewModel.refresh() }
+                    episodeMenuItem = null
+                })
+            },
+            onDismiss = { episodeMenuItem = null },
+        )
     }
     if (optionsOpen) {
         TvItemOptionsOverlay(
