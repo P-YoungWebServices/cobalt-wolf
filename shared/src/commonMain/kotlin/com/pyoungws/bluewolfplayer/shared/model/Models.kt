@@ -275,6 +275,32 @@ sealed interface LoadError {
     data class Unexpected(val message: String?) : LoadError
 }
 
+
+/** A remote-metadata match offered by the server's identify/lookup providers. */
+data class IdentifyMatch(
+    val name: String,
+    val year: Int?,
+    val imageUrl: String?,
+    val provider: String?,
+    val overview: String?,
+    /** Raw provider result handed back to the server on apply. */
+    val raw: org.jellyfin.sdk.model.api.RemoteSearchResult,
+)
+
+/** A downloadable remote subtitle offered by the server's subtitle providers. */
+data class SubtitleMatch(
+    val id: String,
+    val name: String,
+    val language: String?,
+    val provider: String?,
+    val format: String?,
+    val forced: Boolean,
+    val hearingImpaired: Boolean,
+)
+
+/** How aggressively a metadata refresh replaces existing values. */
+enum class MetadataRefresh { ScanMissing, ReplaceMetadata, ReplaceAll }
+
 sealed interface Outcome<out T> {
     data class Success<T>(val value: T) : Outcome<T>
     data class Failure(val error: LoadError) : Outcome<Nothing>

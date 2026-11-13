@@ -178,6 +178,27 @@ class LibraryRepository(
     fun streamUrl(item: MediaItem): String? =
         guard.sessionOrNull()?.let { dataSource.streamUrl(it, item) }
 
+    suspend fun itemDto(itemId: String): Outcome<org.jellyfin.sdk.model.api.BaseItemDto> =
+        guard.run { dataSource.getItemDto(it, itemId) }
+
+    suspend fun updateItemDto(itemId: String, dto: org.jellyfin.sdk.model.api.BaseItemDto): Outcome<Unit> =
+        guard.run { dataSource.updateItemDto(it, itemId, dto) }
+
+    suspend fun refreshItem(itemId: String, mode: com.pyoungws.bluewolfplayer.shared.model.MetadataRefresh): Outcome<Unit> =
+        guard.run { dataSource.refreshItem(it, itemId, mode) }
+
+    suspend fun identifySearch(item: MediaItem, name: String, year: Int?): Outcome<List<com.pyoungws.bluewolfplayer.shared.model.IdentifyMatch>> =
+        guard.run { dataSource.identifySearch(it, item, name, year) }
+
+    suspend fun applyIdentify(itemId: String, match: com.pyoungws.bluewolfplayer.shared.model.IdentifyMatch): Outcome<Unit> =
+        guard.run { dataSource.applyIdentify(it, itemId, match) }
+
+    suspend fun searchRemoteSubtitles(itemId: String, language: String): Outcome<List<com.pyoungws.bluewolfplayer.shared.model.SubtitleMatch>> =
+        guard.run { dataSource.searchRemoteSubtitles(it, itemId, language) }
+
+    suspend fun downloadRemoteSubtitle(itemId: String, subtitleId: String): Outcome<Unit> =
+        guard.run { dataSource.downloadRemoteSubtitle(it, itemId, subtitleId) }
+
     suspend fun setFavorite(item: MediaItem, favorite: Boolean): Outcome<Unit> =
         guard.run { dataSource.setFavorite(it, item.id, favorite) }
 

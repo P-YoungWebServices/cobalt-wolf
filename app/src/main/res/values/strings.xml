@@ -770,4 +770,22 @@
     <string name="action_delete">Delete</string>
     <string name="action_delete_confirm">Delete %1$s from the server? This cannot be undone.</string>
     <string name="action_delete_count_confirm">Delete %1$d items from the server? This cannot be undone.</string>
+    <string name="manage_title">Manage</string>
+    <string name="manage_refresh">Refresh metadata</string>
+    <string name="manage_refresh_scan">Search for missing metadata</string>
+    <string name="manage_refresh_replace_meta">Replace all metadata</string>
+    <string name="manage_refresh_replace_all">Replace all metadata and images</string>
+    <string name="manage_identify">Identify</string>
+    <string name="manage_identify_name">Name</string>
+    <string name="manage_edit">Edit metadata</string>
+    <string name="manage_sort_name">Sort name</string>
+    <string name="manage_tagline">Tagline</string>
+    <string name="manage_overview">Overview</string>
+    <string name="manage_rating">Community rating</string>
+    <string name="manage_parental">Parental rating</string>
+    <string name="manage_save">Save</string>
+    <string name="manage_subtitles">Download subtitles</string>
+    <string name="manage_sub_language">Language (ISO code)</string>
+    <string name="loading">Loading…</string>
+    <string name="year_label">Year</string>
 </resources>

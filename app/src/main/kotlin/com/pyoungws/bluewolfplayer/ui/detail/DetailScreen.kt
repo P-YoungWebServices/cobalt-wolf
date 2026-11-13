@@ -61,6 +61,7 @@ import com.pyoungws.bluewolfplayer.ui.common.InfoBadgeRow
 import com.pyoungws.bluewolfplayer.ui.common.labelRes
 import com.pyoungws.bluewolfplayer.ui.common.ErrorBox
 import com.pyoungws.bluewolfplayer.ui.common.LoadingBox
+import com.pyoungws.bluewolfplayer.ui.common.ManageMediaButton
 import com.pyoungws.bluewolfplayer.ui.common.SectionTitle
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -269,6 +270,7 @@ private fun DetailContent(
                     item.seriesId?.takeIf { item.kind == MediaKind.Episode }?.let { seriesId ->
                         OutlinedButton(onClick = { onOpenItem(seriesId) }) { Text(stringResource(R.string.detail_view_series)) }
                     }
+                    ManageMediaButton(item, onChanged = { viewModel.refresh() })
                     Spacer(Modifier.weight(1f))
                     IconButton(onClick = { viewModel.toggleWatched() }) {
                         Icon(

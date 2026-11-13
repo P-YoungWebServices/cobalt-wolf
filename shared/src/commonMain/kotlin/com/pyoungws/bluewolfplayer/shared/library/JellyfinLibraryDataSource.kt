@@ -8,7 +8,10 @@ import com.pyoungws.bluewolfplayer.shared.model.Lyrics
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.GenreInfo
+import com.pyoungws.bluewolfplayer.shared.model.IdentifyMatch
+import com.pyoungws.bluewolfplayer.shared.model.MetadataRefresh
 import com.pyoungws.bluewolfplayer.shared.model.MediaPerson
+import com.pyoungws.bluewolfplayer.shared.model.SubtitleMatch
 import com.pyoungws.bluewolfplayer.shared.model.MediaStreamInfo
 import com.pyoungws.bluewolfplayer.shared.model.Page
 import com.pyoungws.bluewolfplayer.shared.model.Session
@@ -31,6 +34,9 @@ import org.jellyfin.sdk.api.client.extensions.studioApi
 import org.jellyfin.sdk.api.client.extensions.suggestionApi
 import org.jellyfin.sdk.api.client.extensions.userDataApi
 import org.jellyfin.sdk.api.client.extensions.userViewApi
+import org.jellyfin.sdk.api.client.extensions.itemUpdateApi
+import org.jellyfin.sdk.api.client.extensions.itemLookupApi
+import org.jellyfin.sdk.api.client.extensions.subtitleApi
 import org.jellyfin.sdk.model.UUID
 import org.jellyfin.sdk.model.serializer.toUUID
 import org.jellyfin.sdk.model.api.BaseItemDto
@@ -54,6 +60,22 @@ import org.jellyfin.sdk.model.api.request.GetNextUpRequest
 import org.jellyfin.sdk.model.api.request.GetSimilarItemsRequest
 import org.jellyfin.sdk.model.api.SeriesTimerInfoDto
 import org.jellyfin.sdk.model.api.TimerInfoDto
+import org.jellyfin.sdk.model.api.MetadataRefreshMode
+import org.jellyfin.sdk.model.api.MovieInfo
+import org.jellyfin.sdk.model.api.MovieInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.SeriesInfo
+import org.jellyfin.sdk.model.api.SeriesInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.AlbumInfo
+import org.jellyfin.sdk.model.api.AlbumInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.ArtistInfo
+import org.jellyfin.sdk.model.api.ArtistInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.BoxSetInfo
+import org.jellyfin.sdk.model.api.BoxSetInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.MusicVideoInfo
+import org.jellyfin.sdk.model.api.MusicVideoInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.PersonLookupInfo
+import org.jellyfin.sdk.model.api.PersonLookupInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.RemoteSearchResult
 import org.jellyfin.sdk.model.api.request.GetLiveTvChannelsRequest
 import org.jellyfin.sdk.model.api.request.GetLiveTvProgramsRequest
 import org.jellyfin.sdk.model.api.request.GetRecordingsRequest
@@ -109,6 +131,15 @@ interface JellyfinLibraryDataSource {
     suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean)
     /** Permanently deletes items from the server; caller gates on `canDelete`. */
     suspend fun deleteItems(session: Session, itemIds: List<String>)
+    /** Full raw DTO for the metadata editor; modify and pass to [updateItemDto]. */
+    suspend fun getItemDto(session: Session, itemId: String): BaseItemDto
+    suspend fun updateItemDto(session: Session, itemId: String, dto: BaseItemDto)
+    suspend fun refreshItem(session: Session, itemId: String, mode: MetadataRefresh)
+    /** Provider identify results for the item; empty for kinds with no lookup. */
+    suspend fun identifySearch(session: Session, item: MediaItem, name: String, year: Int?): List<IdentifyMatch>
+    suspend fun applyIdentify(session: Session, itemId: String, match: IdentifyMatch)
+    suspend fun searchRemoteSubtitles(session: Session, itemId: String, language: String): List<SubtitleMatch>
+    suspend fun downloadRemoteSubtitle(session: Session, itemId: String, subtitleId: String)
     /**
      * A direct-play URL for the item with the access token embedded, suitable
      * for sharing/copying into an external player. Never log this value.
@@ -573,6 +604,123 @@ class SdkJellyfinLibraryDataSource(
         val path = if (item.kind == MediaKind.Song) "Audio" else "Videos"
         val mediaSource = item.mediaSources.firstOrNull()?.id ?: item.id
         return "$base/$path/${item.id}/stream?static=true&mediaSourceId=$mediaSource&api_key=${session.accessToken}"
+    }
+
+    override suspend fun getItemDto(session: Session, itemId: String): BaseItemDto = call(session) {
+        libraryApi.getItem(userId = session.userId.toUuid(), itemId = itemId.toUuid()).content
+    }
+
+    override suspend fun updateItemDto(session: Session, itemId: String, dto: BaseItemDto) {
+        call(session) { itemUpdateApi.updateItem(itemId = itemId.toUuid(), data = dto) }
+    }
+
+    override suspend fun refreshItem(session: Session, itemId: String, mode: MetadataRefresh) {
+        call(session) {
+            when (mode) {
+                MetadataRefresh.ScanMissing -> libraryApi.refreshItem(
+                    itemId = itemId.toUuid(),
+                    metadataRefreshMode = MetadataRefreshMode.DEFAULT,
+                    imageRefreshMode = MetadataRefreshMode.DEFAULT,
+                    replaceAllMetadata = false,
+                    replaceAllImages = false,
+                )
+                MetadataRefresh.ReplaceMetadata -> libraryApi.refreshItem(
+                    itemId = itemId.toUuid(),
+                    metadataRefreshMode = MetadataRefreshMode.FULL_REFRESH,
+                    imageRefreshMode = MetadataRefreshMode.FULL_REFRESH,
+                    replaceAllMetadata = true,
+                    replaceAllImages = false,
+                )
+                MetadataRefresh.ReplaceAll -> libraryApi.refreshItem(
+                    itemId = itemId.toUuid(),
+                    metadataRefreshMode = MetadataRefreshMode.FULL_REFRESH,
+                    imageRefreshMode = MetadataRefreshMode.FULL_REFRESH,
+                    replaceAllMetadata = true,
+                    replaceAllImages = true,
+                )
+            }
+        }
+    }
+
+    override suspend fun identifySearch(session: Session, item: MediaItem, name: String, year: Int?): List<IdentifyMatch> = call(session) {
+        val itemId = item.id.toUuid()
+        val results: List<RemoteSearchResult> = when (item.kind) {
+            MediaKind.Movie -> itemLookupApi.getMovieRemoteSearchResults(
+                MovieInfoRemoteSearchQuery(
+                    searchInfo = MovieInfo(name, null, null, null, null, null, year, null, null, null, false),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.Series -> itemLookupApi.getSeriesRemoteSearchResults(
+                SeriesInfoRemoteSearchQuery(
+                    searchInfo = SeriesInfo(name, null, null, null, null, null, year, null, null, null, false),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.MusicAlbum -> itemLookupApi.getMusicAlbumRemoteSearchResults(
+                AlbumInfoRemoteSearchQuery(
+                    searchInfo = AlbumInfo(name, null, null, null, null, null, year, null, null, null, false, emptyList(), emptyMap(), emptyList()),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.MusicArtist -> itemLookupApi.getMusicArtistRemoteSearchResults(
+                ArtistInfoRemoteSearchQuery(
+                    searchInfo = ArtistInfo(name, null, null, null, null, null, year, null, null, null, false, emptyList()),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.MusicVideo -> itemLookupApi.getMusicVideoRemoteSearchResults(
+                MusicVideoInfoRemoteSearchQuery(
+                    searchInfo = MusicVideoInfo(name, null, null, null, null, null, year, null, null, null, false, null),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.BoxSet -> itemLookupApi.getBoxSetRemoteSearchResults(
+                BoxSetInfoRemoteSearchQuery(
+                    searchInfo = BoxSetInfo(name, null, null, null, null, null, year, null, null, null, false),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.Person -> itemLookupApi.getPersonRemoteSearchResults(
+                PersonLookupInfoRemoteSearchQuery(
+                    searchInfo = PersonLookupInfo(name, null, null, null, null, null, null, null, null, null, false),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            else -> emptyList()
+        }
+        results.map {
+            IdentifyMatch(
+                name = it.name.orEmpty(),
+                year = it.productionYear,
+                imageUrl = it.imageUrl,
+                provider = it.searchProviderName,
+                overview = it.overview,
+                raw = it,
+            )
+        }
+    }
+
+    override suspend fun applyIdentify(session: Session, itemId: String, match: IdentifyMatch) {
+        call(session) { itemLookupApi.applySearchCriteria(itemId = itemId.toUuid(), data = match.raw) }
+    }
+
+    override suspend fun searchRemoteSubtitles(session: Session, itemId: String, language: String): List<SubtitleMatch> = call(session) {
+        subtitleApi.searchRemoteSubtitles(itemId = itemId.toUuid(), language = language, isPerfectMatch = false).content.map {
+            SubtitleMatch(
+                id = it.id.orEmpty(),
+                name = it.name.orEmpty(),
+                language = it.threeLetterIsoLanguageName,
+                provider = it.providerName,
+                format = it.format,
+                forced = it.forced == true,
+                hearingImpaired = it.hearingImpaired == true,
+            )
+        }
+    }
+
+    override suspend fun downloadRemoteSubtitle(session: Session, itemId: String, subtitleId: String) {
+        call(session) { subtitleApi.downloadRemoteSubtitles(itemId = itemId.toUuid(), subtitleId = subtitleId) }
     }
 
     private companion object {

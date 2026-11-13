@@ -71,6 +71,7 @@ import com.pyoungws.bluewolfplayer.shared.model.infoBadges
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.ui.common.Artwork
+import com.pyoungws.bluewolfplayer.ui.common.ManageMediaDialog
 import com.pyoungws.bluewolfplayer.ui.common.InfoBadgeRow
 import com.pyoungws.bluewolfplayer.ui.common.labelRes
 import kotlinx.coroutines.delay
@@ -334,7 +335,7 @@ private fun TvDetailContent(
     if (optionsOpen) {
         TvItemOptionsOverlay(
             title = item.name,
-            options = detailMenuOptions(state, viewModel, onPlay, onPlayFromBeginning, onOpenItem, onWatchTogether) { optionsOpen = false },
+            options = detailMenuOptions(state, viewModel, onPlay, onPlayFromBeginning, onOpenItem, onWatchTogether, onManage = { optionsOpen = false; subMenu = TvSubMenu.Manage }) { optionsOpen = false },
             onDismiss = { optionsOpen = false },
         )
     }
@@ -360,12 +361,13 @@ private fun TvDetailContent(
                 onDismiss = { subMenu = null },
             )
         }
+        TvSubMenu.Manage -> ManageMediaDialog(item, onChanged = { viewModel.refresh() }, onDismiss = { subMenu = null })
         null -> Unit
     }
     }
 }
 
-private enum class TvSubMenu { Versions, Trailers }
+private enum class TvSubMenu { Versions, Trailers, Manage }
 
 /** "h:mm:ss" style position text for a chapter start. */
 private fun formatChapterTime(ticks: Long): String {
@@ -403,6 +405,7 @@ private fun detailMenuOptions(
     onPlayFromBeginning: (String) -> Unit,
     onOpenItem: (String) -> Unit,
     onWatchTogether: (String) -> Unit,
+    onManage: () -> Unit,
     onDismiss: () -> Unit,
 ): List<TvMenuOption> {
     val item = state.item
@@ -459,6 +462,7 @@ private fun detailMenuOptions(
         item.seriesId?.takeIf { item.kind == MediaKind.Episode }?.let { sid ->
             add(TvMenuOption(stringResource(R.string.detail_view_series)) { onOpenItem(sid); onDismiss() })
         }
+        add(TvMenuOption(stringResource(R.string.manage_title)) { onManage() })
     }
 }
 
