@@ -3,6 +3,7 @@
 package com.pyoungws.bluewolfplayer.player
 
 import android.content.Context
+import android.media.audiofx.LoudnessEnhancer
 import android.os.Handler
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -48,10 +49,52 @@ internal class PlayerEngine(
     val stats: PlaybackStatsCollector,
     private val assHandler: AssHandler?,
 ) {
+    private var nightMode = false
+    private var loudnessEnhancer: LoudnessEnhancer? = null
+
+    init {
+        // A new audio session (e.g. after an output re-init) needs a fresh effect attached.
+        player.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                if (nightMode) {
+                    loudnessEnhancer?.release()
+                    loudnessEnhancer = enhancer(audioSessionId)
+                }
+            }
+        })
+    }
+
+    /**
+     * Night mode: compresses dynamics by boosting quiet passages, for low-volume listening.
+     * No-ops on passthrough audio, where platform effects cannot touch the encoded stream.
+     */
+    fun setNightMode(enabled: Boolean) {
+        nightMode = enabled
+        if (enabled && loudnessEnhancer == null) {
+            loudnessEnhancer = enhancer(player.audioSessionId)
+        } else if (!enabled) {
+            loudnessEnhancer?.release()
+            loudnessEnhancer = null
+        }
+    }
+
+    private fun enhancer(sessionId: Int): LoudnessEnhancer? =
+        if (sessionId == C.AUDIO_SESSION_ID_UNSET) null else runCatching {
+            LoudnessEnhancer(sessionId).apply {
+                setTargetGain(NIGHT_MODE_GAIN_MB)
+                this.enabled = true
+            }
+        }.getOrNull()
+
     fun release() {
         player.removeAnalyticsListener(stats)
+        loudnessEnhancer?.release()
         player.release()
         assHandler?.release()
+    }
+
+    private companion object {
+        const val NIGHT_MODE_GAIN_MB = 900 // 9 dB lift on quiet passages
     }
 }
 
@@ -164,12 +207,12 @@ private class BlueWolfRenderersFactory(
 
     override fun buildTextRenderers(
         context: Context,
-        textOutput: androidx.media3.exoplayer.text.TextOutput,
-        textRendererLooper: android.os.Looper,
+        output: androidx.media3.exoplayer.text.TextOutput,
+        outputLooper: android.os.Looper,
         extensionRendererMode: Int,
         out: ArrayList<Renderer>,
     ) {
-        out.add(androidx.media3.exoplayer.text.TextRenderer(textOutput, textRendererLooper, OffsettingSubtitleDecoderFactory(subtitleOffsetUs)))
+        out.add(androidx.media3.exoplayer.text.TextRenderer(output, outputLooper, OffsettingSubtitleDecoderFactory(subtitleOffsetUs)))
     }
     override fun buildVideoRenderers(
         context: Context,

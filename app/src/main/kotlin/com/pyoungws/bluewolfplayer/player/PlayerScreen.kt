@@ -38,6 +38,7 @@ import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreTime
+import androidx.compose.material.icons.outlined.Nightlight
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material3.AlertDialog
@@ -236,6 +237,7 @@ private fun PlayerContent(
     var showSpeedDialog by remember(player) { mutableStateOf(false) }
     var showDelayDialog by remember(player) { mutableStateOf(false) }
     val subtitleDelayMs by viewModel.subtitleDelayMs.collectAsStateWithLifecycle()
+    var nightMode by remember(player) { mutableStateOf(false) }
     var showChapters by remember(player) { mutableStateOf(false) }
     var gesturesLocked by remember(player) { mutableStateOf(false) }
     var gestureHint by remember(player) { mutableStateOf<String?>(null) }
@@ -654,6 +656,7 @@ private fun PlayerContent(
                     ControlButton(onClick = { showQueue = true }, icon = Icons.AutoMirrored.Outlined.PlaylistPlay, description = stringResource(R.string.player_queue))
                 }
                 ControlButton(onClick = { showSpeedDialog = true }, icon = Icons.Outlined.Speed, description = stringResource(R.string.player_speed))
+                ControlButton(onClick = { nightMode = !nightMode; engine.setNightMode(nightMode) }, icon = Icons.Outlined.Nightlight, description = stringResource(R.string.player_night_mode))
                 if (!isTv) {
                     ControlButton(onClick = { gesturesLocked = true }, icon = Icons.Outlined.Lock, description = stringResource(R.string.player_lock))
                 }

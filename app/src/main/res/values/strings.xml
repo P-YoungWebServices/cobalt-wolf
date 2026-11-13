@@ -869,6 +869,7 @@
     <string name="player_subtitle_delay">Subtitle delay</string>
     <string name="player_delay_value">%1$s ms</string>
     <string name="player_delay_reset">Reset</string>
+    <string name="player_night_mode">Night mode</string>
     <string name="sign_in_forgot_password">Forgot password?</string>
     <string name="sign_in_reset_sent">Reset PIN sent — check your email</string>
     <string name="connect_discovered">Servers on your network</string>
