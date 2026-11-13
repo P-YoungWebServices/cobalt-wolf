@@ -159,6 +159,9 @@ internal fun PlayerScreen(
 
 private enum class TrackDialog { Audio, Subtitles }
 
+/** Zoom-mode step past AspectRatioFrameLayout's own constants: crops black bars it detected. */
+private const val RESIZE_CROP = -1
+
 private val SPEED_CHOICES = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
 
 private class TrackOption(val label: String, val group: Tracks.Group?, val index: Int, val selected: Boolean)
@@ -228,8 +231,44 @@ private fun PlayerContent(
                 com.pyoungws.bluewolfplayer.shared.playback.ZoomMode.Fit -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                 com.pyoungws.bluewolfplayer.shared.playback.ZoomMode.Fill -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                 com.pyoungws.bluewolfplayer.shared.playback.ZoomMode.Zoom -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                com.pyoungws.bluewolfplayer.shared.playback.ZoomMode.Crop -> RESIZE_CROP
             },
         )
+    }
+    // Auto-crop zooms the texture output by the detected letterbox factor; detection runs once when
+    // the mode is picked and 1f means "no bars found, show the frame as-is".
+    var cropScale by remember(player) { mutableStateOf<Float?>(null) }
+    LaunchedEffect(zoomMode) {
+        if (zoomMode == RESIZE_CROP && cropScale == null) {
+            cropScale = detectCropScale(request.source.url, request.source.headers, request.item.runtimeTicks, request.startPositionMs)
+        }
+    }
+    val cropActive = zoomMode == RESIZE_CROP && (cropScale ?: 1f) > 1f
+    // While cropping, video routes to a TextureView laid over the normal surface box; only a
+    // texture can take the transform that scales the frame's letterbox away.
+    var cropTextureView by remember(player) { mutableStateOf<android.view.TextureView?>(null) }
+    LaunchedEffect(cropActive) {
+        val frame = playerView.findViewById<AspectRatioFrameLayout>(androidx.media3.ui.R.id.exo_content_frame) ?: return@LaunchedEffect
+        val overlay = cropTextureView
+        if (cropActive && overlay == null) {
+            val texture = android.view.TextureView(context)
+            frame.addView(texture, android.widget.FrameLayout.LayoutParams(-1, -1))
+            player.setVideoTextureView(texture)
+            cropTextureView = texture
+        } else if (!cropActive && overlay != null) {
+            player.clearVideoTextureView(overlay)
+            frame.removeView(overlay)
+            cropTextureView = null
+            playerView.player = null
+            playerView.player = castController.activePlayer ?: controllerPlayer
+        }
+    }
+    LaunchedEffect(cropTextureView, cropScale) {
+        val texture = cropTextureView ?: return@LaunchedEffect
+        val scale = cropScale ?: 1f
+        texture.post {
+            texture.setTransform(android.graphics.Matrix().apply { setScale(scale, scale, texture.width / 2f, texture.height / 2f) })
+        }
     }
     var scrubPositionMs by remember(player) { mutableStateOf<Long?>(null) }
     var nextCountdownCancelled by remember(ready.generation) { mutableStateOf(false) }
@@ -564,7 +603,8 @@ private fun PlayerContent(
                 },
                 update = {
                 it.useController = !isInPip
-                it.resizeMode = zoomMode
+                // Crop draws through the texture overlay instead, so the layout keeps a plain fit.
+                it.resizeMode = if (zoomMode == RESIZE_CROP) AspectRatioFrameLayout.RESIZE_MODE_FIT else zoomMode
                 it.subtitleView?.setFractionalTextSize(0.0533f * request.settings.subtitleScale)
                 it.subtitleView?.setStyle(
                     androidx.media3.ui.CaptionStyleCompat(
@@ -646,6 +686,7 @@ private fun PlayerContent(
                         zoomMode = when (zoomMode) {
                             AspectRatioFrameLayout.RESIZE_MODE_FIT -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                             AspectRatioFrameLayout.RESIZE_MODE_FILL -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> RESIZE_CROP
                             else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                         }
                     },

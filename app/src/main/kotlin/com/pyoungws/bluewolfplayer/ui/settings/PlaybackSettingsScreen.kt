@@ -216,7 +216,7 @@ private fun Overrides(state: PlaybackSettingsUiState, viewModel: PlaybackSetting
         Toggle(R.string.settings_allow_hlg, R.string.settings_allow_hdr_summary, settings.allowHlg, viewModel::setAllowHlg)
         Choice(
             R.string.settings_default_zoom, settings.defaultZoom, viewModel::setDefaultZoom,
-            ZoomMode.Fit to R.string.zoom_fit, ZoomMode.Fill to R.string.zoom_fill, ZoomMode.Zoom to R.string.zoom_zoom,
+            ZoomMode.Fit to R.string.zoom_fit, ZoomMode.Fill to R.string.zoom_fill, ZoomMode.Zoom to R.string.zoom_zoom, ZoomMode.Crop to R.string.zoom_crop,
         )
         Choice(
             R.string.settings_buffer_length, settings.bufferSeconds, viewModel::setBufferSeconds,

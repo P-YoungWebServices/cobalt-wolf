@@ -132,7 +132,7 @@ enum class TranscodeCodec { Auto, H264, Hevc, Av1 }
 
 enum class SubtitleColor { White, Yellow, Green, Cyan }
 enum class SubtitleBackground { Transparent, SemiTransparent, Opaque }
-enum class ZoomMode { Fit, Fill, Zoom }
+enum class ZoomMode { Fit, Fill, Zoom, Crop }
 
 /** How the player picks a subtitle track at start. */
 enum class SubtitlePlaybackMode {

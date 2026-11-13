@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A PlayerView whose video renders into a TextureView: the only output a Matrix transform can
+     crop, which the auto-crop zoom mode needs. SurfaceView playback stays the default because the
+     texture path cannot take the secure/HDR surface route on every device. -->
+<androidx.media3.ui.PlayerView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:surface_type="texture_view" />

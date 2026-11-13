@@ -856,6 +856,7 @@
     <string name="zoom_fit">Fit</string>
     <string name="zoom_fill">Fill</string>
     <string name="zoom_zoom">Zoom</string>
+    <string name="zoom_crop">Auto-crop</string>
     <string name="settings_buffer_length">Buffer length</string>
     <string name="buffer_default">Default</string>
     <string name="buffer_120">2 minutes</string>
