@@ -86,7 +86,7 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 - ALL PHASES COMPLETE. Every approved item is implemented or explicitly deferred.
 - Last commits: admin activity log + API keys, Android Auto (MediaLibraryService), Chromecast (CastPlayer, cast-framework 22.3.1, default receiver).
 - Follow-up pass (user: "add all of it apart photos and books") added: transcode codec preference, session subtitle delay (text subtitles; ASS/audio delay impossible on Media3 — documented), night mode (LoudnessEnhancer), per-codec level caps, auto-crop letterbox mode, search filter chips, On Now row + admin notifications, plugins + server-settings admin pages, artwork editor (rotate/crop/upload/delete), TV browse context menus.
-- Still pending: TV playlist reorder UI, TV queue view, TV album track list; interactive free-form crop in the artwork editor; remote-image browse in the artwork editor.
+- All follow-ups complete. Accepted gaps vs jellyfin-web (user reviewed and accepted): ASS/audio delay (no Media3/libass timing API), free-form crop region in the artwork editor (aspect-ratio presets exist), remote-image provider browse in the artwork editor (local ops only).
 - New deps added: androidx.media3:media3-session, media3-cast, com.google.android.gms:play-services-cast-framework (proprietary Google — required for Cast; consistent with every Android client).
 - Final verification: `./gradlew test` + `assembleDebug` green; phone smoke test passes.
 - Remaining: Fire Stick TV pass (awaiting user authorization), Live TV scope contradiction (user picked all parts AND skip — implemented anyway), push PRs only on request.
