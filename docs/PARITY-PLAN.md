@@ -85,8 +85,8 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 ## Current checkpoint
 
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Working on: 1.6 Live TV (channels/playback first, then EPG+recordings).
-- Done: 1.1 (4a6e3d6), 1.2 queue, 1.3 (cf6377d), 1.4 (ec1b990), 1.5 mix+lyrics. Build+tests green.
+- Working on: 1.7 home videos + person pages (mostly done via models; needs person detail bio).
+- Done: 1.1-1.6 (models, queue, music, audio bg, mix+lyrics, livetv hub). Build+tests green. ~10 commits on parity branch.
 - Notes: ItemQuery gained recursive + artistIds/albumArtistIds. Container play queues playable children (Play on album/playlist/boxset). PlayerViewModelTest passes a fresh PlayQueueRepository.
 - Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, DI=shared/.../di/SharedModule.kt.
 - Conventions: per-feature commits, `JAVA_HOME=/snap/android-studio/current/jbr`, strings added at end of app/.../res/values/strings.xml, icons from material-icons-extended.

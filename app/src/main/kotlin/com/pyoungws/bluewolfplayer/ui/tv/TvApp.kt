@@ -200,7 +200,7 @@ private fun TvSignedInNavigation(
                     onOpenItem = { push(Route.Detail(it)) },
                     onWatchTogether = { push(Route.SyncPlay(it)) },
                     onPlayFromBeginning = { itemId -> context.startActivity(PlayerActivity.intent(context, itemId, startPositionMs = 0)) },
-                    onOpenPerson = { id, name -> push(Route.Person(id, name)) },
+                    onOpenPerson = { id, _ -> push(Route.Detail(id)) },
                 )
                 is Route.Person -> TvItemBrowseScreen(
                     title = route.name,

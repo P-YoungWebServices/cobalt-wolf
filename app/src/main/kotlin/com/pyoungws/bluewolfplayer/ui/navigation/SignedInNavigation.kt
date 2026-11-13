@@ -298,7 +298,7 @@ fun SignedInNavigation() {
             onPlayFromBeginning = { itemId -> context.startActivity(PlayerActivity.intent(context, itemId, startPositionMs = 0)) },
             onOpenItem = { push(Route.Detail(it)) },
             onWatchTogether = { push(Route.SyncPlay(it)) },
-            onOpenPerson = { id, name -> push(Route.Person(id, name)) },
+            onOpenPerson = { id, _ -> push(Route.Detail(id)) },
         )
     }
 }

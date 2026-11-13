@@ -98,6 +98,8 @@ class ItemDetailViewModel(
                 (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(parentId = item.id, includeItemKinds = setOf(MediaKind.Song), limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
             MediaKind.MusicArtist ->
                 (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(albumArtistIds = listOf(item.id), includeItemKinds = setOf(MediaKind.MusicAlbum), limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
+            MediaKind.Person ->
+                (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(personIds = listOf(item.id), limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
             else -> emptyList()
         }
         val lyrics = if (item.kind == MediaKind.Song) {

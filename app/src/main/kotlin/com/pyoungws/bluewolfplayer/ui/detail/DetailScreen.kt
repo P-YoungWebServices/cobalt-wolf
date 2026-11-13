@@ -345,7 +345,7 @@ private fun DetailContent(
             }
         } else if (state.containerItems.isNotEmpty()) {
             item(key = "contents") {
-                SectionTitle(stringResource(R.string.detail_contents))
+                SectionTitle(stringResource(if (item.kind == MediaKind.Person) R.string.detail_filmography else R.string.detail_contents))
                 LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(state.containerItems, key = { it.id }) { entry ->
                         Column(Modifier.width(120.dp)) {

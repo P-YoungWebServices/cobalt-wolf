@@ -722,4 +722,5 @@
     <string name="livetv_record">Record</string>
     <string name="livetv_record_series">Record series</string>
     <string name="livetv_watch_channel">Watch channel</string>
+    <string name="detail_filmography">Appears in</string>
 </resources>
