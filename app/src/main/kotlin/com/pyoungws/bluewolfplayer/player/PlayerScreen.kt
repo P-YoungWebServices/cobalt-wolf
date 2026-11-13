@@ -468,9 +468,10 @@ private fun PlayerContent(
     // shows the controller on select. When the controls appear, play/pause takes the focus.
     val isTv = remember { context.isTelevision() }
     val rootFocusRequester = remember { FocusRequester() }
-    val behavior = when {
-        segments.firstOrNull { it.contains(positionMs) }?.kind == MediaSegmentKind.Intro -> request.settings.introBehavior
-        segments.firstOrNull { it.contains(positionMs) }?.kind == MediaSegmentKind.Outro -> request.settings.outroBehavior
+    val activeKind = segments.firstOrNull { it.contains(positionMs) }?.kind
+    val behavior = when (activeKind) {
+        MediaSegmentKind.Intro, MediaSegmentKind.Recap -> request.settings.introBehavior
+        MediaSegmentKind.Outro -> request.settings.outroBehavior
         else -> SegmentBehavior.Ask
     }
     val activeSegment = segments.firstOrNull { it.contains(positionMs) }?.takeIf { behavior != SegmentBehavior.Off }
@@ -691,7 +692,13 @@ private fun PlayerContent(
                             Text(stringResource(R.string.player_next_episode))
                         }
                         else -> Button(onClick = { player.seekTo(segment.endMs) }, modifier = buttonModifier) {
-                            Text(stringResource(if (segment.kind == MediaSegmentKind.Intro) R.string.player_skip_intro else R.string.player_skip_credits))
+                            Text(stringResource(
+                                when (segment.kind) {
+                                    MediaSegmentKind.Intro -> R.string.player_skip_intro
+                                    MediaSegmentKind.Recap -> R.string.player_skip_recap
+                                    MediaSegmentKind.Outro -> R.string.player_skip_credits
+                                }
+                            ))
                         }
                     }
                 }
