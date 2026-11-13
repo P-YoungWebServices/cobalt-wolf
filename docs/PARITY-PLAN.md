@@ -71,12 +71,12 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 | 4.2 | User cards w/ avatars on sign-in | ☑ | |
 | 4.3 | Auto sign-in | ☑ | persisted sessions already auto-resume on start | |
 | 4.4 | Reset password link | ☑ | forgot-password deep link |
-| 4.5 | More home rows + notifications + server-synced sections | ◐ | resume-audio + live-TV rows added; now-playing/notifications rows deferred |
+| 4.5 | More home rows + notifications + server-synced sections | ☑ | resume-audio + live-TV + On-Now rows; admin notifications flyout (activity log) |
 | 4.6 | Themes, backdrops+blur, clock, watched-indicator styles | ☑ | |
 | 4.7 | In-app screensaver + daydream | ☑ | WolfDreamService |
 | 4.8 | Voice search (TV) | ☑ | SEARCH intent → search screen |
-| 4.9 | Admin: activity log, API keys, devices detail, server settings | ◐ | activity log + API keys pages done; server settings pages deferred |
-| 4.10 | Search: grouped result types + filters | ◐ | grouped sections done; filter chips deferred |
+| 4.9 | Admin: activity log, API keys, devices detail, server settings | ☑ | plus plugins + server-settings (name, restart/shutdown) pages |
+| 4.10 | Search: grouped result types + filters | ☑ | grouped sections + result-type filter chips (phone + TV) |
 | 4.11 | Downloads: method + storage location | ☑ | Wi-Fi-only + storage prefs |
 | 4.12 | Android Auto browse/play | ☑ | PlaybackService → MediaLibraryService |
 
@@ -85,7 +85,8 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a). 30 feature commits.
 - ALL PHASES COMPLETE. Every approved item is implemented or explicitly deferred.
 - Last commits: admin activity log + API keys, Android Auto (MediaLibraryService), Chromecast (CastPlayer, cast-framework 22.3.1, default receiver).
-- Deferred (documented per item): subtitle/audio delay (no Media3 API), night-mode normalization, codec level caps, transcode codec pref, autocrop, image editor, search filter chips, now-playing/notifications rows, server settings pages.
+- Follow-up pass (user: "add all of it apart photos and books") added: transcode codec preference, session subtitle delay (text subtitles; ASS/audio delay impossible on Media3 — documented), night mode (LoudnessEnhancer), per-codec level caps, auto-crop letterbox mode, search filter chips, On Now row + admin notifications, plugins + server-settings admin pages, artwork editor (rotate/crop/upload/delete), TV browse context menus.
+- Still pending: TV playlist reorder UI, TV queue view, TV album track list; interactive free-form crop in the artwork editor; remote-image browse in the artwork editor.
 - New deps added: androidx.media3:media3-session, media3-cast, com.google.android.gms:play-services-cast-framework (proprietary Google — required for Cast; consistent with every Android client).
 - Final verification: `./gradlew test` + `assembleDebug` green; phone smoke test passes.
 - Remaining: Fire Stick TV pass (awaiting user authorization), Live TV scope contradiction (user picked all parts AND skip — implemented anyway), push PRs only on request.
