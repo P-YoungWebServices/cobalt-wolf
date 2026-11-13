@@ -25,6 +25,8 @@ class LibraryRepository(
         coroutineScope {
             val libraries = dataSource.getLibraries(session)
             val resume = async { dataSource.getResumeItems(session) }
+            val resumeAudio = async { runCatching { dataSource.getResumeAudioItems(session) }.getOrDefault(emptyList()) }
+            val liveTv = async { if (libraries.any { it.type == com.pyoungws.bluewolfplayer.shared.model.LibraryType.LiveTv }) runCatching { dataSource.getLiveTvChannels(session) }.getOrDefault(emptyList()) else emptyList() }
             val nextUp = async { dataSource.getNextUp(session, settingsRepository?.settings?.value?.nextUpCutoffDays ?: 0) }
             val rows = libraries.filter { it.isBrowsable }
                 .map { library -> async { RecentlyAddedRow(library, dataSource.getLatest(session, library.id)) } }
@@ -36,6 +38,8 @@ class LibraryRepository(
                 continueWatching = resume.await().distinctBy { it.id },
                 nextUp = nextUpItems,
                 recentlyAdded = rows.awaitAll().filter { it.items.isNotEmpty() },
+                resumeAudio = resumeAudio.await().distinctBy { it.id },
+                liveTvChannels = liveTv.await(),
             )
         }
     }

@@ -234,6 +234,8 @@ private fun HomeRows(state: PlaybackSettingsUiState, viewModel: PlaybackSettings
         PlaybackSettings.ROW_LIBRARIES to R.string.row_libraries,
         PlaybackSettings.ROW_CONTINUE to R.string.row_continue,
         PlaybackSettings.ROW_NEXT_UP to R.string.row_next_up,
+        PlaybackSettings.ROW_RESUME_AUDIO to R.string.row_resume_audio,
+        PlaybackSettings.ROW_LIVE_TV to R.string.row_live_tv,
     )
     Column {
         order.forEachIndexed { index, rowId ->

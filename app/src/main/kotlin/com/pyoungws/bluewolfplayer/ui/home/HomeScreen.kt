@@ -218,6 +218,22 @@ private fun HomeFeedContent(feed: HomeFeed, onOpenLibrary: (Library) -> Unit, on
                         }
                     }
                 }
+                PlaybackSettings.ROW_RESUME_AUDIO -> if (feed.resumeAudio.isNotEmpty()) {
+                    item(key = "resumeaudio") {
+                        Column {
+                            SectionTitle(stringResource(R.string.home_resume_audio))
+                            CardRow(feed.resumeAudio, key = { it.id }) { LandscapeCard(it, onClick = { onOpenItem(it.id) }) }
+                        }
+                    }
+                }
+                PlaybackSettings.ROW_LIVE_TV -> if (feed.liveTvChannels.isNotEmpty()) {
+                    item(key = "livetv") {
+                        Column {
+                            SectionTitle(stringResource(R.string.home_live_tv))
+                            CardRow(feed.liveTvChannels, key = { it.id }) { PosterCard(it, onClick = { onOpenItem(it.id) }) }
+                        }
+                    }
+                }
             }
         }
         items(feed.recentlyAdded, key = { "recent-${it.library.id}" }) { row ->

@@ -111,7 +111,7 @@ class PlaybackSettingsViewModel(
 
     companion object {
         /** All reorderable home rows. `recent:<libraryId>` rows stay in feed order after these. */
-        val HOME_ROW_IDS = listOf(PlaybackSettings.ROW_LIBRARIES, PlaybackSettings.ROW_CONTINUE, PlaybackSettings.ROW_NEXT_UP)
+        val HOME_ROW_IDS = listOf(PlaybackSettings.ROW_LIBRARIES, PlaybackSettings.ROW_CONTINUE, PlaybackSettings.ROW_NEXT_UP, PlaybackSettings.ROW_RESUME_AUDIO, PlaybackSettings.ROW_LIVE_TV)
     }
 
     private fun state(settings: PlaybackSettings, capabilities: DeviceCapabilities) = PlaybackSettingsUiState(

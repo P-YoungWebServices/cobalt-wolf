@@ -269,6 +269,10 @@ data class HomeFeed(
     val continueWatching: List<MediaItem>,
     val nextUp: List<MediaItem>,
     val recentlyAdded: List<RecentlyAddedRow>,
+    /** Partially-listened audio items. */
+    val resumeAudio: List<MediaItem> = emptyList(),
+    /** Live TV channels, when a Live TV library exists. */
+    val liveTvChannels: List<MediaItem> = emptyList(),
 )
 
 data class RecentlyAddedRow(val library: Library, val items: List<MediaItem>)

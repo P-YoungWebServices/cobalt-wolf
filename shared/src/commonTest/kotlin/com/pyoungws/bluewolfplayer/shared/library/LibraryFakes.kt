@@ -52,6 +52,7 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
 
     override suspend fun getLibraries(session: Session): List<Library> = libraries().also { calls += "libraries" }
     override suspend fun getResumeItems(session: Session): List<MediaItem> = resume().also { calls += "resume" }
+    override suspend fun getResumeAudioItems(session: Session): List<MediaItem> = emptyList<MediaItem>().also { calls += "resumeAudio" }
     override suspend fun getNextUp(session: Session, nextUpCutoffDays: Int): List<MediaItem> = nextUp().also { calls += "nextUp($nextUpCutoffDays)" }
     override suspend fun getLatest(session: Session, libraryId: String): List<MediaItem> = latest(libraryId).also { calls += "latest($libraryId)" }
     override suspend fun getLibraryItems(session: Session, library: Library, startIndex: Int, limit: Int): Page<MediaItem> =

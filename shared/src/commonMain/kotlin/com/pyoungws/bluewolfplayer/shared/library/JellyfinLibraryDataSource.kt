@@ -89,6 +89,8 @@ import org.jellyfin.sdk.model.api.request.GetStudiosRequest
 interface JellyfinLibraryDataSource {
     suspend fun getLibraries(session: Session): List<Library>
     suspend fun getResumeItems(session: Session): List<MediaItem>
+    /** Partially-played audio items (music, audiobooks) for the home "resume audio" row. */
+    suspend fun getResumeAudioItems(session: Session): List<MediaItem>
     suspend fun getNextUp(session: Session, nextUpCutoffDays: Int = 0): List<MediaItem>
     suspend fun getLatest(session: Session, libraryId: String): List<MediaItem>
     suspend fun getLibraryItems(session: Session, library: Library, startIndex: Int, limit: Int): Page<MediaItem>
@@ -205,6 +207,18 @@ class SdkJellyfinLibraryDataSource(
                 userId = session.userId.toUuid(),
                 limit = ROW_LIMIT,
                 mediaTypes = listOf(org.jellyfin.sdk.model.api.MediaType.VIDEO),
+                fields = ITEM_FIELDS,
+                enableUserData = true,
+            ),
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getResumeAudioItems(session: Session) = call(session) {
+        libraryApi.getResumeItems(
+            GetResumeItemsRequest(
+                userId = session.userId.toUuid(),
+                limit = ROW_LIMIT,
+                mediaTypes = listOf(org.jellyfin.sdk.model.api.MediaType.AUDIO),
                 fields = ITEM_FIELDS,
                 enableUserData = true,
             ),

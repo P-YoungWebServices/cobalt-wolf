@@ -880,4 +880,8 @@
     <string name="offline_storage_internal">Storage: internal</string>
     <string name="offline_storage_external">Storage: external (SD)</string>
     <string name="offline_waiting_wifi">Waiting for Wi-Fi</string>
+    <string name="row_resume_audio">Resume audio</string>
+    <string name="row_live_tv">Live TV</string>
+    <string name="home_resume_audio">Resume audio</string>
+    <string name="home_live_tv">Live TV</string>
 </resources>
