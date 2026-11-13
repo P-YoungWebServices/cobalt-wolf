@@ -303,7 +303,9 @@ class SdkJellyfinLibraryDataSource(
     }
 
     override suspend fun getTimers(session: Session) = call(session) {
-        liveTvApi.getTimers(isScheduled = true).content.items.orEmpty().map { it.toLiveTimer() }
+        // No isScheduled filter: an in-progress recording must stay visible (the official
+        // clients show it in Scheduled); the flag would hide it server-side.
+        liveTvApi.getTimers().content.items.orEmpty().map { it.toLiveTimer() }
     }
 
     override suspend fun getSeriesTimers(session: Session) = call(session) {

@@ -64,7 +64,19 @@ fun LiveTvScreen(onBack: () -> Unit, onOpenItem: (String) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             LiveTvTab.entries.forEach { entry ->
-                FilterChip(selected = tab == entry, onClick = { tab = entry }, label = { Text(stringResource(entry.labelRes)) })
+                FilterChip(
+                    selected = tab == entry,
+                    onClick = {
+                        tab = entry
+                        // Guide/recordings/timers go stale while browsing; refresh on each switch.
+                        when (entry) {
+                            LiveTvTab.Guide -> viewModel.refreshGuide()
+                            LiveTvTab.Recordings, LiveTvTab.Scheduled, LiveTvTab.Series -> viewModel.refreshBookkeeping()
+                            else -> Unit
+                        }
+                    },
+                    label = { Text(stringResource(entry.labelRes)) },
+                )
             }
         }
         when (val current = state) {

@@ -60,6 +60,19 @@ class LiveTvViewModel(private val repository: LibraryRepository) : ViewModel() {
         }
     }
 
+    /** Recordings and timers change while the screen is open; refresh them on tab switches. */
+    fun refreshBookkeeping() {
+        viewModelScope.launch {
+            _uiState.update { state ->
+                (state as? LiveTvUiState.Loaded)?.copy(
+                    recordings = (repository.liveTvRecordings() as? Outcome.Success)?.value.orEmpty(),
+                    timers = (repository.liveTvTimers() as? Outcome.Success)?.value.orEmpty(),
+                    seriesTimers = (repository.liveTvSeriesTimers() as? Outcome.Success)?.value.orEmpty(),
+                ) ?: state
+            }
+        }
+    }
+
     /** Loads the program grid for the channels we know about: now through +12h. */
     fun refreshGuide() {
         val channels = (_uiState.value as? LiveTvUiState.Loaded)?.channels.orEmpty()
