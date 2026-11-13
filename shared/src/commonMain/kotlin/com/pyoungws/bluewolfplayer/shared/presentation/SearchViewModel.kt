@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pyoungws.bluewolfplayer.shared.library.LibraryRepository
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
+import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
 import com.pyoungws.bluewolfplayer.shared.seerr.SeerrAuthState
 import com.pyoungws.bluewolfplayer.shared.seerr.SeerrRepository
@@ -34,9 +35,30 @@ data class SearchUiState(
     val isSearching: Boolean = false,
     val error: LoadError? = null,
     val seerrError: LoadError? = null,
+    val filter: SearchFilter = SearchFilter.All,
 ) {
+    /** Server results narrowed to the selected type chip. */
+    val filteredResults: List<MediaItem>
+        get() = if (filter == SearchFilter.All) results else results.filter { it.matches(filter) }
+
     val showNoResults: Boolean
-        get() = query.isNotBlank() && !isSearching && error == null && results.isEmpty() && seerrResults.isEmpty() && seerrError == null
+        get() = query.isNotBlank() && !isSearching && error == null && filteredResults.isEmpty() && seerrResults.isEmpty() && seerrError == null
+}
+
+/** The type chips under the search box; the Seerr catalog is not filterable this way. */
+enum class SearchFilter { All, Movies, Shows, Episodes, People, Music, LiveTv, Other }
+
+fun MediaItem.matches(filter: SearchFilter): Boolean = when (filter) {
+    SearchFilter.All -> true
+    SearchFilter.Movies -> kind == MediaKind.Movie || kind == MediaKind.MusicVideo
+    SearchFilter.Shows -> kind == MediaKind.Series || kind == MediaKind.Season
+    SearchFilter.Episodes -> kind == MediaKind.Episode
+    SearchFilter.People -> kind == MediaKind.Person
+    SearchFilter.Music -> kind == MediaKind.MusicArtist || kind == MediaKind.MusicAlbum || kind == MediaKind.Song
+    SearchFilter.LiveTv -> kind == MediaKind.TvChannel || kind == MediaKind.Program || kind == MediaKind.Recording
+    SearchFilter.Other -> !matches(SearchFilter.Movies) && !matches(SearchFilter.Shows) &&
+        !matches(SearchFilter.Episodes) && !matches(SearchFilter.People) &&
+        !matches(SearchFilter.Music) && !matches(SearchFilter.LiveTv)
 }
 
 /** Search across movies, series and episodes plus the Seerr catalog. Typing is debounced and stale requests are cancelled. */
@@ -100,5 +122,9 @@ class SearchViewModel(
     fun onQueryChange(query: String) {
         queries.value = query
         _uiState.update { it.copy(query = query) }
+    }
+
+    fun setFilter(filter: SearchFilter) {
+        _uiState.update { it.copy(filter = filter) }
     }
 }

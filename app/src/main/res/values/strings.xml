@@ -898,6 +898,7 @@
     <string name="kind_playlists">Playlists</string>
     <string name="kind_collections">Collections</string>
     <string name="kind_other">Other</string>
+    <string name="kind_music">Music</string>
     <string name="offline_wifi_only_on">Download over Wi-Fi only: on</string>
     <string name="offline_wifi_only_off">Download over Wi-Fi only: off</string>
     <string name="offline_storage_internal">Storage: internal</string>

@@ -59,6 +59,29 @@ fun TvSearchScreen(
                 .padding(horizontal = TvContentPadding, vertical = 8.dp)
                 .focusRequester(focusRequester),
         )
+        val filters = listOf(
+            com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.All to R.string.filter_all,
+            com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Movies to R.string.kind_movies,
+            com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Shows to R.string.kind_shows,
+            com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Episodes to R.string.kind_episodes,
+            com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.People to R.string.kind_people,
+            com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Music to R.string.kind_music,
+            com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.LiveTv to R.string.kind_livetv,
+            com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Other to R.string.kind_other,
+        )
+        androidx.compose.foundation.lazy.LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = TvContentPadding),
+        ) {
+            items(filters.size) {
+                val (filter, label) = filters[it]
+                androidx.compose.material3.FilterChip(
+                    selected = state.filter == filter,
+                    onClick = { viewModel.setFilter(filter) },
+                    label = { androidx.compose.material3.Text(stringResource(label)) },
+                )
+            }
+        }
         Box(Modifier.fillMaxSize()) {
             when {
                 state.error != null -> TvErrorBox(state.error!!, onRetry = null)
@@ -75,12 +98,12 @@ fun TvSearchScreen(
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    if (state.results.isNotEmpty()) {
+                    if (state.filteredResults.isNotEmpty()) {
                         item(key = "header-local", span = { GridItemSpan(maxLineSpan) }) {
                             TvSectionTitle(stringResource(R.string.search_on_server))
                         }
-                        items(state.results.size, key = { state.results[it].id }) {
-                            TvPosterCard(state.results[it], onClick = { onOpenItem(state.results[it].id) })
+                        items(state.filteredResults.size, key = { state.filteredResults[it].id }) {
+                            TvPosterCard(state.filteredResults[it], onClick = { onOpenItem(state.filteredResults[it].id) })
                         }
                     }
                     if (state.seerrResults.isNotEmpty() || state.seerrError != null) {

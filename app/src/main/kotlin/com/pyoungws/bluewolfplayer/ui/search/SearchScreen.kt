@@ -73,6 +73,7 @@ fun SearchScreen(
                 placeholder = { Text(stringResource(R.string.search_hint)) },
                 modifier = Modifier.fillMaxWidth().padding(16.dp).focusRequester(focusRequester),
             )
+            FilterRow(state.filter, viewModel::setFilter)
             Box(Modifier.fillMaxSize()) {
                 when {
                     state.error != null -> ErrorBox(state.error!!, onRetry = null)
@@ -80,10 +81,10 @@ fun SearchScreen(
                     state.showNoResults -> Text(stringResource(R.string.search_no_results), Modifier.align(Alignment.TopCenter).padding(16.dp))
                     state.query.isBlank() -> Text(stringResource(R.string.search_prompt), Modifier.align(Alignment.TopCenter).padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (state.results.isNotEmpty()) {
+                        if (state.filteredResults.isNotEmpty()) {
                             item(key = "header-local") { SearchSectionHeader(stringResource(R.string.search_on_server)) }
                             val groups = linkedMapOf<com.pyoungws.bluewolfplayer.shared.model.MediaKind, MutableList<com.pyoungws.bluewolfplayer.shared.model.MediaItem>>()
-                            state.results.forEach { groups.getOrPut(it.kind) { mutableListOf() } += it }
+                            state.filteredResults.forEach { groups.getOrPut(it.kind) { mutableListOf() } += it }
                             val kindOrder = listOf(
                                 com.pyoungws.bluewolfplayer.shared.model.MediaKind.Movie,
                                 com.pyoungws.bluewolfplayer.shared.model.MediaKind.Series,
@@ -123,6 +124,33 @@ fun SearchScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/** The result-type chips; hidden until the box has been searched so they do not sit over the prompt. */
+@Composable
+private fun FilterRow(selected: com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter, onSelect: (com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter) -> Unit) {
+    val filters = listOf(
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.All to R.string.filter_all,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Movies to R.string.kind_movies,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Shows to R.string.kind_shows,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Episodes to R.string.kind_episodes,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.People to R.string.kind_people,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Music to R.string.kind_music,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.LiveTv to R.string.kind_livetv,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Other to R.string.kind_other,
+    )
+    androidx.compose.foundation.lazy.LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+    ) {
+        items(filters, key = { it.first.name }) { (filter, label) ->
+            androidx.compose.material3.FilterChip(
+                selected = selected == filter,
+                onClick = { onSelect(filter) },
+                label = { Text(stringResource(label)) },
+            )
         }
     }
 }
