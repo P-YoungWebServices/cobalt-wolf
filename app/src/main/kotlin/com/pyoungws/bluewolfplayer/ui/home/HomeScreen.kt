@@ -77,6 +77,7 @@ fun HomeScreen(
     onCalendar: () -> Unit,
     onDashboard: () -> Unit,
     onOffline: () -> Unit,
+    onFavorites: () -> Unit,
     viewModel: LibraryHomeViewModel = koinViewModel(),
     accountViewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -133,6 +134,10 @@ fun HomeScreen(
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.home_dashboard)) },
                                     onClick = { moreMenuOpen = false; onDashboard() },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.nav_favorites)) },
+                                    onClick = { moreMenuOpen = false; onFavorites() },
                                 )
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.offline_title)) },

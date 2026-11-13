@@ -85,8 +85,8 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 ## Current checkpoint
 
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Working on: 2.1 view modes (list view, card sizes, image types).
-- Done: Phase 1 (1.1-1.8 core). Remaining in phase 1: live player channel bar, background queue continuation, portrait now-playing, synced lyrics overlay. Build+tests green.
+- Working on: 2.4 library tabs (suggestions/upcoming/networks) + 2.5 favorites page.
+- Done: Phase 1 + 2.1-2.3 (view modes, sorts, filters). Build+tests green.
 - Notes: ItemQuery gained recursive + artistIds/albumArtistIds. Container play queues playable children (Play on album/playlist/boxset). PlayerViewModelTest passes a fresh PlayQueueRepository.
 - Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, DI=shared/.../di/SharedModule.kt.
 - Conventions: per-feature commits, `JAVA_HOME=/snap/android-studio/current/jbr`, strings added at end of app/.../res/values/strings.xml, icons from material-icons-extended.

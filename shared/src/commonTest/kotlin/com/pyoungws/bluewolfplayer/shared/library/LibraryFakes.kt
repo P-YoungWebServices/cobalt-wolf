@@ -90,6 +90,8 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
     override suspend fun cancelTimer(session: Session, timerId: String) { calls += "cancelTimer($timerId)" }
     override suspend fun cancelSeriesTimer(session: Session, timerId: String) { calls += "cancelSeriesTimer($timerId)" }
     override suspend fun deleteRecording(session: Session, recordingId: String) { calls += "deleteRecording($recordingId)" }
+    override suspend fun getUpcoming(session: Session, libraryId: String): List<MediaItem> = emptyList<MediaItem>().also { calls += "upcoming($libraryId)" }
+    override suspend fun getStudios(session: Session, libraryId: String): List<MediaItem> = emptyList<MediaItem>().also { calls += "studios($libraryId)" }
     override suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem? = nextUpForSeries(seriesId).also { calls += "nextUpSeries($seriesId)" }
     override suspend fun setPlayed(session: Session, itemId: String, played: Boolean) { calls += "setPlayed($itemId,$played)" }
     override suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean) { calls += "setFavorite($itemId,$favorite)" }

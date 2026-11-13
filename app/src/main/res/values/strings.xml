@@ -752,4 +752,7 @@
     <string name="image_poster">Poster art</string>
     <string name="image_banner">Banner art</string>
     <string name="image_thumb">Thumb art</string>
+    <string name="view_upcoming">Upcoming</string>
+    <string name="view_networks">Networks</string>
+    <string name="nav_favorites">Favorites</string>
 </resources>

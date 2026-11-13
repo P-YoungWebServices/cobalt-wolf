@@ -1,5 +1,8 @@
 package com.pyoungws.bluewolfplayer.ui.navigation
 
+import androidx.compose.ui.res.stringResource
+import com.pyoungws.bluewolfplayer.R
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -66,6 +69,7 @@ internal sealed interface Route {
     data object ArrSettings : Route
     data object Downloads : Route
     data object Offline : Route
+    data object Favorites : Route
     data object Bazarr : Route
     data object Prowlarr : Route
     data object Dashboard : Route
@@ -99,6 +103,7 @@ internal fun Route.encode(): String = when (this) {
     Route.ArrSettings -> "arrsettings"
     Route.Downloads -> "downloads"
     Route.Offline -> "offline"
+    Route.Favorites -> "favorites"
     Route.Bazarr -> "bazarr"
     Route.Prowlarr -> "prowlarr"
     Route.Dashboard -> "dashboard"
@@ -131,6 +136,7 @@ internal fun decodeRoute(value: String): Route? {
         "arrsettings" -> Route.ArrSettings
         "downloads" -> Route.Downloads
         "offline" -> Route.Offline
+        "favorites" -> Route.Favorites
         "bazarr" -> Route.Bazarr
         "prowlarr" -> Route.Prowlarr
         "dashboard" -> Route.Dashboard
@@ -227,6 +233,7 @@ fun SignedInNavigation() {
             onCalendar = { push(Route.Calendar) },
             onDashboard = { push(Route.Dashboard) },
             onOffline = { push(Route.Offline) },
+            onFavorites = { push(Route.Favorites) },
         )
         Route.Search -> SearchScreen(
             onBack = pop,
@@ -284,6 +291,13 @@ fun SignedInNavigation() {
         } else {
             LibraryScreen(route.library, onBack = pop, onOpenItem = { push(Route.Detail(it)) })
         }
+        Route.Favorites -> ItemBrowseScreen(
+            title = stringResource(R.string.nav_favorites),
+            query = ItemQuery(favoritesOnly = true),
+            onBack = pop,
+            onOpenItem = { push(Route.Detail(it)) },
+            prefsKey = "favorites",
+        )
         is Route.Person -> ItemBrowseScreen(
             title = route.name,
             query = ItemQuery(personIds = listOf(route.personId), includeItemKinds = PLAYABLE_KINDS),

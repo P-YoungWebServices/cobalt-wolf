@@ -25,6 +25,7 @@ import org.jellyfin.sdk.api.client.extensions.liveTvApi
 import org.jellyfin.sdk.api.client.extensions.lyricApi
 import org.jellyfin.sdk.api.client.extensions.genreApi
 import org.jellyfin.sdk.api.client.extensions.showApi
+import org.jellyfin.sdk.api.client.extensions.studioApi
 import org.jellyfin.sdk.api.client.extensions.suggestionApi
 import org.jellyfin.sdk.api.client.extensions.userDataApi
 import org.jellyfin.sdk.api.client.extensions.userViewApi
@@ -55,6 +56,7 @@ import org.jellyfin.sdk.model.api.request.GetLiveTvProgramsRequest
 import org.jellyfin.sdk.model.api.request.GetRecordingsRequest
 import org.jellyfin.sdk.model.api.request.GetResumeItemsRequest
 import org.jellyfin.sdk.model.api.request.GetSeasonsRequest
+import org.jellyfin.sdk.model.api.request.GetStudiosRequest
 
 /** Jellyfin library queries. Implementations throw the SDK's `ApiClientException` subtypes on failure. */
 interface JellyfinLibraryDataSource {
@@ -78,6 +80,10 @@ interface JellyfinLibraryDataSource {
     suspend fun getLiveTvRecordings(session: Session): List<MediaItem>
     suspend fun getTimers(session: Session): List<LiveTimer>
     suspend fun getSeriesTimers(session: Session): List<LiveTimer>
+    /** Episodes airing soon in a TV library. */
+    suspend fun getUpcoming(session: Session, libraryId: String): List<MediaItem>
+    /** Studios/networks present in a library. */
+    suspend fun getStudios(session: Session, libraryId: String): List<MediaItem>
     /** Records one showing of a program. */
     suspend fun recordProgram(session: Session, programId: String)
     /** Records every showing of a program's series. */
@@ -121,6 +127,7 @@ data class ItemQuery(
     val hasThemeSong: Boolean? = null,
     val hasThemeVideo: Boolean? = null,
     val hasSpecialFeature: Boolean? = null,
+    val studioIds: List<String> = emptyList(),
 )
 
 class SdkJellyfinLibraryDataSource(
@@ -255,6 +262,25 @@ class SdkJellyfinLibraryDataSource(
         liveTvApi.deleteRecording(recordingId.toUuid()).content
     }
 
+    override suspend fun getUpcoming(session: Session, libraryId: String) = call(session) {
+        showApi.getUpcomingEpisodes(
+            userId = session.userId.toUuid(),
+            parentId = libraryId.toUuid(),
+            limit = 60,
+            fields = ITEM_FIELDS,
+            enableUserData = true,
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getStudios(session: Session, libraryId: String) = call(session) {
+        studioApi.getStudios(
+            GetStudiosRequest(
+                userId = session.userId.toUuid(),
+                parentId = libraryId.toUuid(),
+            ),
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
     override suspend fun getNextUpForSeries(session: Session, seriesId: String) = call(session) {
         showApi.getNextUp(
             GetNextUpRequest(
@@ -318,6 +344,7 @@ class SdkJellyfinLibraryDataSource(
                 sortOrder = listOf(query.sortOrder),
                 filters = filters.ifEmpty { null },
                 seriesStatus = query.seriesStatus.ifEmpty { null },
+                studioIds = query.studioIds.map { it.toUuid() }.ifEmpty { null },
                 isHd = query.isHd,
                 is4k = query.is4k,
                 hasSubtitles = query.hasSubtitles,

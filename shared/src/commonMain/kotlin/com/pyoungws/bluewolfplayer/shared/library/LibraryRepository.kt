@@ -138,6 +138,12 @@ class LibraryRepository(
     suspend fun deleteRecording(recordingId: String): Outcome<Unit> =
         guard.run { dataSource.deleteRecording(it, recordingId) }
 
+    suspend fun upcomingEpisodes(libraryId: String): Outcome<List<MediaItem>> =
+        guard.run { dataSource.getUpcoming(it, libraryId) }
+
+    suspend fun studios(libraryId: String): Outcome<List<MediaItem>> =
+        guard.run { dataSource.getStudios(it, libraryId) }
+
     suspend fun nextUpForSeries(seriesId: String): Outcome<MediaItem?> =
         guard.run { dataSource.getNextUpForSeries(it, seriesId) }
 
