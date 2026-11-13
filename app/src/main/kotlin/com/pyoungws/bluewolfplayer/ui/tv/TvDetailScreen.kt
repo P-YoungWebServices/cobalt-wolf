@@ -129,33 +129,26 @@ private fun TvDetailContent(
     val playFocusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
     var autoFocused by remember { mutableStateOf(false) }
+    // autoFocused flips only on real focus success so the options-restore effect below
+    // can't steal focus before the button exists.
     LaunchedEffect(state.playTarget?.id) {
-        if (!autoFocused && state.playTarget != null) {
-            autoFocused = true
-            // The page always opens at the top: auto-focus Play only when the actions row is
-            // already fully visible — grabbing focus on a partially visible row would scroll
-            // the page (Compose brings focused elements fully into view).
-            snapshotFlow { listState.layoutInfo.visibleItemsInfo.isNotEmpty() }.first { it }
-            val actions = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "actions" }
-            val fullyVisible = actions != null &&
-                actions.offset >= listState.layoutInfo.viewportStartOffset &&
-                actions.offset + actions.size <= listState.layoutInfo.viewportEndOffset
-            if (!fullyVisible) return@LaunchedEffect
-            repeat(200) {
-                if (runCatching { playFocusRequester.requestFocus() }.getOrDefault(false)) return@LaunchedEffect
-                delay(50)
+        if (autoFocused || state.playTarget == null) return@LaunchedEffect
+        repeat(200) {
+            if (runCatching { playFocusRequester.requestFocus() }.getOrDefault(false)) {
+                autoFocused = true
+                return@LaunchedEffect
             }
+            delay(50)
         }
     }
     var optionsOpen by remember { mutableStateOf(false) }
     // Closing the options overlay can orphan focus (the focused menu node is disposed);
     // hand it back to Play/Resume so the remote never lands on nothing.
     LaunchedEffect(optionsOpen) {
-        if (!optionsOpen && autoFocused) {
-            repeat(40) {
-                if (runCatching { playFocusRequester.requestFocus() }.getOrDefault(false)) return@LaunchedEffect
-                delay(50)
-            }
+        if (optionsOpen || !autoFocused) return@LaunchedEffect
+        repeat(40) {
+            if (runCatching { playFocusRequester.requestFocus() }.getOrDefault(false)) return@LaunchedEffect
+            delay(50)
         }
     }
     var subMenu by remember { mutableStateOf<TvSubMenu?>(null) }
@@ -179,23 +172,23 @@ private fun TvDetailContent(
                         model = image,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth().height(260.dp)
+                        modifier = Modifier.fillMaxWidth().height(150.dp)
                             .then(if (options.blurBackdrops) Modifier.blur(20.dp) else Modifier),
                     )
                     if (options.blurBackdrops) {
-                        Box(Modifier.fillMaxWidth().height(260.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)))
+                        Box(Modifier.fillMaxWidth().height(150.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)))
                     }
                 } else {
-                    Box(Modifier.fillMaxWidth().height(100.dp))
+                    Box(Modifier.fillMaxWidth().height(40.dp))
                 }
             }
         }
         item(key = "header") {
             Row(Modifier.padding(horizontal = TvContentPadding, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 if (item.logoUrl != null) {
-                    AsyncImage(model = item.logoUrl, contentDescription = item.name, contentScale = ContentScale.Fit, modifier = Modifier.width(170.dp).height(140.dp))
+                    AsyncImage(model = item.logoUrl, contentDescription = item.name, contentScale = ContentScale.Fit, modifier = Modifier.width(150.dp).height(110.dp))
                 } else {
-                    Artwork(item.posterUrl, aspectRatio = 2f / 3f, modifier = Modifier.width(130.dp))
+                    Artwork(item.posterUrl, aspectRatio = 2f / 3f, modifier = Modifier.width(110.dp))
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(item.name, style = MaterialTheme.typography.headlineMedium)

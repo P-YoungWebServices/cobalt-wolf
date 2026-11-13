@@ -19,6 +19,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -192,6 +193,10 @@ private fun TvSignedInNavigation(
             onSignOut = { confirmSignOut = true },
         )
         Box(Modifier.weight(1f)) {
+            // Key on the route so pushed screens never share a composition slot: without this a
+            // LazyColumn's remembered scroll state leaks between detail pages (the page "opens
+            // scrolled halfway down") and across sections.
+            key(routes.lastOrNull() ?: section) {
             when (val route = routes.lastOrNull()) {
                 is Route.LibraryRoute -> if (route.library.type == com.pyoungws.bluewolfplayer.shared.model.LibraryType.LiveTv) {
                     com.pyoungws.bluewolfplayer.ui.livetv.LiveTvScreen(onBack = pop, onOpenItem = { push(Route.Detail(it)) })
@@ -265,6 +270,7 @@ private fun TvSignedInNavigation(
                     TvSection.Calendar -> TvCalendarScreen()
                 }
                 else -> Unit
+            }
             }
         }
     }
