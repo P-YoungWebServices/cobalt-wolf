@@ -864,4 +864,15 @@
     <string name="sign_in_reset_sent">Reset PIN sent — check your email</string>
     <string name="connect_discovered">Servers on your network</string>
     <string name="connect_scanning">Scanning…</string>
+    <string name="kind_movies">Movies</string>
+    <string name="kind_shows">Shows</string>
+    <string name="kind_episodes">Episodes</string>
+    <string name="kind_people">People</string>
+    <string name="kind_artists">Artists</string>
+    <string name="kind_albums">Albums</string>
+    <string name="kind_songs">Songs</string>
+    <string name="kind_livetv">Live TV</string>
+    <string name="kind_playlists">Playlists</string>
+    <string name="kind_collections">Collections</string>
+    <string name="kind_other">Other</string>
 </resources>
