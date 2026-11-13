@@ -122,6 +122,7 @@ private fun decodeTvRoute(value: String): Route? = when (val route = decodeRoute
     is Route.LibraryRoute, is Route.Detail, is Route.Person, is Route.SeerrDetail, is Route.SyncPlay, Route.About,
     Route.Dashboard, Route.Sessions, Route.AdminRequests, Route.AdminUsers, Route.AdminDevices,
     Route.AdminLibraries, Route.AdminTasks, Route.AdminLogs, Route.AdminSystem,
+    Route.AdminActivityLog, Route.AdminApiKeys, Route.AdminPlugins, Route.AdminServerSettings,
     Route.MediaManager, is Route.MediaDetail, Route.ArrSettings, Route.Downloads,
     Route.Bazarr, Route.Prowlarr -> route
     else -> null
@@ -231,6 +232,10 @@ private fun TvSignedInNavigation(
                 Route.AdminTasks -> AdminTasksScreen(onBack = pop)
                 Route.AdminLogs -> AdminLogsScreen(onBack = pop)
                 Route.AdminSystem -> AdminSystemInfoScreen(onBack = pop)
+                Route.AdminActivityLog -> com.pyoungws.bluewolfplayer.ui.admin.AdminActivityLogScreen(onBack = pop)
+                Route.AdminApiKeys -> com.pyoungws.bluewolfplayer.ui.admin.AdminApiKeysScreen(onBack = pop)
+                Route.AdminPlugins -> com.pyoungws.bluewolfplayer.ui.admin.AdminPluginsScreen(onBack = pop)
+                Route.AdminServerSettings -> com.pyoungws.bluewolfplayer.ui.admin.AdminServerSettingsScreen(onBack = pop)
                 Route.MediaManager -> MediaManagerScreen(
                     onBack = pop,
                     onOpenItem = { service, itemId -> push(Route.MediaDetail(service, itemId)) },

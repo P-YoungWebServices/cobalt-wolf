@@ -205,7 +205,6 @@
     <string name="error_load_forbidden">You do not have permission to do that.</string>
 
     <!-- Admin management -->
-    <string name="admin_refresh">Refresh</string>
     <string name="admin_edit">Edit</string>
     <string name="admin_save">Save</string>
     <string name="admin_create">Create</string>
@@ -903,6 +902,24 @@
     <string name="home_on_now">On now</string>
     <string name="home_notifications">Notifications</string>
     <string name="notifications_empty">Nothing new from the server</string>
+    <string name="admin_manage_plugins">Plugins</string>
+    <string name="admin_manage_plugins_subtitle">Installed plugins, enable or remove them</string>
+    <string name="admin_manage_server_settings">Server settings</string>
+    <string name="admin_manage_server_settings_subtitle">Server name and power controls</string>
+    <string name="admin_plugins_title">Plugins</string>
+    <string name="admin_plugins_empty">No plugins installed</string>
+    <string name="admin_plugin_uninstall">Uninstall</string>
+    <string name="admin_server_settings_title">Server settings</string>
+    <string name="admin_server_name">Server name</string>
+    <string name="admin_server_power">Server</string>
+    <string name="admin_refresh">Refresh</string>
+    <string name="admin_saved">Saved</string>
+    <string name="admin_action_sent">Command sent</string>
+    <string name="admin_restart">Restart</string>
+    <string name="admin_shutdown">Shut down</string>
+    <string name="admin_restart_confirm">Restart the Jellyfin server? Active playback sessions will be interrupted.</string>
+    <string name="admin_shutdown_confirm">Shut down the Jellyfin server? It will be unreachable until started again.</string>
+    <string name="admin_confirm">Confirm</string>
     <string name="offline_wifi_only_on">Download over Wi-Fi only: on</string>
     <string name="offline_wifi_only_off">Download over Wi-Fi only: off</string>
     <string name="offline_storage_internal">Storage: internal</string>

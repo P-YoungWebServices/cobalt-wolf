@@ -51,7 +51,7 @@ data class AdminDashboard(
  * by privilege. [Sessions] and the management screens behind the dashboard exist for
  * administrators only.
  */
-enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard, Sessions, RequestQueue, Users, Devices, Libraries, Tasks, Logs, SystemInfo, ActivityLog, ApiKeys, MediaManager, Downloads, Bazarr, Prowlarr, Services }
+enum class NavDestination { Search, Requests, PlaybackSettings, Dashboard, Sessions, RequestQueue, Users, Devices, Libraries, Tasks, Logs, SystemInfo, ActivityLog, ApiKeys, Plugins, ServerSettings, MediaManager, Downloads, Bazarr, Prowlarr, Services }
 
 /** The admin management screens reachable from the dashboard. */
 val MANAGEMENT_DESTINATIONS = listOf(
@@ -68,6 +68,8 @@ val MANAGEMENT_DESTINATIONS = listOf(
     NavDestination.ActivityLog,
     NavDestination.ApiKeys,
     NavDestination.SystemInfo,
+    NavDestination.Plugins,
+    NavDestination.ServerSettings,
     NavDestination.Services,
 )
 
@@ -94,6 +96,21 @@ data class ActivityEntry(
     val severity: String?,
     val userId: String?,
     val date: String?,
+)
+
+/** An installed server plugin as reported by the dashboard plugin list. */
+data class AdminPlugin(
+    val id: String,
+    val name: String,
+    val version: String,
+    val status: String?,
+    val description: String?,
+    val canUninstall: Boolean,
+)
+
+/** The editable slice of the server configuration shown on the settings page. */
+data class ServerSettings(
+    val serverName: String,
 )
 
 /** A server-registered API key. */

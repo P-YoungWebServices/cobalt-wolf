@@ -14,6 +14,7 @@ import org.jellyfin.sdk.api.client.extensions.authenticationApi
 import org.jellyfin.sdk.api.client.extensions.deviceApi
 import org.jellyfin.sdk.api.client.extensions.libraryApi
 import org.jellyfin.sdk.api.client.extensions.libraryStructureApi
+import org.jellyfin.sdk.api.client.extensions.pluginApi
 import org.jellyfin.sdk.api.client.extensions.scheduledTaskApi
 import org.jellyfin.sdk.api.client.extensions.sessionApi
 import org.jellyfin.sdk.api.client.extensions.systemApi
@@ -55,6 +56,13 @@ interface JellyfinAdminDataSource {
     suspend fun deleteDevice(session: Session, deviceId: String)
 
     suspend fun getAdminLibraries(session: Session): List<AdminLibrary>
+    suspend fun getPlugins(session: Session): List<AdminPlugin>
+    suspend fun setPluginEnabled(session: Session, pluginId: String, version: String, enabled: Boolean)
+    suspend fun uninstallPlugin(session: Session, pluginId: String)
+    suspend fun getServerSettings(session: Session): ServerSettings
+    suspend fun updateServerSettings(session: Session, settings: ServerSettings)
+    suspend fun restartServer(session: Session)
+    suspend fun shutdownServer(session: Session)
 
     suspend fun getScheduledTasks(session: Session): List<ScheduledTask>
     suspend fun startTask(session: Session, taskId: String)
@@ -167,6 +175,50 @@ class SdkJellyfinAdminDataSource(
 
     override suspend fun getAdminLibraries(session: Session) = call(session) {
         libraryStructureApi.getVirtualFolders().content.map { it.toAdminLibrary() }
+    }
+
+    override suspend fun getPlugins(session: Session) = call(session) {
+        pluginApi.getPlugins().content.map {
+            AdminPlugin(
+                id = it.id.toString(),
+                name = it.name,
+                version = it.version,
+                status = it.status?.serialName,
+                description = it.description,
+                canUninstall = it.canUninstall,
+            )
+        }
+    }
+
+    override suspend fun setPluginEnabled(session: Session, pluginId: String, version: String, enabled: Boolean) = call(session) {
+        val id = java.util.UUID.fromString(pluginId)
+        if (enabled) pluginApi.enablePlugin(id, version) else pluginApi.disablePlugin(id, version)
+        Unit
+    }
+
+    override suspend fun uninstallPlugin(session: Session, pluginId: String) = call(session) {
+        pluginApi.uninstallPlugin(java.util.UUID.fromString(pluginId))
+        Unit
+    }
+
+    override suspend fun getServerSettings(session: Session) = call(session) {
+        ServerSettings(serverName = systemApi.getConfiguration().content.serverName)
+    }
+
+    override suspend fun updateServerSettings(session: Session, settings: ServerSettings) = call(session) {
+        val config = systemApi.getConfiguration().content
+        systemApi.updateConfiguration(config.copy(serverName = settings.serverName))
+        Unit
+    }
+
+    override suspend fun restartServer(session: Session) = call(session) {
+        systemApi.restartApplication()
+        Unit
+    }
+
+    override suspend fun shutdownServer(session: Session) = call(session) {
+        systemApi.shutdownApplication()
+        Unit
     }
 
     override suspend fun getScheduledTasks(session: Session) = call(session) {

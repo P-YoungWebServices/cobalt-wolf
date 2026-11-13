@@ -45,6 +45,8 @@ import com.pyoungws.bluewolfplayer.shared.presentation.AdminLibrariesViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminActivityLogViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminApiKeysViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminLogsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminPluginsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminServerSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminSystemInfoViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminTasksViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminUsersViewModel
@@ -165,6 +167,8 @@ val sharedModule = module {
     viewModelOf(::AdminActivityLogViewModel)
     viewModelOf(::AdminApiKeysViewModel)
     viewModelOf(::AdminSystemInfoViewModel)
+    viewModelOf(::AdminPluginsViewModel)
+    viewModelOf(::AdminServerSettingsViewModel)
     viewModelOf(::AdminRequestsViewModel)
     viewModel { (type: SeerrMediaType, tmdbId: Int) -> SeerrDetailViewModel(type, tmdbId, get()) }
     viewModelOf(::CalendarViewModel)

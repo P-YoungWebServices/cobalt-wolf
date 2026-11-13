@@ -78,6 +78,22 @@ class AdminRepository(
 
     suspend fun revokeApiKey(key: String): Outcome<Unit> = guard.run { dataSource.revokeApiKey(it, key) }
 
+    suspend fun plugins(): Outcome<List<AdminPlugin>> = guard.run { dataSource.getPlugins(it) }
+
+    suspend fun setPluginEnabled(pluginId: String, version: String, enabled: Boolean): Outcome<Unit> =
+        guard.run { dataSource.setPluginEnabled(it, pluginId, version, enabled) }
+
+    suspend fun uninstallPlugin(pluginId: String): Outcome<Unit> = guard.run { dataSource.uninstallPlugin(it, pluginId) }
+
+    suspend fun serverSettings(): Outcome<ServerSettings> = guard.run { dataSource.getServerSettings(it) }
+
+    suspend fun updateServerSettings(settings: ServerSettings): Outcome<Unit> =
+        guard.run { dataSource.updateServerSettings(it, settings) }
+
+    suspend fun restartServer(): Outcome<Unit> = guard.run { dataSource.restartServer(it) }
+
+    suspend fun shutdownServer(): Outcome<Unit> = guard.run { dataSource.shutdownServer(it) }
+
     private companion object {
         const val RECENT_LIMIT = 16
     }
