@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.content.Intent
@@ -285,7 +286,7 @@ private fun TvDetailContent(
                             scope.launch { listState.animateScrollToItem(0) }
                         }
                     },
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 state.playTarget?.let { target ->
@@ -340,7 +341,8 @@ private fun TvDetailContent(
                         androidx.tv.material3.FilterChip(
                             selected = false,
                             onClick = { subMenu = TvSubMenu.Audio },
-                            content = { Text(audioStreams.firstOrNull { it.index == state.selectedAudioStreamIndex }?.describe() ?: stringResource(R.string.detail_default_audio)) },
+                            modifier = Modifier.widthIn(max = 200.dp),
+                            content = { Text(audioStreams.firstOrNull { it.index == state.selectedAudioStreamIndex }?.describe() ?: stringResource(R.string.detail_default_audio), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         )
                     }
                 }
@@ -350,10 +352,11 @@ private fun TvDetailContent(
                         androidx.tv.material3.FilterChip(
                             selected = false,
                             onClick = { subMenu = TvSubMenu.Subtitles },
+                            modifier = Modifier.widthIn(max = 200.dp),
                             content = { Text(when {
                                 state.selectedSubtitleStreamIndex == -1 -> stringResource(R.string.player_subtitles_off)
                                 else -> subStreams.firstOrNull { it.index == state.selectedSubtitleStreamIndex }?.describe() ?: stringResource(R.string.detail_default_subtitle)
-                            }) },
+                            }, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         )
                     }
                 }
@@ -362,7 +365,8 @@ private fun TvDetailContent(
                         androidx.tv.material3.FilterChip(
                             selected = false,
                             onClick = { subMenu = TvSubMenu.Versions },
-                            content = { Text(item.mediaSources.firstOrNull { it.id == state.selectedMediaSourceId }?.name ?: stringResource(R.string.detail_select_version)) },
+                            modifier = Modifier.widthIn(max = 200.dp),
+                            content = { Text(item.mediaSources.firstOrNull { it.id == state.selectedMediaSourceId }?.name ?: stringResource(R.string.detail_select_version), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         )
                     }
                 }
@@ -731,7 +735,7 @@ private fun TvTrackRow(item: MediaItem, position: Int, onClick: () -> Unit, onMe
 @Composable
 private fun TvActionButton(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier, toggled: Boolean = false) {
     var focused by remember { mutableStateOf(false) }
-    Column(modifier.width(80.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier.width(72.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             Modifier
                 .size(48.dp)

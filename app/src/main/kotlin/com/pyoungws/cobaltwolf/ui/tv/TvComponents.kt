@@ -1,5 +1,6 @@
 package com.pyoungws.cobaltwolf.ui.tv
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,11 +10,15 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +30,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -234,8 +240,14 @@ fun TvItemMenuOverlay(item: MediaItem, onOpenItem: (String) -> Unit, onDismiss: 
 @Composable
 fun TvItemOptionsOverlay(title: String, options: List<TvMenuOption>, onDismiss: () -> Unit) {
     val first = remember { FocusRequester() }
+    // The scrim must not be focusable: a fullscreen focusable wins the initial focus
+    // search, no direction can leave it, and DPAD-CENTER dismisses the menu.
+    // Touch dismissal stays, but only as a pointer handler.
+    BackHandler { onDismiss() }
     Box(
-        Modifier.fillMaxSize().background(Color(0xAA000000)).clickable { onDismiss() },
+        Modifier.fillMaxSize()
+            .background(Color(0xAA000000))
+            .pointerInput(Unit) { detectTapGestures(onTap = { onDismiss() }) },
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -244,6 +256,11 @@ fun TvItemOptionsOverlay(title: String, options: List<TvMenuOption>, onDismiss: 
         ) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = Color.White,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 6.dp))
+            Column(
+                // Long track lists (a dozen subtitles) outgrow the screen — scroll them.
+                Modifier.heightIn(max = 620.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
             options.forEachIndexed { i, opt ->
                 var focused by remember { mutableStateOf(false) }
                 Text(
@@ -259,6 +276,7 @@ fun TvItemOptionsOverlay(title: String, options: List<TvMenuOption>, onDismiss: 
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                         .clickable { opt.action() },
                 )
+            }
             }
         }
     }

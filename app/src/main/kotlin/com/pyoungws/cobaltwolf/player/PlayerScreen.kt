@@ -73,6 +73,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -80,6 +81,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import android.view.KeyEvent
 import android.view.View
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.C
@@ -287,6 +289,8 @@ private fun PlayerContent(
     var positionMs by remember(player) { mutableLongStateOf(request.startPositionMs) }
     var displayMatched by remember(player) { mutableStateOf(false) }
     val skipFocusRequester = remember { FocusRequester() }
+    val iconRowFocusRequester = remember { FocusRequester() }
+    val iconRowEndFocusRequester = remember { FocusRequester() }
 
     // Tell the user when a fallback replaced the first attempt.
     LaunchedEffect(ready.generation) {
@@ -619,6 +623,28 @@ private fun PlayerContent(
                                     ).apply { bottomMargin = margin },
                                 )
                             }
+                            // View-side focus search cannot see the Compose icon row, so DOWN
+                            // from the seek bar lands on the settings gear instead. Hand the
+                            // directions across explicitly: bar-down goes to the first icon,
+                            // gear-left to the last.
+                            findViewById<View>(androidx.media3.ui.R.id.exo_progress)?.setOnKeyListener { _, keyCode, event ->
+                                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                                    showController()
+                                    iconRowFocusRequester.requestFocus()
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
+                            findViewById<View>(androidx.media3.ui.R.id.exo_settings)?.setOnKeyListener { _, keyCode, event ->
+                                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                                    showController()
+                                    iconRowEndFocusRequester.requestFocus()
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
                         }
                     }
                 },
@@ -676,9 +702,16 @@ private fun PlayerContent(
                 )
             }
         }
+        // D-pad presses on the Compose buttons never reach PlayerView, so its auto-hide
+        // timer keeps ticking and the overlay can hide mid-navigation. Previewing keys here
+        // resets the timer without consuming the event, and navigation stops still time out.
+        val controlsKeepAlive = Modifier.onPreviewKeyEvent {
+            playerView.showController()
+            false
+        }
         if (controlsVisible && !isInPip) {
             Row(
-                Modifier.align(Alignment.TopEnd).fillMaxWidth().statusBarsPadding().padding(8.dp),
+                Modifier.align(Alignment.TopEnd).fillMaxWidth().statusBarsPadding().padding(8.dp).then(controlsKeepAlive),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
@@ -701,11 +734,25 @@ private fun PlayerContent(
                 ControlButton(onClick = onClose, icon = Icons.Outlined.Close, description = stringResource(R.string.player_close))
             }
             Row(
-                Modifier.align(Alignment.BottomStart).padding(8.dp).padding(bottom = 10.dp),
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(8.dp)
+                    .padding(bottom = 10.dp)
+                    .then(controlsKeepAlive)
+                    .onKeyEvent { event ->
+                        // UP exits the row onto the seek bar; cross-system direction
+                        // search between Compose and the PlayerView is unreliable.
+                        if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                            playerView.findViewById<View>(androidx.media3.ui.R.id.exo_progress)?.requestFocus()
+                            true
+                        } else {
+                            false
+                        }
+                    },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                ControlButton(onClick = { dialog = TrackDialog.Audio }, icon = Icons.AutoMirrored.Outlined.VolumeUp, description = stringResource(R.string.player_audio))
+                ControlButton(onClick = { dialog = TrackDialog.Audio }, icon = Icons.AutoMirrored.Outlined.VolumeUp, description = stringResource(R.string.player_audio), modifier = Modifier.focusRequester(iconRowFocusRequester))
                 ControlButton(onClick = { dialog = TrackDialog.Subtitles }, icon = Icons.Outlined.Subtitles, description = stringResource(R.string.player_subtitles))
                 ControlButton(onClick = { showDelayDialog = true }, icon = Icons.Outlined.MoreTime, description = stringResource(R.string.player_subtitle_delay))
                 ControlButton(onClick = { showBitrateDialog = true }, icon = Icons.Outlined.HighQuality, description = stringResource(R.string.player_bitrate))
@@ -732,14 +779,37 @@ private fun PlayerContent(
                 if (request.item.chapters.isNotEmpty()) {
                     ControlButton(onClick = { showChapters = true }, icon = Icons.AutoMirrored.Outlined.ListAlt, description = stringResource(R.string.player_chapters))
                 }
-                ControlButton(onClick = { showStats = !showStats }, icon = Icons.Outlined.QueryStats, description = stringResource(R.string.player_stats))
+                ControlButton(
+                    onClick = { showStats = !showStats },
+                    icon = Icons.Outlined.QueryStats,
+                    description = stringResource(R.string.player_stats),
+                    modifier = Modifier
+                        .focusRequester(iconRowEndFocusRequester)
+                        .onKeyEvent { event ->
+                            // With no cast button this is the row's end; hand RIGHT back to
+                            // the gear since Compose-to-View direction search is unreliable.
+                            if (!castController.available && event.type == KeyEventType.KeyDown && event.key == Key.DirectionRight) {
+                                playerView.findViewById<View>(androidx.media3.ui.R.id.exo_settings)?.requestFocus()
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                )
                 if (!isTv) {
                     ControlButton(onClick = onEnterPip, icon = Icons.Outlined.PictureInPictureAlt, description = stringResource(R.string.player_pip))
                 }
                 if (castController.available) {
                     AndroidView(
                         factory = { castRouteButton(it) },
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(40.dp).onKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionRight) {
+                                playerView.findViewById<View>(androidx.media3.ui.R.id.exo_settings)?.requestFocus()
+                                true
+                            } else {
+                                false
+                            }
+                        },
                     )
                 }
             }
@@ -747,7 +817,7 @@ private fun PlayerContent(
         val duration = player.duration
         if (!isInPip && (activeSegment != null || (controlsVisible && duration > 0))) {
             Row(
-                Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 106.dp),
+                Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 106.dp).then(controlsKeepAlive),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -1063,11 +1133,11 @@ private fun QueueDialog(
 }
 
 @Composable
-private fun ControlButton(onClick: () -> Unit, icon: ImageVector, description: String) {
+private fun ControlButton(onClick: () -> Unit, icon: ImageVector, description: String, modifier: Modifier = Modifier) {
     var focused by remember { mutableStateOf(false) }
     IconButton(
         onClick = onClick,
-        modifier = Modifier
+        modifier = modifier
             .onFocusChanged { focused = it.isFocused }
             .border(2.dp, if (focused) Color.White else Color.Transparent, CircleShape)
             .background(if (focused) Color.White.copy(alpha = 0.25f) else Color.Transparent, CircleShape),
