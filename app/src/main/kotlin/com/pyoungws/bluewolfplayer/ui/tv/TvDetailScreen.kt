@@ -327,7 +327,7 @@ private fun TvDetailContent(
         }
         if (item.tagline != null || item.overview != null) {
             item(key = "overview") {
-                Column(Modifier.padding(horizontal = TvContentPadding)) {
+                Column(Modifier.padding(horizontal = TvContentPadding).padding(top = 12.dp)) {
                     item.tagline?.let { Text(it, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     item.overview?.let { Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 6, overflow = TextOverflow.Ellipsis) }
                 }
