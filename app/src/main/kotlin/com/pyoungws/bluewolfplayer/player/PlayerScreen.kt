@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -199,6 +200,14 @@ private fun PlayerContent(
                 if (canGoNext()) viewModel.playNext(currentPosition) else super.seekToNext()
             }
         }
+    }
+
+    val castController = remember { CastController(context) }
+    DisposableEffect(castController, player) {
+        castController.attach(controllerPlayer) {
+            controllerPlayer.currentMediaItem?.forCastReceiver(castToken(request))
+        }
+        onDispose { castController.detach() }
     }
     val stats by engine.stats.stats.collectAsStateWithLifecycle()
     val membership by viewModel.membership.collectAsStateWithLifecycle()
@@ -507,10 +516,12 @@ private fun PlayerContent(
         ),
     ) {
         key(ready.generation) {
+            val castActive = castController.activePlayer
+            LaunchedEffect(castActive) { playerView.player = castActive ?: controllerPlayer }
             AndroidView(
                 factory = {
                     playerView.apply {
-                        this.player = controllerPlayer
+                        this.player = castActive ?: controllerPlayer
                         setShowSubtitleButton(false)
                         // A single stream has no previous item; a permanently greyed button only confuses.
                         setShowPreviousButton(false)
@@ -645,6 +656,12 @@ private fun PlayerContent(
                 ControlButton(onClick = { showStats = !showStats }, icon = Icons.Outlined.QueryStats, description = stringResource(R.string.player_stats))
                 if (!isTv) {
                     ControlButton(onClick = onEnterPip, icon = Icons.Outlined.PictureInPictureAlt, description = stringResource(R.string.player_pip))
+                }
+                if (castController.available) {
+                    AndroidView(
+                        factory = { castRouteButton(it) },
+                        modifier = Modifier.size(40.dp),
+                    )
                 }
                 ControlButton(onClick = onClose, icon = Icons.Outlined.Close, description = stringResource(R.string.player_close))
             }
@@ -1120,3 +1137,9 @@ private fun attachPlayerGestures(view: PlayerView, player: ExoPlayer, isLocked: 
 private const val SEEK_GESTURE_MS = 10_000L
 private const val SCRUB_FULL_RANGE_MS = 180_000L
 
+
+/** Extracts the access token from the source's Authorization header for the Cast URL. */
+private fun castToken(request: com.pyoungws.bluewolfplayer.shared.playback.PlaybackRequest): String? =
+    request.source.headers["Authorization"]
+        ?.let { Regex("Token=\"([^\"]+)\"").find(it)?.groupValues?.get(1) }
+        ?: request.source.headers["X-Emby-Token"]
