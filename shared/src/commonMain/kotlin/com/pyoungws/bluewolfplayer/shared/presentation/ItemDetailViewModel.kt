@@ -31,6 +31,9 @@ sealed interface ItemDetailUiState {
         val localTrailers: List<MediaItem> = emptyList(),
         val previousEpisode: MediaItem? = null,
         val selectedMediaSourceId: String? = null,
+        /** Detail-page preselections (server stream indices); null = default, -1 disables subs. */
+        val selectedAudioStreamIndex: Int? = null,
+        val selectedSubtitleStreamIndex: Int? = null,
         /** Contents of a box set / playlist. */
         val containerItems: List<MediaItem> = emptyList(),
         val lyrics: Lyrics? = null,
@@ -137,6 +140,14 @@ class ItemDetailViewModel(
     /** Chooses which media source (version) the Play action passes to the player. */
     fun selectMediaSource(mediaSourceId: String) {
         _uiState.update { (it as? ItemDetailUiState.Loaded)?.copy(selectedMediaSourceId = mediaSourceId) ?: it }
+    }
+
+    fun selectAudioStream(index: Int?) {
+        _uiState.update { (it as? ItemDetailUiState.Loaded)?.copy(selectedAudioStreamIndex = index) ?: it }
+    }
+
+    fun selectSubtitleStream(index: Int?) {
+        _uiState.update { (it as? ItemDetailUiState.Loaded)?.copy(selectedSubtitleStreamIndex = index) ?: it }
     }
 
     private fun loadEpisodes(series: MediaItem, seasonId: String) {

@@ -76,6 +76,12 @@ data class PlaybackSettings(
     val cinemaMode: Boolean = false,
     /** Hand playback to an external player app instead of the built-in one. */
     val externalPlayer: Boolean = false,
+    /** Preferred audio language (three-letter ISO 639-2, e.g. "eng"); null = first/primary. */
+    val preferredAudioLanguage: String? = null,
+    /** Preferred subtitle language (three-letter ISO 639-2); null = none/first. */
+    val preferredSubtitleLanguage: String? = null,
+    /** When subtitles should be shown by default. */
+    val subtitleMode: SubtitlePlaybackMode = SubtitlePlaybackMode.Default,
     /** Series whose last episode activity is older than this are hidden from Next up; 0 disables the cutoff. */
     val nextUpCutoffDays: Int = 365,
     /** Order and visibility of home rows; rows listed here come first, hidden ones are removed. */
@@ -93,6 +99,18 @@ data class PlaybackSettings(
 
 /** Whether an auto-skip segment acts automatically or only offers the button. */
 enum class SegmentBehavior { Ask, Auto, Off }
+
+/** How the player picks a subtitle track at start. */
+enum class SubtitlePlaybackMode {
+    /** Server/default behaviour — none unless flagged default. */
+    Default,
+    /** Always show the preferred-language subtitle. */
+    Always,
+    /** Only forced subtitles in the preferred language. */
+    Forced,
+    /** Never show subtitles. */
+    None,
+}
 
 /** Persists [PlaybackSettings]. */
 interface PlaybackSettingsStore {

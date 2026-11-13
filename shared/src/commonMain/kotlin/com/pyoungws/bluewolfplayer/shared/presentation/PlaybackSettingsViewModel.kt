@@ -12,6 +12,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.HdrOutput
 import com.pyoungws.bluewolfplayer.shared.playback.HdrPreference
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode
 import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.VideoCodec
@@ -67,6 +68,9 @@ class PlaybackSettingsViewModel(
     fun setStillWatchingEpisodes(count: Int) = update { it.copy(stillWatchingEpisodes = count) }
     fun setCinemaMode(enabled: Boolean) = update { it.copy(cinemaMode = enabled) }
     fun setExternalPlayer(enabled: Boolean) = update { it.copy(externalPlayer = enabled) }
+    fun setPreferredAudioLanguage(value: String?) = update { it.copy(preferredAudioLanguage = value?.trim()?.ifBlank { null }) }
+    fun setPreferredSubtitleLanguage(value: String?) = update { it.copy(preferredSubtitleLanguage = value?.trim()?.ifBlank { null }) }
+    fun setSubtitleMode(value: SubtitlePlaybackMode) = update { it.copy(subtitleMode = value) }
 
     fun setHomeRowHidden(rowId: String, hidden: Boolean) = update {
         it.copy(hiddenHomeRows = if (hidden) it.hiddenHomeRows + rowId else it.hiddenHomeRows - rowId)

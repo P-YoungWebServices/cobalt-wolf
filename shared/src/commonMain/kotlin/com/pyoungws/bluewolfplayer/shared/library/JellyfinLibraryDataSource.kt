@@ -798,6 +798,7 @@ internal fun BaseItemDto.toMediaItem(serverAddress: String): MediaItem {
     }
     val streams = mediaStreams.orEmpty().map { stream ->
         MediaStreamInfo(
+            index = stream.index,
             kind = when (stream.type) {
                 MediaStreamType.VIDEO -> StreamKind.Video
                 MediaStreamType.AUDIO -> StreamKind.Audio

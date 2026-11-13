@@ -219,7 +219,7 @@ fun SignedInNavigation() {
     val push = { route: Route -> stack = stack + route.encode() }
     val pop = { stack = stack.dropLast(1) }
     val play = { itemId: String -> context.startActivity(PlayerActivity.intent(context, itemId)) }
-    val playVersion = { itemId: String, mediaSourceId: String -> context.startActivity(PlayerActivity.intent(context, itemId, mediaSourceId = mediaSourceId)) }
+    val playVersion = { itemId: String, mediaSourceId: String, audioIndex: Int?, subtitleIndex: Int? -> context.startActivity(PlayerActivity.intent(context, itemId, mediaSourceId = mediaSourceId, audioStreamIndex = audioIndex, subtitleStreamIndex = subtitleIndex)) }
 
     // Always consume Back: pop pushed routes, and stay in the app at Home rather than exiting.
     BackHandler { if (stack.isNotEmpty()) pop() }

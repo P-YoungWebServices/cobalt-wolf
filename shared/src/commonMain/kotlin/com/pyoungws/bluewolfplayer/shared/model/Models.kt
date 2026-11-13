@@ -59,6 +59,8 @@ data class LiveTimer(
 /** One media stream of an item's primary media source: codec, resolution/HDR for video, layout for audio. */
 data class MediaStreamInfo(
     val kind: StreamKind,
+    /** Stream index inside the media source — matches the server's stream numbering. */
+    val index: Int? = null,
     val codec: String? = null,
     val width: Int? = null,
     val height: Int? = null,

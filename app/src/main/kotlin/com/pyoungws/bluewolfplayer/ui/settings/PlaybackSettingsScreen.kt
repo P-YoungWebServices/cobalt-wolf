@@ -23,6 +23,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -45,6 +48,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.VideoCodec
 import com.pyoungws.bluewolfplayer.shared.playback.VideoSupport
 import com.pyoungws.bluewolfplayer.shared.presentation.HdrSelection
 import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
+import com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
@@ -174,6 +178,15 @@ private fun Overrides(state: PlaybackSettingsUiState, viewModel: PlaybackSetting
         )
         Toggle(R.string.settings_cinema_mode, R.string.settings_cinema_mode_summary, settings.cinemaMode, viewModel::setCinemaMode)
         Toggle(R.string.settings_external_player, R.string.settings_external_player_summary, settings.externalPlayer, viewModel::setExternalPlayer)
+        TextPref(R.string.settings_pref_audio_lang, R.string.settings_pref_audio_lang_summary, settings.preferredAudioLanguage, viewModel::setPreferredAudioLanguage)
+        TextPref(R.string.settings_pref_sub_lang, R.string.settings_pref_sub_lang_summary, settings.preferredSubtitleLanguage, viewModel::setPreferredSubtitleLanguage)
+        Choice(
+            R.string.settings_subtitle_mode, settings.subtitleMode, viewModel::setSubtitleMode,
+            SubtitlePlaybackMode.Default to R.string.subtitle_mode_default,
+            SubtitlePlaybackMode.Always to R.string.subtitle_mode_always,
+            SubtitlePlaybackMode.Forced to R.string.subtitle_mode_forced,
+            SubtitlePlaybackMode.None to R.string.subtitle_mode_none,
+        )
         OutlinedButton(onClick = viewModel::resetToAutomatic, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(stringResource(R.string.playback_reset))
         }
@@ -312,6 +325,19 @@ private fun <T> Choice(title: Int, selected: T, onSelect: (T) -> Unit, vararg op
             }
         }
     }
+}
+
+@Composable
+private fun TextPref(title: Int, summary: Int, value: String?, onChange: (String?) -> Unit) {
+    var text by remember { mutableStateOf(value.orEmpty()) }
+    androidx.compose.material3.OutlinedTextField(
+        value = text,
+        onValueChange = { text = it; onChange(it.ifBlank { null }) },
+        label = { Text(stringResource(title)) },
+        supportingText = { Text(stringResource(summary)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    )
 }
 
 @Composable

@@ -102,6 +102,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackLevel
 import com.pyoungws.bluewolfplayer.shared.playback.RepeatMode
 import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRequest
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.summary
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerUiState
@@ -268,6 +269,7 @@ private fun PlayerContent(
         )
         val debugSelections = mutableMapOf(C.TRACK_TYPE_AUDIO to debugPreferredAudioMimeType, C.TRACK_TYPE_TEXT to debugSubtitleMimeType)
         var audioPreferenceApplied = false
+        var trackPrefsApplied = false
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 onPlayingChanged(isPlaying)
@@ -312,6 +314,12 @@ private fun PlayerContent(
                     debugSelections[type] = null
                     Log.i(TAG, "debug track selected: ${group.getTrackFormat(0)}")
                     selectTrack(player, type, TrackOption("", group, 0, false))
+                }
+                // Detail-page picks and language preferences are applied once, before the
+                // generic English-audio fallback below (which yields when one landed).
+                if (!trackPrefsApplied) {
+                    trackPrefsApplied = true
+                    audioPreferenceApplied = applyInitialTrackPrefs(player, newTracks, request) || audioPreferenceApplied
                 }
                 // A stream no renderer accepts would be silently skipped; treat it as a decoder
                 // failure so the fallback order applies instead of playing without picture or sound.
@@ -772,6 +780,80 @@ private fun trackOptions(tracks: Tracks, type: Int, player: Player, offLabel: St
         options.add(0, TrackOption(offLabel, null, -1, disabled))
     }
     return options
+}
+
+/**
+ * Applies the detail-page stream picks ([PlaybackRequest.audioStreamIndex]/[subtitleStreamIndex])
+ * and the user's language/subtitle preferences once tracks are known. Returns true when an audio
+ * pick was made so the generic English-audio fallback stays out of the way.
+ */
+private fun applyInitialTrackPrefs(player: Player, tracks: Tracks, request: PlaybackRequest): Boolean {
+    val settings = request.settings
+    val builder = player.trackSelectionParameters.buildUpon()
+    var audioPicked = false
+
+    fun groupOrdinal(kind: com.pyoungws.bluewolfplayer.shared.model.StreamKind, streamIndex: Int): Int =
+        request.item.streams.filter { it.kind == kind }.indexOfFirst { it.index == streamIndex }
+
+    fun pickTrack(type: Int, ordinal: Int): Boolean {
+        val groups = tracks.groups.filter { it.type == type }
+        if (ordinal < 0 || ordinal >= groups.size) return false
+        val group = groups[ordinal]
+        val index = (0 until group.length).firstOrNull { group.isTrackSupported(it) } ?: return false
+        builder.setTrackTypeDisabled(type, false)
+            .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, index))
+        return true
+    }
+
+    // Audio: explicit index, then preferred language, else leave the default.
+    request.audioStreamIndex?.let { idx ->
+        if (pickTrack(C.TRACK_TYPE_AUDIO, groupOrdinal(com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio, idx))) audioPicked = true
+    }
+    if (!audioPicked) settings.preferredAudioLanguage?.let { lang ->
+        val match = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }.firstNotNullOfOrNull { g ->
+            (0 until g.length).firstOrNull { i -> g.isTrackSupported(i) && g.getTrackFormat(i).language.matchesLanguagePref(lang) }?.let { g to it }
+        }
+        if (match != null) {
+            builder.setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, false)
+                .setOverrideForType(TrackSelectionOverride(match.first.mediaTrackGroup, match.second))
+            audioPicked = true
+        }
+    }
+
+    // Subtitles: explicit index (-1 = off), then the playback mode.
+    val subIndex = request.subtitleStreamIndex
+    when {
+        subIndex == -1 || settings.subtitleMode == com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode.None ->
+            builder.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+        subIndex != null -> pickTrack(C.TRACK_TYPE_TEXT, groupOrdinal(com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle, subIndex))
+        else -> {
+            val lang = settings.preferredSubtitleLanguage
+            val forcedOnly = settings.subtitleMode == com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode.Forced
+            if (lang != null && settings.subtitleMode != com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode.Default) {
+                val match = tracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }.firstNotNullOfOrNull { g ->
+                    (0 until g.length).firstOrNull { i ->
+                        val f = g.getTrackFormat(i)
+                        g.isTrackSupported(i) && f.language.matchesLanguagePref(lang) &&
+                            (!forcedOnly || f.selectionFlags and C.SELECTION_FLAG_FORCED != 0)
+                    }?.let { g to it }
+                }
+                if (match != null) {
+                    builder.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                        .setOverrideForType(TrackSelectionOverride(match.first.mediaTrackGroup, match.second))
+                }
+            }
+        }
+    }
+    player.trackSelectionParameters = builder.build()
+    return audioPicked
+}
+
+/** Matches a track language tag against a user preference ("eng", "en", "eng;en"). */
+private fun String?.matchesLanguagePref(pref: String): Boolean {
+    if (this == null || pref.isBlank()) return false
+    val candidates = pref.split(';', ',').map { it.trim().lowercase() }
+    val lang = lowercase()
+    return candidates.any { lang == it || lang.startsWith("$it-") || it.length == 3 && lang.take(2) == it.take(2) }
 }
 
 private fun selectTrack(player: Player, type: Int, option: TrackOption) {

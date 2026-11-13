@@ -73,7 +73,7 @@ fun DetailScreen(
     itemId: String,
     onBack: () -> Unit,
     onPlay: (String) -> Unit,
-    onPlayVersion: (String, String) -> Unit = { id, _ -> onPlay(id) },
+    onPlayVersion: (String, String, Int?, Int?) -> Unit = { id, _, _, _ -> onPlay(id) },
     onPlayFromBeginning: (String) -> Unit = onPlay,
     onOpenItem: (String) -> Unit,
     onWatchTogether: (String) -> Unit,
@@ -110,7 +110,7 @@ private fun DetailContent(
     state: ItemDetailUiState.Loaded,
     viewModel: ItemDetailViewModel,
     onPlay: (String) -> Unit,
-    onPlayVersion: (String, String) -> Unit,
+    onPlayVersion: (String, String, Int?, Int?) -> Unit,
     onOpenItem: (String) -> Unit,
     onWatchTogether: (String) -> Unit,
     onPlayFromBeginning: (String) -> Unit,
@@ -164,7 +164,7 @@ private fun DetailContent(
                                 val ordered = if (shuffled) playable.shuffled() else playable
                                 playQueue.playNow(ordered, ordered.indexOfFirst { it.id == target.id }.coerceAtLeast(0))
                             }
-                            state.selectedMediaSourceId?.let { onPlayVersion(target.id, it) } ?: onPlay(target.id)
+                            onPlayVersion(target.id, state.selectedMediaSourceId ?: "", state.selectedAudioStreamIndex, state.selectedSubtitleStreamIndex)
                         }
                         Button(onClick = { playContainer(false) }) { Text(playLabel(item, target)) }
                         if (item.isContainer && state.containerItems.count { it.isPlayable } > 1) {
@@ -174,6 +174,46 @@ private fun DetailContent(
                             OutlinedButton(onClick = { onPlayFromBeginning(target.id) }) { Text(stringResource(R.string.detail_play)) }
                         }
                         OutlinedButton(onClick = { onWatchTogether(target.id) }) { Text(stringResource(R.string.syncplay_title)) }
+                    }
+                    if (item.streams.any { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }) {
+                        var audioOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                        val audioStreams = item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }
+                        Box {
+                            OutlinedButton(onClick = { audioOpen = true }) {
+                                Text(audioStreams.firstOrNull { it.index == state.selectedAudioStreamIndex }?.describe() ?: stringResource(R.string.detail_default_audio))
+                            }
+                            androidx.compose.material3.DropdownMenu(expanded = audioOpen, onDismissRequest = { audioOpen = false }) {
+                                androidx.compose.material3.DropdownMenuItem(text = { Text(stringResource(R.string.detail_default)) }, onClick = { viewModel.selectAudioStream(null); audioOpen = false })
+                                audioStreams.forEach { stream ->
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(stream.describe()) },
+                                        onClick = { viewModel.selectAudioStream(stream.index); audioOpen = false },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (item.streams.any { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle }) {
+                        var subsOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                        val subStreams = item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle }
+                        Box {
+                            OutlinedButton(onClick = { subsOpen = true }) {
+                                Text(when {
+                                    state.selectedSubtitleStreamIndex == -1 -> stringResource(R.string.player_subtitles_off)
+                                    else -> subStreams.firstOrNull { it.index == state.selectedSubtitleStreamIndex }?.describe() ?: stringResource(R.string.detail_default_subtitle)
+                                })
+                            }
+                            androidx.compose.material3.DropdownMenu(expanded = subsOpen, onDismissRequest = { subsOpen = false }) {
+                                androidx.compose.material3.DropdownMenuItem(text = { Text(stringResource(R.string.detail_default)) }, onClick = { viewModel.selectSubtitleStream(null); subsOpen = false })
+                                androidx.compose.material3.DropdownMenuItem(text = { Text(stringResource(R.string.player_subtitles_off)) }, onClick = { viewModel.selectSubtitleStream(-1); subsOpen = false })
+                                subStreams.forEach { stream ->
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(stream.describe()) },
+                                        onClick = { viewModel.selectSubtitleStream(stream.index); subsOpen = false },
+                                    )
+                                }
+                            }
+                        }
                     }
                     if (item.mediaSources.size > 1) {
                         var versionsOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }

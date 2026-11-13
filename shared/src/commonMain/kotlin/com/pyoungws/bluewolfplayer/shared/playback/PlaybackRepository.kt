@@ -54,6 +54,8 @@ class PlaybackRepository(
                     item, source, startTicks / TICKS_PER_MILLISECOND, target.startPaused, initialDecodePlan(settings),
                     settings, capabilities,
                     serverTranscodesVideo = serverTranscodesVideo,
+                    audioStreamIndex = target.audioStreamIndex,
+                    subtitleStreamIndex = target.subtitleStreamIndex,
                 )
             }
         }

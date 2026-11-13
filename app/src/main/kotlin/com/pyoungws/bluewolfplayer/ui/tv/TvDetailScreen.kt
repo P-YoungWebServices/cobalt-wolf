@@ -24,6 +24,8 @@ import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.SkipPrevious
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ClosedCaption
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Groups
@@ -83,7 +85,7 @@ private fun now() = kotlin.time.Clock.System.now().toLocalDateTime(kotlinx.datet
 
 /** TV detail: backdrop, meta and a Play/Resume button; series get a season picker and episode cards. */
 @Composable
-fun TvDetailScreen(itemId: String, onPlay: (String) -> Unit, onPlayVersion: (String, String) -> Unit = { id, _ -> onPlay(id) }, onOpenItem: (String) -> Unit, onWatchTogether: (String) -> Unit, onPlayFromBeginning: (String) -> Unit = onPlay, onOpenPerson: (String, String) -> Unit = { _, _ -> }) {
+fun TvDetailScreen(itemId: String, onPlay: (String) -> Unit, onPlayVersion: (String, String, Int?, Int?) -> Unit = { id, _, _, _ -> onPlay(id) }, onOpenItem: (String) -> Unit, onWatchTogether: (String) -> Unit, onPlayFromBeginning: (String) -> Unit = onPlay, onOpenPerson: (String, String) -> Unit = { _, _ -> }) {
     val viewModel: ItemDetailViewModel = koinViewModel(key = "detail-$itemId", parameters = { parametersOf(itemId) })
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -106,7 +108,7 @@ private fun TvDetailContent(
     state: ItemDetailUiState.Loaded,
     viewModel: ItemDetailViewModel,
     onPlay: (String) -> Unit,
-    onPlayVersion: (String, String) -> Unit,
+    onPlayVersion: (String, String, Int?, Int?) -> Unit,
     onOpenItem: (String) -> Unit,
     onWatchTogether: (String) -> Unit,
     onPlayFromBeginning: (String) -> Unit,
@@ -208,7 +210,7 @@ private fun TvDetailContent(
                             if (item.isContainer && playable.size > 1) {
                                 playQueue.playNow(playable, playable.indexOfFirst { it.id == target.id }.coerceAtLeast(0))
                             }
-                            state.selectedMediaSourceId?.let { onPlayVersion(target.id, it) } ?: onPlay(target.id)
+                            onPlayVersion(target.id, state.selectedMediaSourceId ?: "", state.selectedAudioStreamIndex, state.selectedSubtitleStreamIndex)
                         },
                         modifier = Modifier.focusRequester(playFocusRequester),
                     )
@@ -219,6 +221,12 @@ private fun TvDetailContent(
                 }
                 if (item.mediaSources.size > 1) {
                     TvActionButton(icon = Icons.Outlined.Layers, label = stringResource(R.string.detail_select_version), onClick = { subMenu = TvSubMenu.Versions })
+                }
+                if (item.streams.any { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }) {
+                    TvActionButton(icon = Icons.Outlined.MusicNote, label = stringResource(R.string.detail_audio_track), onClick = { subMenu = TvSubMenu.Audio })
+                }
+                if (item.streams.any { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle }) {
+                    TvActionButton(icon = Icons.Outlined.ClosedCaption, label = stringResource(R.string.detail_subtitle_track), onClick = { subMenu = TvSubMenu.Subtitles })
                 }
                 if (state.localTrailers.isNotEmpty() || item.remoteTrailers.isNotEmpty()) {
                     TvActionButton(icon = Icons.Outlined.Movie, label = stringResource(R.string.detail_play_trailers), onClick = { subMenu = TvSubMenu.Trailers })
@@ -347,6 +355,24 @@ private fun TvDetailContent(
             },
             onDismiss = { subMenu = null },
         )
+        TvSubMenu.Audio -> TvItemOptionsOverlay(
+            title = stringResource(R.string.detail_audio_track),
+            options = listOf(TvMenuOption(stringResource(R.string.detail_default)) { viewModel.selectAudioStream(null); subMenu = null }) +
+                item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }.map { stream ->
+                    TvMenuOption(stream.describe() + if (stream.index == state.selectedAudioStreamIndex) " ✓" else "") { viewModel.selectAudioStream(stream.index); subMenu = null }
+                },
+            onDismiss = { subMenu = null },
+        )
+        TvSubMenu.Subtitles -> TvItemOptionsOverlay(
+            title = stringResource(R.string.detail_subtitle_track),
+            options = listOf(
+                TvMenuOption(stringResource(R.string.detail_default)) { viewModel.selectSubtitleStream(null); subMenu = null },
+                TvMenuOption(stringResource(R.string.player_subtitles_off)) { viewModel.selectSubtitleStream(-1); subMenu = null },
+            ) + item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle }.map { stream ->
+                TvMenuOption(stream.describe() + if (stream.index == state.selectedSubtitleStreamIndex) " ✓" else "") { viewModel.selectSubtitleStream(stream.index); subMenu = null }
+            },
+            onDismiss = { subMenu = null },
+        )
         TvSubMenu.Trailers -> {
             val context = LocalContext.current
             TvItemOptionsOverlay(
@@ -367,7 +393,7 @@ private fun TvDetailContent(
     }
 }
 
-private enum class TvSubMenu { Versions, Trailers, Manage }
+private enum class TvSubMenu { Versions, Audio, Subtitles, Trailers, Manage }
 
 /** "h:mm:ss" style position text for a chapter start. */
 private fun formatChapterTime(ticks: Long): String {

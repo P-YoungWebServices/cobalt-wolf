@@ -810,4 +810,18 @@
     <string name="player_lock">Lock controls</string>
     <string name="player_unlock">Unlock controls</string>
     <string name="external_player_unavailable">No external player found — using the built-in player</string>
+    <string name="detail_audio_track">Audio</string>
+    <string name="detail_subtitle_track">Subtitles</string>
+    <string name="detail_default">Default</string>
+    <string name="detail_default_audio">Audio: default</string>
+    <string name="detail_default_subtitle">Subtitles: default</string>
+    <string name="settings_pref_audio_lang">Preferred audio language</string>
+    <string name="settings_pref_audio_lang_summary">Three-letter language code, e.g. eng, fre, jpn — empty for default</string>
+    <string name="settings_pref_sub_lang">Preferred subtitle language</string>
+    <string name="settings_pref_sub_lang_summary">Three-letter language code — empty for default</string>
+    <string name="settings_subtitle_mode">Subtitles</string>
+    <string name="subtitle_mode_default">Default</string>
+    <string name="subtitle_mode_always">Always</string>
+    <string name="subtitle_mode_forced">Forced only</string>
+    <string name="subtitle_mode_none">None</string>
 </resources>

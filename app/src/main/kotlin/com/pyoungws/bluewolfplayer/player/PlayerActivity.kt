@@ -207,7 +207,9 @@ class PlayerActivity : ComponentActivity() {
         val startMs = if (intent.hasExtra(EXTRA_START_MS)) intent.getLongExtra(EXTRA_START_MS, 0L) else null
         val startPaused = intent.getBooleanExtra(EXTRA_START_PAUSED, false)
         val mediaSourceId = intent.getStringExtra(EXTRA_MEDIA_SOURCE_ID)
-        return PlaybackTarget.Item(requireNotNull(intent.getStringExtra(EXTRA_ITEM_ID)), startPositionMs = startMs, startPaused = startPaused, mediaSourceId = mediaSourceId)
+        val audioIndex = intent.takeIf { it.hasExtra(EXTRA_AUDIO_STREAM_INDEX) }?.getIntExtra(EXTRA_AUDIO_STREAM_INDEX, 0)
+        val subtitleIndex = intent.takeIf { it.hasExtra(EXTRA_SUBTITLE_STREAM_INDEX) }?.getIntExtra(EXTRA_SUBTITLE_STREAM_INDEX, 0)
+        return PlaybackTarget.Item(requireNotNull(intent.getStringExtra(EXTRA_ITEM_ID)), startPositionMs = startMs, startPaused = startPaused, mediaSourceId = mediaSourceId, audioStreamIndex = audioIndex, subtitleStreamIndex = subtitleIndex)
     }
 
     /**
@@ -243,10 +245,12 @@ class PlayerActivity : ComponentActivity() {
         private const val EXTRA_START_MS = "start_ms"
         private const val EXTRA_START_PAUSED = "start_paused"
         private const val EXTRA_MEDIA_SOURCE_ID = "media_source_id"
+        private const val EXTRA_AUDIO_STREAM_INDEX = "audio_stream_index"
+        private const val EXTRA_SUBTITLE_STREAM_INDEX = "subtitle_stream_index"
         private const val EXTRA_LOCAL_URI = "local_uri"
         private const val EXTRA_LOCAL_TITLE = "local_title"
 
-        fun intent(context: Context, itemId: String = "", startPositionMs: Long? = null, startPaused: Boolean = false, mediaSourceId: String? = null, localUri: String? = null, title: String? = null): Intent {
+        fun intent(context: Context, itemId: String = "", startPositionMs: Long? = null, startPaused: Boolean = false, mediaSourceId: String? = null, localUri: String? = null, title: String? = null, audioStreamIndex: Int? = null, subtitleStreamIndex: Int? = null): Intent {
             val i = Intent(context, PlayerActivity::class.java)
             if (localUri != null) {
                 return i.putExtra(EXTRA_LOCAL_URI, localUri).putExtra(EXTRA_LOCAL_TITLE, title)
@@ -255,6 +259,8 @@ class PlayerActivity : ComponentActivity() {
             startPositionMs?.let { i.putExtra(EXTRA_START_MS, it) }
             i.putExtra(EXTRA_START_PAUSED, startPaused)
             mediaSourceId?.let { i.putExtra(EXTRA_MEDIA_SOURCE_ID, it) }
+            audioStreamIndex?.let { i.putExtra(EXTRA_AUDIO_STREAM_INDEX, it) }
+            subtitleStreamIndex?.let { i.putExtra(EXTRA_SUBTITLE_STREAM_INDEX, it) }
             return i
         }
     }

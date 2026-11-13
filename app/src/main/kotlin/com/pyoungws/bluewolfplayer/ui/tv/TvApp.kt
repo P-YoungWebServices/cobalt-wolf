@@ -146,7 +146,7 @@ private fun TvSignedInNavigation(
     val push = { route: Route -> stack = stack + route.encode() }
     val pop = { stack = stack.dropLast(1) }
     val play = { itemId: String -> context.startActivity(PlayerActivity.intent(context, itemId)) }
-            val playVersion = { itemId: String, mediaSourceId: String -> context.startActivity(PlayerActivity.intent(context, itemId, mediaSourceId = mediaSourceId)) }
+            val playVersion = { itemId: String, mediaSourceId: String, audioIndex: Int?, subtitleIndex: Int? -> context.startActivity(PlayerActivity.intent(context, itemId, mediaSourceId = mediaSourceId, audioStreamIndex = audioIndex, subtitleStreamIndex = subtitleIndex)) }
 
     // A channel or deep link opens the matching item on top of Home.
     LaunchedEffect(initialItemId) {

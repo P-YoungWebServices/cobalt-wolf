@@ -23,6 +23,9 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             stillWatchingEpisodes = preferences.getInt(KEY_STILL_WATCHING, defaults.stillWatchingEpisodes),
             cinemaMode = preferences.getBoolean(KEY_CINEMA_MODE, defaults.cinemaMode),
             externalPlayer = preferences.getBoolean(KEY_EXTERNAL_PLAYER, defaults.externalPlayer),
+            preferredAudioLanguage = preferences.getString(KEY_PREF_AUDIO_LANG, null),
+            preferredSubtitleLanguage = preferences.getString(KEY_PREF_SUB_LANG, null),
+            subtitleMode = enum(KEY_SUBTITLE_MODE, defaults.subtitleMode),
             nextUpCutoffDays = preferences.getInt(KEY_NEXT_UP_CUTOFF, defaults.nextUpCutoffDays),
             homeRowOrder = preferences.getString(KEY_HOME_ROW_ORDER, null)?.split(",").orEmpty(),
             hiddenHomeRows = preferences.getString(KEY_HOME_HIDDEN_ROWS, null)?.split(",")?.toSet().orEmpty(),
@@ -45,6 +48,9 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             .putInt(KEY_STILL_WATCHING, settings.stillWatchingEpisodes)
             .putBoolean(KEY_CINEMA_MODE, settings.cinemaMode)
             .putBoolean(KEY_EXTERNAL_PLAYER, settings.externalPlayer)
+            .putString(KEY_PREF_AUDIO_LANG, settings.preferredAudioLanguage)
+            .putString(KEY_PREF_SUB_LANG, settings.preferredSubtitleLanguage)
+            .putString(KEY_SUBTITLE_MODE, settings.subtitleMode.name)
             .putInt(KEY_NEXT_UP_CUTOFF, settings.nextUpCutoffDays)
             .putString(KEY_HOME_ROW_ORDER, settings.homeRowOrder.joinToString(","))
             .putString(KEY_HOME_HIDDEN_ROWS, settings.hiddenHomeRows.joinToString(","))
@@ -69,6 +75,9 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
         const val KEY_STILL_WATCHING = "still_watching_episodes"
         const val KEY_CINEMA_MODE = "cinema_mode"
         const val KEY_EXTERNAL_PLAYER = "external_player"
+        const val KEY_PREF_AUDIO_LANG = "pref_audio_lang"
+        const val KEY_PREF_SUB_LANG = "pref_sub_lang"
+        const val KEY_SUBTITLE_MODE = "subtitle_mode"
         const val KEY_NEXT_UP_CUTOFF = "next_up_cutoff"
         const val KEY_HOME_ROW_ORDER = "home_row_order"
         const val KEY_HOME_HIDDEN_ROWS = "home_hidden_rows"
