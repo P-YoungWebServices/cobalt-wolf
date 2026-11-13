@@ -8,6 +8,8 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
+import org.jellyfin.sdk.api.client.HttpMethod
+import org.jellyfin.sdk.api.client.exception.ApiClientException
 import org.jellyfin.sdk.api.client.exception.InvalidContentException
 import org.jellyfin.sdk.api.client.extensions.authenticateUserByName
 import org.jellyfin.sdk.api.client.extensions.authenticateWithQuickConnect
@@ -38,6 +40,8 @@ interface JellyfinAuthDataSource {
     /** The server's display name from its public system info, or null when it cannot be fetched. */
     suspend fun getServerName(serverAddress: String): String?
     suspend fun logout(serverAddress: String, accessToken: String)
+    /** Sends a password-reset PIN to the user's configured email; true when the request went through. */
+    suspend fun forgotPassword(serverAddress: String, username: String): Boolean
 }
 
 /**
@@ -53,7 +57,7 @@ class SdkJellyfinAuthDataSource(
         withContext(ioDispatcher) { jellyfin.createApi(baseUrl = serverAddress, accessToken = accessToken).block() }
 
     override suspend fun getPublicUsers(serverAddress: String) = call(serverAddress) {
-        userApi.getPublicUsers().content.map { it.toPublicUser() }
+        userApi.getPublicUsers().content.map { it.toPublicUser(serverAddress) }
     }
 
     override suspend fun authenticateByName(serverAddress: String, username: String, password: String) = call(serverAddress) {
@@ -88,6 +92,15 @@ class SdkJellyfinAuthDataSource(
         sessionApi.reportSessionEnded()
         Unit
     }
+
+    override suspend fun forgotPassword(serverAddress: String, username: String): Boolean = try {
+        call(serverAddress) {
+            request(HttpMethod.POST, "/Users/ForgotPassword", emptyMap(), emptyMap(), mapOf("Username" to username))
+        }
+        true
+    } catch (e: ApiClientException) {
+        false
+    }
 }
 
 internal fun AuthenticationResult.toAuthenticatedUser(): AuthenticatedUser {
@@ -111,10 +124,11 @@ internal fun UserDto.toUserProfile() = UserProfile(
  * a passwordless user can still submit an empty password.
  */
 @Suppress("DEPRECATION")
-internal fun UserDto.toPublicUser() = PublicUser(
+internal fun UserDto.toPublicUser(serverAddress: String) = PublicUser(
     id = id.toString(),
     name = name.orEmpty(),
     hasPassword = hasPassword ?: true,
+    imageUrl = primaryImageTag?.let { "${serverAddress.trimEnd('/')}/Users/$id/Images/Primary?tag=$it&quality=90" },
 )
 
 private fun QuickConnectResult.toTicket() = QuickConnectTicket(code = code, secret = secret, authenticated = authenticated)

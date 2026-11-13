@@ -28,6 +28,8 @@ data class SignInUiState(
     val error: SignInError? = null,
     /** Null when Quick Connect is not in progress. */
     val quickConnect: QuickConnectState? = null,
+    /** True after a password-reset PIN was requested for the current username. */
+    val passwordResetSent: Boolean = false,
 ) {
     val isBusy: Boolean get() = isSigningIn || quickConnect is QuickConnectState.Starting
 
@@ -58,6 +60,17 @@ class SignInViewModel(
     fun onUsernameChange(username: String) = _uiState.update { it.copy(username = username, error = null) }
 
     fun onPasswordChange(password: String) = _uiState.update { it.copy(password = password, error = null) }
+
+    /** Emails the user a reset PIN through the server's forgot-password flow. */
+    fun forgotPassword() {
+        val state = _uiState.value
+        val username = state.selectedUser?.name ?: state.username
+        if (username.isBlank()) return
+        viewModelScope.launch {
+            val sent = authRepository.forgotPassword(serverAddress, username)
+            _uiState.update { it.copy(passwordResetSent = sent) }
+        }
+    }
 
     /** Users without a password are signed in straight away, as on the Jellyfin web login screen. */
     fun selectUser(user: PublicUser) {

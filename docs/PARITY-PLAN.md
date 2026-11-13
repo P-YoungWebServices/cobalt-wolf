@@ -59,9 +59,9 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 | 3.13 | "Play on" remote session control | ☑ | sessionApi.play + menu dialog | Sessions + websocket commands |
 | 3.14 | Background audio | ☑ | done via 1.4 |
 | 3.15 | Track prefs: audio lang, sub lang, sub mode, detail-page preselect | ◐ | version preselect exists; audio/sub preselect + prefs pending |
-| 3.16 | Per-codec passthrough + channel cap + night mode | ☐ | AudioOutputPreference extension |
-| 3.17 | Per-format HDR overrides, codec level caps, buffer len, transcode prefs, zoom default+autocrop | ☐ | |
-| 3.18 | Subtitle styling, PGS toggle, burn-on-transcode | ☐ | |
+| 3.16 | Passthrough toggles + channel cap | ☑ | night-mode normalization DEFERRED (no Media3 DSP hook) |
+| 3.17 | HDR format gates + buffer + default zoom | ☑ | codec level caps, transcode codec pref, autocrop DEFERRED | |
+| 3.18 | Subtitle styling + PGS toggle | ☑ | colour/bg/bold + PGS burn via profile | |
 
 ## Phase 4 — Auth, home, admin, misc
 
@@ -83,9 +83,10 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 ## Current checkpoint
 
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Last commit: Play-on remote control (just committed).
+- Last commit: 3.16-3.18 playback prefs. Phase 3 CLOSED except deferrals + 3.12 Chromecast + 3.14 (done earlier).
 - Done: Phases 1+2 complete. Build+tests green.
-- Next: 3.16-3.18 playback prefs (codec toggles/channel cap/night mode; HDR per-format; buffer; subtitle styling incl. color/background via SubtitleView; PGS toggle). Then Phase 4 (auth/home/admin/misc).
+- Next: Phase 4 in order:
+  4.4 reset-password link (quick), 4.1 LAN discovery (UDP broadcast to :7359), 4.2 user cards w/ avatars + 4.3 auto sign-in (auth screens), 4.10 grouped search, 4.11 download method/storage, 4.5 home rows (livetv/resume-audio/now-playing/notifications), 4.6 display options, 4.7 TV screensaver, 4.8 voice search, 4.9 admin pages, 4.12 Android Auto, 3.12 Chromecast (proprietary dep — flag license in AGENTS.md).
 - Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, menus=app/.../ui/common/ItemActions.kt, cards=app/.../ui/common/Components.kt, view prefs=app/.../ui/common/DisplayPrefs.kt, DI=shared/.../di/SharedModule.kt.
 - Conventions: per-feature commits, `JAVA_HOME=/snap/android-studio/current/jbr`, strings appended in app/.../res/values/strings.xml, icons from material-icons-extended.
 - Open follow-ups: TV card context menu (D-pad long-press), playlist reorder UI, queue UI on TV player, TV album track list, image-editor screen (edit-images uses RemoteImageApi — deferred).

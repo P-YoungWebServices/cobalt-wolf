@@ -20,6 +20,8 @@ data class PublicUser(
     val id: String,
     val name: String,
     val hasPassword: Boolean,
+    /** Profile image URL on the server, when the user has one. */
+    val imageUrl: String? = null,
 )
 
 /** Persisted credentials for the signed-in user. */

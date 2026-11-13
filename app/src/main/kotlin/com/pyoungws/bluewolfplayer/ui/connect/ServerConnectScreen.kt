@@ -15,12 +15,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -88,6 +91,19 @@ fun ServerConnectScreen(
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
                     Text(stringResource(R.string.connect_button))
+                }
+            }
+            val discovered by produceState<List<DiscoveredServer>?>(initialValue = null) {
+                value = LanDiscovery.discover()
+            }
+            if (discovered == null) {
+                Text(stringResource(R.string.connect_scanning), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else if (discovered.orEmpty().isNotEmpty()) {
+                Text(stringResource(R.string.connect_discovered), style = MaterialTheme.typography.titleSmall)
+                discovered.orEmpty().forEach { server ->
+                    OutlinedButton(onClick = { viewModel.onAddressChange(server.address) }, modifier = fieldModifier) {
+                        Text("${server.name} — ${server.address}", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
         }

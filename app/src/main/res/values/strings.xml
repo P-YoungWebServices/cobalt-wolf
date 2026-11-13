@@ -860,4 +860,8 @@
     <string name="buffer_120">2 minutes</string>
     <string name="buffer_240">4 minutes</string>
     <string name="buffer_480">8 minutes</string>
+    <string name="sign_in_forgot_password">Forgot password?</string>
+    <string name="sign_in_reset_sent">Reset PIN sent — check your email</string>
+    <string name="connect_discovered">Servers on your network</string>
+    <string name="connect_scanning">Scanning…</string>
 </resources>

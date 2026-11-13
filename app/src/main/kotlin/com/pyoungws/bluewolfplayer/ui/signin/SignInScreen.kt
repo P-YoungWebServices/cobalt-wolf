@@ -120,7 +120,7 @@ private fun UserPicker(state: SignInUiState, viewModel: SignInViewModel, fieldMo
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                UserAvatar(user.name, size = 64.dp)
+                UserAvatar(user.name, size = 64.dp, imageUrl = user.imageUrl)
                 Text(user.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
@@ -134,9 +134,9 @@ private fun UserPicker(state: SignInUiState, viewModel: SignInViewModel, fieldMo
     }
 }
 
-/** Initial-letter avatar; profile pictures can replace this once an image loader is added. */
+/** Initial-letter avatar; falls back to the letter while the profile picture loads. */
 @Composable
-private fun UserAvatar(name: String, size: Dp) {
+private fun UserAvatar(name: String, size: Dp, imageUrl: String? = null) {
     Box(
         modifier = Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center,
@@ -146,6 +146,14 @@ private fun UserAvatar(name: String, size: Dp) {
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
+        if (imageUrl != null) {
+            coil3.compose.AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.size(size).clip(CircleShape),
+            )
+        }
     }
 }
 
@@ -153,7 +161,7 @@ private fun UserAvatar(name: String, size: Dp) {
 private fun CredentialsForm(state: SignInUiState, viewModel: SignInViewModel, fieldModifier: Modifier) {
     val selected = state.selectedUser
     if (selected != null) {
-        UserAvatar(selected.name, size = 72.dp)
+        UserAvatar(selected.name, size = 72.dp, imageUrl = selected.imageUrl)
         Text(selected.name, style = MaterialTheme.typography.titleLarge)
     } else {
         OutlinedTextField(
@@ -184,6 +192,9 @@ private fun CredentialsForm(state: SignInUiState, viewModel: SignInViewModel, fi
         } else {
             Text(stringResource(R.string.sign_in_button))
         }
+    }
+    TextButton(onClick = viewModel::forgotPassword, enabled = !state.isBusy && canSignIn) {
+        Text(stringResource(if (state.passwordResetSent) R.string.sign_in_reset_sent else R.string.sign_in_forgot_password))
     }
     if (state.publicUsers.isNotEmpty()) {
         TextButton(onClick = viewModel::backToUserList, enabled = !state.isBusy) {
