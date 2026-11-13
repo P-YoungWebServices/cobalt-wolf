@@ -135,6 +135,7 @@ private fun TvDetailContent(
     var autoFocused by remember { mutableStateOf(false) }
     var entryReady by remember { mutableStateOf(false) }
     var actionsFocused by remember { mutableStateOf(false) }
+    var columnFocused by remember { mutableStateOf(false) }
     // autoFocused flips only on real focus success so the options-restore effect below
     // can't steal focus before the button exists. Focus is requested only once the
     // actions row is fully inside the viewport — grabbing focus while it is still
@@ -176,10 +177,12 @@ private fun TvDetailContent(
     // viewport, which reads as the page jumping when Play grabs focus. While focus
     // is inside the masthead (or autofocus hasn't landed yet) we swap in the
     // minimal spec so focus on the buttons never scrolls; lower content keeps the
-    // normal TV pivot behavior.
+    // normal TV pivot behavior. Focus arriving from outside the column (the nav bar)
+    // also uses the minimal spec — the platform pivot would otherwise snap Play to
+    // 30% of the viewport and cancel the return-to-top scroll below.
     val platformBringIntoViewSpec = androidx.compose.foundation.gestures.LocalBringIntoViewSpec.current
     val minimalBringIntoViewSpec = remember { object : androidx.compose.foundation.gestures.BringIntoViewSpec {} }
-    val bringIntoViewSpec = if (!autoFocused || actionsFocused) minimalBringIntoViewSpec else platformBringIntoViewSpec
+    val bringIntoViewSpec = if (!autoFocused || actionsFocused || !columnFocused) minimalBringIntoViewSpec else platformBringIntoViewSpec
     androidx.compose.runtime.CompositionLocalProvider(
         androidx.compose.foundation.gestures.LocalBringIntoViewSpec provides bringIntoViewSpec,
     ) {
@@ -205,7 +208,7 @@ private fun TvDetailContent(
             else -> false
         }
     }) {
-    LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(bottom = 48.dp)) {
+    LazyColumn(Modifier.fillMaxSize().onFocusChanged { columnFocused = it.hasFocus }, state = listState, contentPadding = PaddingValues(bottom = 48.dp)) {
         // The whole masthead — backdrop, meta and the action buttons — is ONE item so
         // that focusing Play means "bring item 0 into view": it is already at the top,
         // so the focus scroll clamps to offset 0 instead of sliding the header away.
