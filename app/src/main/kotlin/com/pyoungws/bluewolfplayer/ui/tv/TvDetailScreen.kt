@@ -1,4 +1,4 @@
-@file:OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class, androidx.compose.ui.ExperimentalComposeUiApi::class)
+@file:OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class, androidx.compose.ui.ExperimentalComposeUiApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package com.pyoungws.bluewolfplayer.ui.tv
 
@@ -131,19 +131,22 @@ private fun TvDetailContent(
     val playFocusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
     var autoFocused by remember { mutableStateOf(false) }
+    var entryReady by remember { mutableStateOf(false) }
+    var actionsFocused by remember { mutableStateOf(false) }
     // autoFocused flips only on real focus success so the options-restore effect below
     // can't steal focus before the button exists. Focus is requested only once the
     // actions row is fully inside the viewport — grabbing focus while it is still
     // partially off screen makes Compose scroll the page to reveal it.
     LaunchedEffect(state.playTarget?.id) {
         if (autoFocused || state.playTarget == null) return@LaunchedEffect
+        // Wait until the masthead item is placed before requesting focus — Play lives
+        // inside item 0, so the focus scroll can never move past the top of the page.
         kotlinx.coroutines.withTimeoutOrNull(2000) {
             snapshotFlow {
-                val info = listState.layoutInfo
-                info.visibleItemsInfo.firstOrNull { it.key == "actions" }
-                    ?.let { it.offset >= info.viewportStartOffset && it.offset + it.size <= info.viewportEndOffset } == true
+                listState.layoutInfo.visibleItemsInfo.any { it.key == "masthead" }
             }.first { it }
         }
+        entryReady = true
         repeat(20) {
             if (runCatching { playFocusRequester.requestFocus() }.getOrDefault(false)) {
                 autoFocused = true
@@ -164,8 +167,23 @@ private fun TvDetailContent(
     }
     var subMenu by remember { mutableStateOf<TvSubMenu?>(null) }
     // Entering this page from the top bar (or any direction) lands on Play/Resume —
-    // not on whichever focusable happens to sit nearest the nav item pressed.
-    Box(Modifier.fillMaxSize().focusGroup().focusProperties { enter = { playFocusRequester } }.onPreviewKeyEvent { ev ->
+    // not on whichever focusable happens to sit nearest the nav item pressed. Before
+    // autofocus has run, Cancel the auto-entry instead: requesting Play focus while
+    // its row is still being laid out makes the list scroll it into view on open.
+    // The platform TV bring-into-view spec pivots focused children to 30% of the
+    // viewport, which reads as the page jumping when Play grabs focus. While focus
+    // is inside the masthead (or autofocus hasn't landed yet) we swap in the
+    // minimal spec so focus on the buttons never scrolls; lower content keeps the
+    // normal TV pivot behavior.
+    val platformBringIntoViewSpec = androidx.compose.foundation.gestures.LocalBringIntoViewSpec.current
+    val minimalBringIntoViewSpec = remember { object : androidx.compose.foundation.gestures.BringIntoViewSpec {} }
+    val bringIntoViewSpec = if (!autoFocused || actionsFocused) minimalBringIntoViewSpec else platformBringIntoViewSpec
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.foundation.gestures.LocalBringIntoViewSpec provides bringIntoViewSpec,
+    ) {
+    Box(Modifier.fillMaxSize().focusGroup().focusProperties {
+        enter = { if (entryReady) playFocusRequester else FocusRequester.Cancel }
+    }.onPreviewKeyEvent { ev ->
         val n = ev.nativeKeyEvent
         when {
             n.action == android.view.KeyEvent.ACTION_DOWN &&
@@ -176,7 +194,11 @@ private fun TvDetailContent(
         }
     }) {
     LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(bottom = 48.dp)) {
-        item(key = "backdrop") {
+        // The whole masthead — backdrop, meta and the action buttons — is ONE item so
+        // that focusing Play means "bring item 0 into view": it is already at the top,
+        // so the focus scroll clamps to offset 0 instead of sliding the header away.
+        item(key = "masthead") {
+            Column {
             Box(Modifier.fillMaxWidth()) {
                 val options = com.pyoungws.bluewolfplayer.ui.common.rememberDisplayOptions().first
                 val image = item.backdropUrl ?: item.landscapeUrl
@@ -195,8 +217,6 @@ private fun TvDetailContent(
                     Box(Modifier.fillMaxWidth().height(40.dp))
                 }
             }
-        }
-        item(key = "header") {
             Row(Modifier.padding(horizontal = TvContentPadding, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 if (item.logoUrl != null) {
                     AsyncImage(model = item.logoUrl, contentDescription = item.name, contentScale = ContentScale.Fit, modifier = Modifier.width(150.dp).height(96.dp))
@@ -222,19 +242,16 @@ private fun TvDetailContent(
                     }
                 }
             }
-        }
-        item.progressFraction?.let {
-            item(key = "progress") {
+            item.progressFraction?.let {
                 LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth().padding(horizontal = TvContentPadding).height(4.dp))
             }
-        }
-        item(key = "actions") {
             // Focus landing here from a lower row means the user scrolled back up —
-            // bring the whole header into view rather than stopping at the buttons.
+            // bring the whole masthead into view rather than stopping at the buttons.
             Row(
                 Modifier
                     .padding(horizontal = TvContentPadding, vertical = 8.dp)
                     .onFocusChanged {
+                        actionsFocused = it.hasFocus
                         if (it.hasFocus && (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0)) {
                             scope.launch { listState.animateScrollToItem(0) }
                         }
@@ -289,6 +306,7 @@ private fun TvDetailContent(
                 item.seriesId?.takeIf { item.kind == MediaKind.Episode }?.let { seriesId ->
                     TvActionButton(icon = Icons.Outlined.Tv, label = stringResource(R.string.detail_view_series), onClick = { onOpenItem(seriesId) })
                 }
+            }
             }
         }
         if (item.tagline != null || item.overview != null) {
@@ -479,6 +497,7 @@ private fun TvDetailContent(
         }
         TvSubMenu.Manage -> ManageMediaDialog(item, onChanged = { viewModel.refresh() }, onDismiss = { subMenu = null })
         null -> Unit
+    }
     }
     }
 }
