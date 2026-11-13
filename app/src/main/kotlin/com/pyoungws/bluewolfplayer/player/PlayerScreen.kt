@@ -650,7 +650,7 @@ private fun PlayerContent(
                 AsyncImage(
                     model = tiles.tileUrl(index / (tiles.tileWidth * tiles.tileHeight)),
                     contentDescription = null,
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp)
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 200.dp)
                         .border(2.dp, Color.White),
                 )
             }
@@ -679,7 +679,7 @@ private fun PlayerContent(
                 }
             }
             Row(
-                Modifier.align(Alignment.BottomEnd).padding(8.dp).padding(bottom = 160.dp),
+                Modifier.align(Alignment.BottomEnd).padding(8.dp).padding(bottom = 100.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
@@ -726,7 +726,7 @@ private fun PlayerContent(
         val duration = player.duration
         if (!isInPip && (activeSegment != null || (controlsVisible && duration > 0))) {
             Row(
-                Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 120.dp),
+                Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 148.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
