@@ -116,8 +116,14 @@ television devices:
 
 ```sh
 ./gradlew assembleDebug   # debug APK in app/build/outputs/apk/debug/
+./gradlew assembleRelease # release APK in app/build/outputs/apk/release/
 ./gradlew test            # shared (JVM + Android host) and app unit tests
 ```
+
+Release builds are signed when `keystore.properties` exists in the repo
+root — copy `keystore.properties.example`, fill in the keystore path and
+passwords, and keep the file out of version control (it is gitignored).
+Without it `assembleRelease` produces an unsigned APK.
 
 Debug builds can be pre-seeded with a test server and service credentials:
 copy `dev.credentials.properties` (see `AGENTS.md` for the keys) into the

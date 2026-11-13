@@ -6,6 +6,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Release signing is opt-in: `keystore.properties` in the repo root is
+// gitignored and holds the keystore path + passwords. Without it the release
+// build still compiles but produces an unsigned APK.
+val releaseSigningFile = rootProject.file("keystore.properties")
+val releaseSigning = Properties().apply {
+    if (releaseSigningFile.exists()) releaseSigningFile.inputStream().use { load(it) }
+}
+
 android {
     namespace = "com.pyoungws.bluewolfplayer"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -18,9 +26,23 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        if (releaseSigningFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(releaseSigning.getProperty("storeFile"))
+                storePassword = releaseSigning.getProperty("storePassword")
+                keyAlias = releaseSigning.getProperty("keyAlias")
+                keyPassword = releaseSigning.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (releaseSigningFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         debug {
             // Dev builds only: bake the local dev credentials into BuildConfig so

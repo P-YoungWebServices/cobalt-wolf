@@ -68,6 +68,15 @@ Conventions and rules for contributing to Cobalt Wolf.
 - If the file is missing or still has placeholder values, ask the user to fill it
   in rather than guessing credentials.
 
+## Release signing
+
+- `keystore.properties` (repo root, gitignored) drives release signing:
+  `storeFile`/`storePassword`/`keyAlias`/`keyPassword`; see
+  `keystore.properties.example`. With the file present `./gradlew
+  assembleRelease` produces a signed APK; without it the release APK is
+  unsigned. The keystore itself (`*.keystore`/`*.jks`) is also gitignored —
+  never commit it or its passwords.
+
 ## Test devices
 
 - **The owner's phone may be used for on-device testing** whenever it is
