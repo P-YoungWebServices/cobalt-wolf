@@ -42,7 +42,11 @@ import com.pyoungws.bluewolfplayer.shared.presentation.AdminDashboardViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminRequestsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminDevicesViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminLibrariesViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminActivityLogViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminApiKeysViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminLogsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminPluginsViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.AdminServerSettingsViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminSystemInfoViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminTasksViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.AdminUsersViewModel
@@ -55,6 +59,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.ItemDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryHomeViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.ItemBrowseViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.LibraryViewModel
+import com.pyoungws.bluewolfplayer.shared.presentation.LiveTvViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.BazarrViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MediaDetailViewModel
 import com.pyoungws.bluewolfplayer.shared.presentation.MediaManagerViewModel
@@ -111,6 +116,7 @@ val sharedModule = module {
     single { AdminRepository(get(), get()) }
     single { PlaybackSettingsRepository(get()) }
     single { PlaybackRepository(get(), get(), get(), get(), get()) }
+    single { com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository() }
     // Outlives screens so the final "playback stopped" report is not cancelled when the player closes.
     single { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
@@ -142,7 +148,8 @@ val sharedModule = module {
     viewModel { (library: Library) -> LibraryViewModel(library, get()) }
     viewModel { (query: com.pyoungws.bluewolfplayer.shared.library.ItemQuery) -> ItemBrowseViewModel(query, get()) }
     viewModel { (itemId: String) -> ItemDetailViewModel(itemId, get()) }
-    viewModel { (target: PlaybackTarget) -> PlayerViewModel(target, get(), get(), get()) }
+    viewModel { LiveTvViewModel(get()) }
+    viewModel { (target: PlaybackTarget) -> PlayerViewModel(target, get(), get(), get(), get()) }
     viewModelOf(::SyncPlayViewModel)
     viewModelOf(::ServersViewModel)
     viewModelOf(::PlaybackSettingsViewModel)
@@ -157,7 +164,11 @@ val sharedModule = module {
     viewModelOf(::AdminLibrariesViewModel)
     viewModelOf(::AdminTasksViewModel)
     viewModelOf(::AdminLogsViewModel)
+    viewModelOf(::AdminActivityLogViewModel)
+    viewModelOf(::AdminApiKeysViewModel)
     viewModelOf(::AdminSystemInfoViewModel)
+    viewModelOf(::AdminPluginsViewModel)
+    viewModelOf(::AdminServerSettingsViewModel)
     viewModelOf(::AdminRequestsViewModel)
     viewModel { (type: SeerrMediaType, tmdbId: Int) -> SeerrDetailViewModel(type, tmdbId, get()) }
     viewModelOf(::CalendarViewModel)

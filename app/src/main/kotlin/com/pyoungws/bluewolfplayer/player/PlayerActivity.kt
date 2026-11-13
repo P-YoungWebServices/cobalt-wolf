@@ -17,12 +17,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.pyoungws.bluewolfplayer.BuildConfig
+import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.isTelevision
 import com.pyoungws.bluewolfplayer.shared.playback.AudioOutputPreference
 import com.pyoungws.bluewolfplayer.shared.playback.CapabilityDetector
@@ -30,9 +32,12 @@ import com.pyoungws.bluewolfplayer.shared.playback.DecodingPreference
 import com.pyoungws.bluewolfplayer.shared.playback.FrameRateMatching
 import com.pyoungws.bluewolfplayer.shared.playback.HdrPreference
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
+import com.pyoungws.bluewolfplayer.shared.presentation.PlayerUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerViewModel
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
 import com.pyoungws.bluewolfplayer.ui.theme.BlueWolfTheme
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -58,6 +63,31 @@ class PlayerActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         if (BuildConfig.DEBUG) applyDebugOverrides(intent)
 
+        // External-player handoff: fire the direct-play URL at a player app and leave.
+        val itemTarget = target as? PlaybackTarget.Item
+        if (itemTarget != null && !isTelevision() && get<PlaybackSettingsRepository>().settings.value.externalPlayer) {
+            val repository = get<com.pyoungws.bluewolfplayer.shared.library.LibraryRepository>()
+            lifecycleScope.launch {
+                val url = (repository.item(itemTarget.itemId) as? com.pyoungws.bluewolfplayer.shared.model.Outcome.Success)
+                    ?.value?.let(repository::streamUrl)
+                val external = url?.let {
+                    Intent(Intent.ACTION_VIEW, android.net.Uri.parse(it)).setDataAndType(android.net.Uri.parse(it), "video/*")
+                }
+                try {
+                    if (external == null) error("no stream")
+                    startActivity(external)
+                    finish()
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(this@PlayerActivity, R.string.external_player_unavailable, android.widget.Toast.LENGTH_LONG).show()
+                    startInternal()
+                }
+            }
+            return
+        }
+        startInternal()
+    }
+
+    private fun startInternal() {
         setContent {
             BlueWolfTheme {
                 PlayerScreen(
@@ -143,16 +173,23 @@ class PlayerActivity : ComponentActivity() {
         isInPip = isInPictureInPictureMode
     }
 
+    private val isAudioPlayback: Boolean
+        get() = (viewModel.uiState.value as? PlayerUiState.Ready)?.request?.item?.kind == MediaKind.Song
+
     override fun onStop() {
         super.onStop()
         val player = player ?: return
-        // Leaving without PiP pauses; a PiP window keeps playing. The position is saved either way.
-        if (!isInPip) player.pause()
+        // Leaving without PiP pauses; a PiP window keeps playing. Audio hands off to the
+        // PlaybackService session instead of pausing. The position is saved either way.
+        if (!isInPip && !isAudioPlayback) player.pause()
         viewModel.onProgress(player.currentPosition, isPaused = !player.isPlaying)
     }
 
     override fun onDestroy() {
-        viewModel.onStopped(player?.takeIf { it.playbackState != Player.STATE_IDLE }?.currentPosition ?: -1L)
+        // A playing audio item lives on in the service, so it is not reported stopped.
+        if (!(isAudioPlayback && player?.isPlaying == true)) {
+            viewModel.onStopped(player?.takeIf { it.playbackState != Player.STATE_IDLE }?.currentPosition ?: -1L)
+        }
         super.onDestroy()
     }
 
@@ -170,7 +207,9 @@ class PlayerActivity : ComponentActivity() {
         val startMs = if (intent.hasExtra(EXTRA_START_MS)) intent.getLongExtra(EXTRA_START_MS, 0L) else null
         val startPaused = intent.getBooleanExtra(EXTRA_START_PAUSED, false)
         val mediaSourceId = intent.getStringExtra(EXTRA_MEDIA_SOURCE_ID)
-        return PlaybackTarget.Item(requireNotNull(intent.getStringExtra(EXTRA_ITEM_ID)), startPositionMs = startMs, startPaused = startPaused, mediaSourceId = mediaSourceId)
+        val audioIndex = intent.takeIf { it.hasExtra(EXTRA_AUDIO_STREAM_INDEX) }?.getIntExtra(EXTRA_AUDIO_STREAM_INDEX, 0)
+        val subtitleIndex = intent.takeIf { it.hasExtra(EXTRA_SUBTITLE_STREAM_INDEX) }?.getIntExtra(EXTRA_SUBTITLE_STREAM_INDEX, 0)
+        return PlaybackTarget.Item(requireNotNull(intent.getStringExtra(EXTRA_ITEM_ID)), startPositionMs = startMs, startPaused = startPaused, mediaSourceId = mediaSourceId, audioStreamIndex = audioIndex, subtitleStreamIndex = subtitleIndex)
     }
 
     /**
@@ -206,10 +245,12 @@ class PlayerActivity : ComponentActivity() {
         private const val EXTRA_START_MS = "start_ms"
         private const val EXTRA_START_PAUSED = "start_paused"
         private const val EXTRA_MEDIA_SOURCE_ID = "media_source_id"
+        private const val EXTRA_AUDIO_STREAM_INDEX = "audio_stream_index"
+        private const val EXTRA_SUBTITLE_STREAM_INDEX = "subtitle_stream_index"
         private const val EXTRA_LOCAL_URI = "local_uri"
         private const val EXTRA_LOCAL_TITLE = "local_title"
 
-        fun intent(context: Context, itemId: String = "", startPositionMs: Long? = null, startPaused: Boolean = false, mediaSourceId: String? = null, localUri: String? = null, title: String? = null): Intent {
+        fun intent(context: Context, itemId: String = "", startPositionMs: Long? = null, startPaused: Boolean = false, mediaSourceId: String? = null, localUri: String? = null, title: String? = null, audioStreamIndex: Int? = null, subtitleStreamIndex: Int? = null): Intent {
             val i = Intent(context, PlayerActivity::class.java)
             if (localUri != null) {
                 return i.putExtra(EXTRA_LOCAL_URI, localUri).putExtra(EXTRA_LOCAL_TITLE, title)
@@ -218,6 +259,8 @@ class PlayerActivity : ComponentActivity() {
             startPositionMs?.let { i.putExtra(EXTRA_START_MS, it) }
             i.putExtra(EXTRA_START_PAUSED, startPaused)
             mediaSourceId?.let { i.putExtra(EXTRA_MEDIA_SOURCE_ID, it) }
+            audioStreamIndex?.let { i.putExtra(EXTRA_AUDIO_STREAM_INDEX, it) }
+            subtitleStreamIndex?.let { i.putExtra(EXTRA_SUBTITLE_STREAM_INDEX, it) }
             return i
         }
     }

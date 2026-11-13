@@ -3,6 +3,7 @@
 package com.pyoungws.bluewolfplayer.player
 
 import android.content.Context
+import android.media.audiofx.LoudnessEnhancer
 import android.os.Handler
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -48,10 +49,52 @@ internal class PlayerEngine(
     val stats: PlaybackStatsCollector,
     private val assHandler: AssHandler?,
 ) {
+    private var nightMode = false
+    private var loudnessEnhancer: LoudnessEnhancer? = null
+
+    init {
+        // A new audio session (e.g. after an output re-init) needs a fresh effect attached.
+        player.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                if (nightMode) {
+                    loudnessEnhancer?.release()
+                    loudnessEnhancer = enhancer(audioSessionId)
+                }
+            }
+        })
+    }
+
+    /**
+     * Night mode: compresses dynamics by boosting quiet passages, for low-volume listening.
+     * No-ops on passthrough audio, where platform effects cannot touch the encoded stream.
+     */
+    fun setNightMode(enabled: Boolean) {
+        nightMode = enabled
+        if (enabled && loudnessEnhancer == null) {
+            loudnessEnhancer = enhancer(player.audioSessionId)
+        } else if (!enabled) {
+            loudnessEnhancer?.release()
+            loudnessEnhancer = null
+        }
+    }
+
+    private fun enhancer(sessionId: Int): LoudnessEnhancer? =
+        if (sessionId == C.AUDIO_SESSION_ID_UNSET) null else runCatching {
+            LoudnessEnhancer(sessionId).apply {
+                setTargetGain(NIGHT_MODE_GAIN_MB)
+                this.enabled = true
+            }
+        }.getOrNull()
+
     fun release() {
         player.removeAnalyticsListener(stats)
+        loudnessEnhancer?.release()
         player.release()
         assHandler?.release()
+    }
+
+    private companion object {
+        const val NIGHT_MODE_GAIN_MB = 900 // 9 dB lift on quiet passages
     }
 }
 
@@ -64,7 +107,13 @@ internal class PlayerEngine(
  * ASS/SSA subtitles are drawn by libass into [playerView]'s subtitle layer; PGS and SRT use
  * Media3's own decoders.
  */
-internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playerView: PlayerView, pcmChannelCap: Int? = null): PlayerEngine {
+internal fun buildPlayerEngine(
+    context: Context,
+    request: PlaybackRequest,
+    playerView: PlayerView,
+    pcmChannelCap: Int? = null,
+    subtitleOffsetUs: () -> Long = { 0L },
+): PlayerEngine {
     val settings = request.settings
     val baseRenderers = BlueWolfRenderersFactory(
         context,
@@ -72,6 +121,7 @@ internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playe
         localVideoFirst = request.plan.video == DecoderChoice.Local,
         localAudioFirst = request.plan.audio == DecoderChoice.Local,
         pcmChannelCap = pcmChannelCap,
+        subtitleOffsetUs = subtitleOffsetUs,
     )
     baseRenderers.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
     baseRenderers.setMediaCodecSelector(dolbyVisionSelector(settings.dolbyVision))
@@ -104,8 +154,9 @@ internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playe
     // High-bitrate direct plays (4K remuxes at ~70 Mbps) need a bigger buffer runway than the
     // default 50 s max: a short network dip should not stall playback. A deeper rebuffer
     // threshold means each recovery starts with enough cushion to ride out the next dip.
+    val maxBufferMs = if (settings.bufferSeconds > 0) settings.bufferSeconds * 1_000 else 240_000
     val loadControl = DefaultLoadControl.Builder()
-        .setBufferDurationsMs(120_000, 240_000, 4_000, 30_000)
+        .setBufferDurationsMs(120_000, maxBufferMs, 4_000, 30_000)
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
@@ -114,7 +165,7 @@ internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playe
     val trackSelector = DefaultTrackSelector(context).apply {
         parameters = parameters.buildUpon()
             .setPreferredAudioLanguage("en")
-            .setMaxAudioChannelCount(6)
+            .setMaxAudioChannelCount(if (settings.audioChannelCap > 0) settings.audioChannelCap else 6)
             .build()
     }
 
@@ -151,7 +202,18 @@ private class BlueWolfRenderersFactory(
     private val localVideoFirst: Boolean,
     private val localAudioFirst: Boolean,
     private val pcmChannelCap: Int?,
+    private val subtitleOffsetUs: () -> Long,
 ) : NextRenderersFactory(context) {
+
+    override fun buildTextRenderers(
+        context: Context,
+        output: androidx.media3.exoplayer.text.TextOutput,
+        outputLooper: android.os.Looper,
+        extensionRendererMode: Int,
+        out: ArrayList<Renderer>,
+    ) {
+        out.add(androidx.media3.exoplayer.text.TextRenderer(output, outputLooper, OffsettingSubtitleDecoderFactory(subtitleOffsetUs)))
+    }
     override fun buildVideoRenderers(
         context: Context,
         extensionRendererMode: Int,

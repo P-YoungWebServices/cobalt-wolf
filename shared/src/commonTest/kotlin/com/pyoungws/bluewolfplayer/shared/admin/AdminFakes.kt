@@ -208,4 +208,65 @@ class FakeAdminDataSource : JellyfinAdminDataSource {
         calls += "systemInfo"
         return systemInfo()
     }
+
+    override suspend fun getActivityLog(session: Session, startIndex: Int, limit: Int): List<com.pyoungws.bluewolfplayer.shared.admin.ActivityEntry> {
+        calls += "activityLog($startIndex,$limit)"
+        return emptyList()
+    }
+
+    override suspend fun getApiKeys(session: Session): List<com.pyoungws.bluewolfplayer.shared.admin.ServerApiKey> {
+        calls += "apiKeys"
+        return emptyList()
+    }
+
+    override suspend fun createApiKey(session: Session, appName: String) {
+        calls += "createApiKey($appName)"
+    }
+
+    override suspend fun revokeApiKey(session: Session, key: String) {
+        calls += "revokeApiKey($key)"
+    }
+
+    var plugins: () -> List<AdminPlugin> = { emptyList() }
+    var onSetPluginEnabled: (pluginId: String, version: String, enabled: Boolean) -> Unit = { _, _, _ -> }
+    var onUninstallPlugin: (pluginId: String) -> Unit = { }
+    var serverSettings: ServerSettings = ServerSettings(serverName = "wolf")
+    var onUpdateServerSettings: (settings: ServerSettings) -> Unit = { }
+    var onRestart: () -> Unit = { }
+    var onShutdown: () -> Unit = { }
+
+    override suspend fun getPlugins(session: Session): List<AdminPlugin> {
+        calls += "plugins"
+        return plugins()
+    }
+
+    override suspend fun setPluginEnabled(session: Session, pluginId: String, version: String, enabled: Boolean) {
+        calls += "setPluginEnabled($pluginId,$enabled)"
+        onSetPluginEnabled(pluginId, version, enabled)
+    }
+
+    override suspend fun uninstallPlugin(session: Session, pluginId: String) {
+        calls += "uninstallPlugin($pluginId)"
+        onUninstallPlugin(pluginId)
+    }
+
+    override suspend fun getServerSettings(session: Session): ServerSettings {
+        calls += "serverSettings"
+        return serverSettings
+    }
+
+    override suspend fun updateServerSettings(session: Session, settings: ServerSettings) {
+        calls += "updateServerSettings(${settings.serverName})"
+        onUpdateServerSettings(settings)
+    }
+
+    override suspend fun restartServer(session: Session) {
+        calls += "restart"
+        onRestart()
+    }
+
+    override suspend fun shutdownServer(session: Session) {
+        calls += "shutdown"
+        onShutdown()
+    }
 }

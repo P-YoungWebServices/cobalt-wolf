@@ -120,6 +120,13 @@ class AuthRepository(
         emptyList()
     }
 
+    /** Asks the server to email the user a reset PIN; false when the request fails. */
+    suspend fun forgotPassword(serverAddress: String, username: String): Boolean = try {
+        dataSource.forgotPassword(serverAddress, username)
+    } catch (e: Exception) {
+        false
+    }
+
     suspend fun signIn(serverAddress: String, username: String, password: String): SignInResult {
         val name = username.trim()
         if (name.isEmpty()) return SignInResult.Failure(SignInError.MissingUsername)

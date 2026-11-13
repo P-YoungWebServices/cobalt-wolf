@@ -123,6 +123,30 @@ private fun TvHomeContent(
                         }
                     }
                 }
+                PlaybackSettings.ROW_RESUME_AUDIO -> if (feed.resumeAudio.isNotEmpty()) {
+                    item(key = "resumeaudio") {
+                        TvSectionTitle(stringResource(R.string.home_resume_audio))
+                        TvCardRow(feed.resumeAudio, key = { it.id }) { it ->
+                            TvLandscapeCard(it, onClick = { onOpenItem(it.id) }, onMenu = { menuItem = it })
+                        }
+                    }
+                }
+                PlaybackSettings.ROW_LIVE_TV -> if (feed.liveTvChannels.isNotEmpty()) {
+                    item(key = "livetv") {
+                        TvSectionTitle(stringResource(R.string.home_live_tv))
+                        TvCardRow(feed.liveTvChannels, key = { it.id }) { it ->
+                            TvPosterCard(it, onClick = { onOpenItem(it.id) }, onMenu = { menuItem = it })
+                        }
+                    }
+                }
+                PlaybackSettings.ROW_ON_NOW -> if (feed.liveTvOnNow.isNotEmpty()) {
+                    item(key = "onnow") {
+                        TvSectionTitle(stringResource(R.string.home_on_now))
+                        TvCardRow(feed.liveTvOnNow, key = { it.id }) { it ->
+                            TvLandscapeCard(it, onClick = { onOpenItem(it.id) }, onMenu = { menuItem = it })
+                        }
+                    }
+                }
             }
         }
         feed.recentlyAdded.forEach { row ->

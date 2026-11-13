@@ -23,6 +23,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -45,6 +48,11 @@ import com.pyoungws.bluewolfplayer.shared.playback.VideoCodec
 import com.pyoungws.bluewolfplayer.shared.playback.VideoSupport
 import com.pyoungws.bluewolfplayer.shared.presentation.HdrSelection
 import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
+import com.pyoungws.bluewolfplayer.shared.playback.SubtitleBackground
+import com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor
+import com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode
+import com.pyoungws.bluewolfplayer.shared.playback.TranscodeCodec
+import com.pyoungws.bluewolfplayer.shared.playback.ZoomMode
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
@@ -81,6 +89,7 @@ fun PlaybackSettingsScreen(onBack: () -> Unit, viewModel: PlaybackSettingsViewMo
             item { Header(R.string.playback_section_overrides) }
             item { Overrides(state, viewModel) }
             item { Header(R.string.home_rows_title) }
+            item { DisplayOptionsSection() }
             item { HomeRows(state, viewModel) }
             item { Header(R.string.playback_section_detected) }
             item { Detected(state.capabilities) }
@@ -158,9 +167,101 @@ private fun Overrides(state: PlaybackSettingsUiState, viewModel: PlaybackSetting
             365 to R.string.cutoff_365,
             730 to R.string.cutoff_730,
         )
+        Choice(
+            R.string.settings_resume_rewind, settings.resumeRewindSeconds, viewModel::setResumeRewindSeconds,
+            0 to R.string.settings_seconds_0,
+            5 to R.string.settings_seconds_5,
+            10 to R.string.settings_seconds_10,
+            30 to R.string.settings_seconds_30,
+        )
+        Choice(
+            R.string.settings_still_watching, settings.stillWatchingEpisodes, viewModel::setStillWatchingEpisodes,
+            0 to R.string.cutoff_off,
+            2 to R.string.settings_episodes_2,
+            3 to R.string.settings_episodes_3,
+            4 to R.string.settings_episodes_4,
+        )
+        Toggle(R.string.settings_cinema_mode, R.string.settings_cinema_mode_summary, settings.cinemaMode, viewModel::setCinemaMode)
+        Toggle(R.string.settings_external_player, R.string.settings_external_player_summary, settings.externalPlayer, viewModel::setExternalPlayer)
+        TextPref(R.string.settings_pref_audio_lang, R.string.settings_pref_audio_lang_summary, settings.preferredAudioLanguage, viewModel::setPreferredAudioLanguage)
+        TextPref(R.string.settings_pref_sub_lang, R.string.settings_pref_sub_lang_summary, settings.preferredSubtitleLanguage, viewModel::setPreferredSubtitleLanguage)
+        Choice(
+            R.string.settings_subtitle_mode, settings.subtitleMode, viewModel::setSubtitleMode,
+            SubtitlePlaybackMode.Default to R.string.subtitle_mode_default,
+            SubtitlePlaybackMode.Always to R.string.subtitle_mode_always,
+            SubtitlePlaybackMode.Forced to R.string.subtitle_mode_forced,
+            SubtitlePlaybackMode.None to R.string.subtitle_mode_none,
+        )
+        Toggle(R.string.settings_pt_ac3, R.string.settings_pt_summary, settings.passthroughAc3Eac3, viewModel::setPassthroughAc3Eac3)
+        Toggle(R.string.settings_pt_dts, R.string.settings_pt_summary, settings.passthroughDts, viewModel::setPassthroughDts)
+        Toggle(R.string.settings_pt_truehd, R.string.settings_pt_summary, settings.passthroughTrueHd, viewModel::setPassthroughTrueHd)
+        Choice(
+            R.string.settings_audio_channel_cap, settings.audioChannelCap, viewModel::setAudioChannelCap,
+            0 to R.string.channels_device, 2 to R.string.channels_2, 6 to R.string.channels_6, 8 to R.string.channels_8,
+        )
+        Toggle(R.string.settings_pgs_subs, R.string.settings_pgs_subs_summary, settings.pgsSubtitles, viewModel::setPgsSubtitles)
+        Choice(
+            R.string.settings_subtitle_color, settings.subtitleColor, viewModel::setSubtitleColor,
+            SubtitleColor.White to R.string.color_white, SubtitleColor.Yellow to R.string.color_yellow,
+            SubtitleColor.Green to R.string.color_green, SubtitleColor.Cyan to R.string.color_cyan,
+        )
+        Choice(
+            R.string.settings_subtitle_bg, settings.subtitleBackground, viewModel::setSubtitleBackground,
+            SubtitleBackground.Transparent to R.string.bg_transparent,
+            SubtitleBackground.SemiTransparent to R.string.bg_semi,
+            SubtitleBackground.Opaque to R.string.bg_opaque,
+        )
+        Toggle(R.string.settings_subtitle_bold, R.string.settings_subtitle_bold_summary, settings.subtitleBold, viewModel::setSubtitleBold)
+        Toggle(R.string.settings_allow_hdr10, R.string.settings_allow_hdr_summary, settings.allowHdr10, viewModel::setAllowHdr10)
+        Toggle(R.string.settings_allow_hlg, R.string.settings_allow_hdr_summary, settings.allowHlg, viewModel::setAllowHlg)
+        Choice(
+            R.string.settings_default_zoom, settings.defaultZoom, viewModel::setDefaultZoom,
+            ZoomMode.Fit to R.string.zoom_fit, ZoomMode.Fill to R.string.zoom_fill, ZoomMode.Zoom to R.string.zoom_zoom, ZoomMode.Crop to R.string.zoom_crop,
+        )
+        Choice(
+            R.string.settings_buffer_length, settings.bufferSeconds, viewModel::setBufferSeconds,
+            0 to R.string.buffer_default, 120 to R.string.buffer_120, 240 to R.string.buffer_240, 480 to R.string.buffer_480,
+        )
+        Choice(
+            R.string.settings_transcode_codec, settings.transcodeCodec, viewModel::setTranscodeCodec,
+            TranscodeCodec.Auto to R.string.transcode_auto,
+            TranscodeCodec.H264 to R.string.transcode_h264,
+            TranscodeCodec.Hevc to R.string.transcode_hevc,
+            TranscodeCodec.Av1 to R.string.transcode_av1,
+        )
+        Choice(
+            R.string.settings_h264_level, settings.h264LevelCap, viewModel::setH264LevelCap,
+            0 to R.string.level_max,
+            40 to R.string.level_40, 41 to R.string.level_41, 42 to R.string.level_42,
+            50 to R.string.level_50, 51 to R.string.level_51, 52 to R.string.level_52,
+        )
+        Choice(
+            R.string.settings_hevc_level, settings.hevcLevelCap, viewModel::setHevcLevelCap,
+            0 to R.string.level_max,
+            120 to R.string.level_40, 123 to R.string.level_41, 150 to R.string.level_50,
+            153 to R.string.level_51, 156 to R.string.level_52, 180 to R.string.level_60,
+            183 to R.string.level_61, 186 to R.string.level_62,
+        )
         OutlinedButton(onClick = viewModel::resetToAutomatic, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(stringResource(R.string.playback_reset))
         }
+    }
+}
+
+@Composable
+private fun DisplayOptionsSection() {
+    val (options, setOptions) = com.pyoungws.bluewolfplayer.ui.common.rememberDisplayOptions()
+    Column {
+        Toggle(R.string.display_backdrops, R.string.display_backdrops_summary, options.showBackdrops) { setOptions(options.copy(showBackdrops = it)) }
+        Toggle(R.string.display_blur, R.string.display_blur_summary, options.blurBackdrops) { setOptions(options.copy(blurBackdrops = it)) }
+        Toggle(R.string.display_watched_badge, R.string.display_watched_badge_summary, options.watchedBadge) { setOptions(options.copy(watchedBadge = it)) }
+        Toggle(R.string.display_clock, R.string.display_clock_summary, options.clock) { setOptions(options.copy(clock = it)) }
+        Choice(
+            R.string.display_theme, options.theme, { setOptions(options.copy(theme = it)) },
+            com.pyoungws.bluewolfplayer.ui.common.AppTheme.System to R.string.theme_system,
+            com.pyoungws.bluewolfplayer.ui.common.AppTheme.Light to R.string.theme_light,
+            com.pyoungws.bluewolfplayer.ui.common.AppTheme.Dark to R.string.theme_dark,
+        )
     }
 }
 
@@ -172,6 +273,9 @@ private fun HomeRows(state: PlaybackSettingsUiState, viewModel: PlaybackSettings
         PlaybackSettings.ROW_LIBRARIES to R.string.row_libraries,
         PlaybackSettings.ROW_CONTINUE to R.string.row_continue,
         PlaybackSettings.ROW_NEXT_UP to R.string.row_next_up,
+        PlaybackSettings.ROW_RESUME_AUDIO to R.string.row_resume_audio,
+        PlaybackSettings.ROW_LIVE_TV to R.string.row_live_tv,
+        PlaybackSettings.ROW_ON_NOW to R.string.row_on_now,
     )
     Column {
         order.forEachIndexed { index, rowId ->
@@ -296,6 +400,19 @@ private fun <T> Choice(title: Int, selected: T, onSelect: (T) -> Unit, vararg op
             }
         }
     }
+}
+
+@Composable
+private fun TextPref(title: Int, summary: Int, value: String?, onChange: (String?) -> Unit) {
+    var text by remember { mutableStateOf(value.orEmpty()) }
+    androidx.compose.material3.OutlinedTextField(
+        value = text,
+        onValueChange = { text = it; onChange(it.ifBlank { null }) },
+        label = { Text(stringResource(title)) },
+        supportingText = { Text(stringResource(summary)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    )
 }
 
 @Composable

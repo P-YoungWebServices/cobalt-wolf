@@ -44,8 +44,10 @@ class PlaybackRepository(
                 val startTicks = target.startPositionMs?.let { it * TICKS_PER_MILLISECOND }
                     ?: if (item.hasProgress) item.positionTicks else 0L
                 val serverTranscodesVideo = playbackDataSource.canTranscodeVideo(session)
+                // A Live TV program has no media of its own; playing it means tuning its channel.
+                val sourceItemId = if (item.kind == MediaKind.Program) item.programInfo?.channelId ?: item.id else item.id
                 val source = playbackDataSource.getPlaybackSource(
-                    session, target.itemId, startTicks, buildDeviceProfile(capabilities, settings, serverTranscodesVideo),
+                    session, sourceItemId, startTicks, buildDeviceProfile(capabilities, settings, serverTranscodesVideo),
                     forceTranscode = forceTranscode || settings.decoding == DecodingPreference.AlwaysTranscode,
                     maxBitrate = settings.maxBitrate.bps,
                     mediaSourceId = target.mediaSourceId,
@@ -54,6 +56,8 @@ class PlaybackRepository(
                     item, source, startTicks / TICKS_PER_MILLISECOND, target.startPaused, initialDecodePlan(settings),
                     settings, capabilities,
                     serverTranscodesVideo = serverTranscodesVideo,
+                    audioStreamIndex = target.audioStreamIndex,
+                    subtitleStreamIndex = target.subtitleStreamIndex,
                 )
             }
         }
@@ -80,6 +84,10 @@ class PlaybackRepository(
         val nextSeason = seasons.getOrNull(seasons.indexOfFirst { it.id == item.seasonId } + 1) ?: return null
         return libraryDataSource.getEpisodes(session, seriesId, nextSeason.id).firstOrNull()
     }
+
+    /** Cinema-mode preroll items for a movie; empty on failure or when the server has none. */
+    suspend fun intros(itemId: String): List<MediaItem> =
+        (guard.run { libraryDataSource.getIntros(it, itemId) } as? Outcome.Success)?.value.orEmpty()
 
     /** Intro/outro markers for the item; empty when the server has none or they fail to load. */
     suspend fun mediaSegments(itemId: String): List<MediaSegment> =

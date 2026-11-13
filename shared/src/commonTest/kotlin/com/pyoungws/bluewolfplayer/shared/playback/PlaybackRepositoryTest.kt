@@ -7,7 +7,10 @@ import com.pyoungws.bluewolfplayer.shared.library.movie
 import com.pyoungws.bluewolfplayer.shared.library.season
 import com.pyoungws.bluewolfplayer.shared.library.signedInAuthRepository
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
+import com.pyoungws.bluewolfplayer.shared.model.MediaItem
+import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
+import com.pyoungws.bluewolfplayer.shared.model.ProgramInfo
 import kotlinx.coroutines.test.runTest
 import org.jellyfin.sdk.api.client.exception.InvalidStatusException
 import kotlin.test.Test
@@ -111,6 +114,21 @@ class PlaybackRepositoryTest {
         assertEquals(PlaybackMethod.DirectPlay, request.source.method)
         assertEquals(false, request.isServerItem)
         assertEquals(emptyList(), playback.sourceRequests)
+    }
+
+    @Test
+    fun `a program plays its channel's live stream`() = runTest {
+        library.item = {
+            MediaItem(
+                it, "Evening News", MediaKind.Program,
+                programInfo = ProgramInfo(channelId = "channel-7"),
+            )
+        }
+
+        val request = (repository().prepare(PlaybackTarget.Item("prog-1")) as Outcome.Success).value
+
+        assertEquals("channel-7", playback.sourceRequests.single().first)
+        assertEquals("Evening News", request.item.name)
     }
 
     @Test

@@ -42,9 +42,13 @@ private val TvColors = darkColorScheme(
 fun CobaltWolfTvTheme(content: @Composable () -> Unit) {
     BlueWolfTheme(darkTheme = true) {
         MaterialTheme(colorScheme = TvColors) {
-            // tv-material3 leaves LocalContentColor at its black default; provide ours so
-            // unstyled Text is light on the navy background.
-            CompositionLocalProvider(LocalContentColor provides TvColors.onBackground, content = content)
+            // Both Material 3 flavors leave LocalContentColor at its black default; provide ours
+            // so unstyled Text — tv widgets and shared phone screens alike — is light on navy.
+            CompositionLocalProvider(
+                LocalContentColor provides TvColors.onBackground,
+                androidx.compose.material3.LocalContentColor provides TvColors.onBackground,
+                content = content,
+            )
         }
     }
 }

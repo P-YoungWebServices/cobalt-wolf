@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,8 +20,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
@@ -29,6 +34,12 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.HighQuality
 import androidx.compose.material.icons.outlined.PictureInPictureAlt
 import androidx.compose.material.icons.outlined.QueryStats
+import androidx.compose.material.icons.automirrored.outlined.ListAlt
+import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MoreTime
+import androidx.compose.material.icons.outlined.Nightlight
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -47,6 +58,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,11 +98,14 @@ import com.pyoungws.bluewolfplayer.BuildConfig
 import coil3.compose.AsyncImage
 import com.pyoungws.bluewolfplayer.R
 import com.pyoungws.bluewolfplayer.isTelevision
+import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.episodeLabel
 import com.pyoungws.bluewolfplayer.shared.playback.MediaSegmentKind
 import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackLevel
+import com.pyoungws.bluewolfplayer.shared.playback.RepeatMode
 import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRequest
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.summary
 import com.pyoungws.bluewolfplayer.shared.presentation.PlayerUiState
@@ -99,6 +114,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.SyncPlayUiCommand
 import com.pyoungws.bluewolfplayer.ui.common.ErrorBox
 import com.pyoungws.bluewolfplayer.ui.common.LoadingBox
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -143,6 +159,11 @@ internal fun PlayerScreen(
 
 private enum class TrackDialog { Audio, Subtitles }
 
+/** Zoom-mode step past AspectRatioFrameLayout's own constants: crops black bars it detected. */
+private const val RESIZE_CROP = -1
+
+private val SPEED_CHOICES = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
+
 private class TrackOption(val label: String, val group: Tracks.Group?, val index: Int, val selected: Boolean)
 
 @Composable
@@ -164,7 +185,9 @@ private fun PlayerContent(
     val request = ready.request
     // The view comes first: libass draws styled subtitles into its subtitle layer.
     val playerView = remember(ready.generation) { PlayerView(context) }
-    val engine = remember(ready.generation) { buildPlayerEngine(context, request, playerView, debugMaxChannels) }
+    val engine = remember(ready.generation) {
+        buildPlayerEngine(context, request, playerView, debugMaxChannels, subtitleOffsetUs = { viewModel.subtitleDelayMs.value * 1_000 })
+    }
     val player = engine.player
     // The controller's next button has no playlist item to move to: it lights up once the
     // server reports a following episode, and pressing it hands off to the view model.
@@ -185,17 +208,80 @@ private fun PlayerContent(
             }
         }
     }
+
+    val castController = remember { CastController(context) }
+    DisposableEffect(castController, player) {
+        castController.attach(controllerPlayer) {
+            controllerPlayer.currentMediaItem?.forCastReceiver(castToken(request))
+        }
+        onDispose { castController.detach() }
+    }
     val stats by engine.stats.stats.collectAsStateWithLifecycle()
     val membership by viewModel.membership.collectAsStateWithLifecycle()
     val nextItem by viewModel.nextItem.collectAsStateWithLifecycle()
     val segments by viewModel.segments.collectAsStateWithLifecycle()
+    val queue by viewModel.queue.collectAsStateWithLifecycle()
+    var showQueue by remember { mutableStateOf(false) }
     var tracks by remember(player) { mutableStateOf(Tracks.EMPTY) }
     var controlsVisible by remember(player) { mutableStateOf(true) }
     var dialog by remember(player) { mutableStateOf<TrackDialog?>(null) }
-    var zoomMode by remember(player) { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
+    var zoomMode by remember(player) {
+        mutableIntStateOf(
+            when (request.settings.defaultZoom) {
+                com.pyoungws.bluewolfplayer.shared.playback.ZoomMode.Fit -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                com.pyoungws.bluewolfplayer.shared.playback.ZoomMode.Fill -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                com.pyoungws.bluewolfplayer.shared.playback.ZoomMode.Zoom -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                com.pyoungws.bluewolfplayer.shared.playback.ZoomMode.Crop -> RESIZE_CROP
+            },
+        )
+    }
+    // Auto-crop zooms the texture output by the detected letterbox factor; detection runs once when
+    // the mode is picked and 1f means "no bars found, show the frame as-is".
+    var cropScale by remember(player) { mutableStateOf<Float?>(null) }
+    LaunchedEffect(zoomMode) {
+        if (zoomMode == RESIZE_CROP && cropScale == null) {
+            cropScale = detectCropScale(request.source.url, request.source.headers, request.item.runtimeTicks, request.startPositionMs)
+        }
+    }
+    val cropActive = zoomMode == RESIZE_CROP && (cropScale ?: 1f) > 1f
+    // While cropping, video routes to a TextureView laid over the normal surface box; only a
+    // texture can take the transform that scales the frame's letterbox away.
+    var cropTextureView by remember(player) { mutableStateOf<android.view.TextureView?>(null) }
+    LaunchedEffect(cropActive) {
+        val frame = playerView.findViewById<AspectRatioFrameLayout>(androidx.media3.ui.R.id.exo_content_frame) ?: return@LaunchedEffect
+        val overlay = cropTextureView
+        if (cropActive && overlay == null) {
+            val texture = android.view.TextureView(context)
+            frame.addView(texture, android.widget.FrameLayout.LayoutParams(-1, -1))
+            player.setVideoTextureView(texture)
+            cropTextureView = texture
+        } else if (!cropActive && overlay != null) {
+            player.clearVideoTextureView(overlay)
+            frame.removeView(overlay)
+            cropTextureView = null
+            playerView.player = null
+            playerView.player = castController.activePlayer ?: controllerPlayer
+        }
+    }
+    LaunchedEffect(cropTextureView, cropScale) {
+        val texture = cropTextureView ?: return@LaunchedEffect
+        val scale = cropScale ?: 1f
+        texture.post {
+            texture.setTransform(android.graphics.Matrix().apply { setScale(scale, scale, texture.width / 2f, texture.height / 2f) })
+        }
+    }
     var scrubPositionMs by remember(player) { mutableStateOf<Long?>(null) }
     var nextCountdownCancelled by remember(ready.generation) { mutableStateOf(false) }
     var showBitrateDialog by remember(player) { mutableStateOf(false) }
+    var showSpeedDialog by remember(player) { mutableStateOf(false) }
+    var showDelayDialog by remember(player) { mutableStateOf(false) }
+    val subtitleDelayMs by viewModel.subtitleDelayMs.collectAsStateWithLifecycle()
+    var nightMode by remember(player) { mutableStateOf(false) }
+    var showChapters by remember(player) { mutableStateOf(false) }
+    var gesturesLocked by remember(player) { mutableStateOf(false) }
+    var gestureHint by remember(player) { mutableStateOf<String?>(null) }
+    val hintScope = rememberCoroutineScope()
+    val stillWatching by viewModel.stillWatching.collectAsStateWithLifecycle()
     var showStats by remember { mutableStateOf(debugShowStats) }
     var positionMs by remember(player) { mutableLongStateOf(request.startPositionMs) }
     var displayMatched by remember(player) { mutableStateOf(false) }
@@ -217,12 +303,20 @@ private fun PlayerContent(
 
     val itemTitle = request.item.let { if (it.episodeLabel() != null) "${it.seriesName} ${it.episodeLabel()}: ${it.name}" else it.name }
 
+    val isAudio = request.item.kind == MediaKind.Song
     DisposableEffect(player) {
         val title = itemTitle
         player.setMediaItem(
             MediaItem.Builder()
                 .setUri(request.source.url)
-                .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(title)
+                        .setArtist(request.item.artists.firstOrNull())
+                        .setAlbumTitle(request.item.albumName)
+                        .setArtworkUri((request.item.posterUrl ?: request.item.landscapeUrl)?.let(Uri::parse))
+                        .build(),
+                )
                 .setSubtitleConfigurations(
                     request.source.subtitles.map {
                         MediaItem.SubtitleConfiguration.Builder(Uri.parse(it.url))
@@ -238,6 +332,7 @@ private fun PlayerContent(
         )
         val debugSelections = mutableMapOf(C.TRACK_TYPE_AUDIO to debugPreferredAudioMimeType, C.TRACK_TYPE_TEXT to debugSubtitleMimeType)
         var audioPreferenceApplied = false
+        var trackPrefsApplied = false
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 onPlayingChanged(isPlaying)
@@ -282,6 +377,12 @@ private fun PlayerContent(
                     debugSelections[type] = null
                     Log.i(TAG, "debug track selected: ${group.getTrackFormat(0)}")
                     selectTrack(player, type, TrackOption("", group, 0, false))
+                }
+                // Detail-page picks and language preferences are applied once, before the
+                // generic English-audio fallback below (which yields when one landed).
+                if (!trackPrefsApplied) {
+                    trackPrefsApplied = true
+                    audioPreferenceApplied = applyInitialTrackPrefs(player, newTracks, request) || audioPreferenceApplied
                 }
                 // A stream no renderer accepts would be silently skipped; treat it as a decoder
                 // failure so the fallback order applies instead of playing without picture or sound.
@@ -333,12 +434,19 @@ private fun PlayerContent(
         player.addListener(listener)
         player.prepare()
         player.playWhenReady = !request.startPaused
+        PlaybackService.attach(context, player)
         onPlayerChanged(player)
         onDispose {
             onPlayerChanged(null)
             player.removeListener(listener)
             playerView.player = null
-            engine.release()
+            if (isAudio && player.isPlaying) {
+                // Background audio: the service's session keeps the player alive past this screen.
+                player.clearVideoSurface()
+            } else {
+                PlaybackService.stop(context)
+                engine.release()
+            }
             displayModeController.reset()
         }
     }
@@ -406,9 +514,10 @@ private fun PlayerContent(
     // shows the controller on select. When the controls appear, play/pause takes the focus.
     val isTv = remember { context.isTelevision() }
     val rootFocusRequester = remember { FocusRequester() }
-    val behavior = when {
-        segments.firstOrNull { it.contains(positionMs) }?.kind == MediaSegmentKind.Intro -> request.settings.introBehavior
-        segments.firstOrNull { it.contains(positionMs) }?.kind == MediaSegmentKind.Outro -> request.settings.outroBehavior
+    val activeKind = segments.firstOrNull { it.contains(positionMs) }?.kind
+    val behavior = when (activeKind) {
+        MediaSegmentKind.Intro, MediaSegmentKind.Recap -> request.settings.introBehavior
+        MediaSegmentKind.Outro -> request.settings.outroBehavior
         else -> SegmentBehavior.Ask
     }
     val activeSegment = segments.firstOrNull { it.contains(positionMs) }?.takeIf { behavior != SegmentBehavior.Off }
@@ -454,10 +563,12 @@ private fun PlayerContent(
         ),
     ) {
         key(ready.generation) {
+            val castActive = castController.activePlayer
+            LaunchedEffect(castActive) { playerView.player = castActive ?: controllerPlayer }
             AndroidView(
                 factory = {
                     playerView.apply {
-                        this.player = controllerPlayer
+                        this.player = castActive ?: controllerPlayer
                         setShowSubtitleButton(false)
                         // A single stream has no previous item; a permanently greyed button only confuses.
                         setShowPreviousButton(false)
@@ -479,17 +590,60 @@ private fun PlayerContent(
                                 })
                             }
                         }
+                        if (!isTv) attachPlayerGestures(
+                            view = this,
+                            player = player,
+                            isLocked = { gesturesLocked },
+                            onHint = { hint ->
+                                gestureHint = hint
+                                hintScope.launch { delay(1_200); if (gestureHint == hint) gestureHint = null }
+                            },
+                        )
                     }
                 },
                 update = {
                 it.useController = !isInPip
-                it.resizeMode = zoomMode
+                // Crop draws through the texture overlay instead, so the layout keeps a plain fit.
+                it.resizeMode = if (zoomMode == RESIZE_CROP) AspectRatioFrameLayout.RESIZE_MODE_FIT else zoomMode
                 it.subtitleView?.setFractionalTextSize(0.0533f * request.settings.subtitleScale)
+                it.subtitleView?.setStyle(
+                    androidx.media3.ui.CaptionStyleCompat(
+                        when (request.settings.subtitleColor) {
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor.White -> android.graphics.Color.WHITE
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor.Yellow -> android.graphics.Color.YELLOW
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor.Green -> android.graphics.Color.GREEN
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor.Cyan -> android.graphics.Color.CYAN
+                        },
+                        when (request.settings.subtitleBackground) {
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleBackground.Transparent -> android.graphics.Color.TRANSPARENT
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleBackground.SemiTransparent -> 0x80000000.toInt()
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleBackground.Opaque -> android.graphics.Color.BLACK
+                        },
+                        android.graphics.Color.TRANSPARENT,
+                        if (request.settings.subtitleBold) androidx.media3.ui.CaptionStyleCompat.EDGE_TYPE_OUTLINE else androidx.media3.ui.CaptionStyleCompat.EDGE_TYPE_NONE,
+                        android.graphics.Color.BLACK,
+                        if (request.settings.subtitleBold) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT,
+                    ),
+                )
             },
                 modifier = Modifier.fillMaxSize(),
             )
         }
         if (showStats && !isInPip) StatsOverlay(stats, Modifier.align(Alignment.TopStart).statusBarsPadding().padding(start = 8.dp, top = 56.dp))
+        gestureHint?.let {
+            Text(
+                it,
+                color = Color.White,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.align(Alignment.Center).background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+        if (gesturesLocked) {
+            IconButton(
+                onClick = { gesturesLocked = false },
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 140.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape),
+            ) { Icon(Icons.Outlined.Lock, contentDescription = stringResource(R.string.player_unlock), tint = Color.White) }
+        }
         scrubPositionMs?.let { scrubMs ->
             request.item.trickplay?.let { tiles ->
                 val index = (scrubMs / tiles.interval).toInt().coerceIn(0, tiles.thumbnailCount - 1)
@@ -525,21 +679,40 @@ private fun PlayerContent(
                 }
                 ControlButton(onClick = { dialog = TrackDialog.Audio }, icon = Icons.AutoMirrored.Outlined.VolumeUp, description = stringResource(R.string.player_audio))
                 ControlButton(onClick = { dialog = TrackDialog.Subtitles }, icon = Icons.Outlined.Subtitles, description = stringResource(R.string.player_subtitles))
+                ControlButton(onClick = { showDelayDialog = true }, icon = Icons.Outlined.MoreTime, description = stringResource(R.string.player_subtitle_delay))
                 ControlButton(onClick = { showBitrateDialog = true }, icon = Icons.Outlined.HighQuality, description = stringResource(R.string.player_bitrate))
                 ControlButton(
                     onClick = {
                         zoomMode = when (zoomMode) {
                             AspectRatioFrameLayout.RESIZE_MODE_FIT -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                             AspectRatioFrameLayout.RESIZE_MODE_FILL -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> RESIZE_CROP
                             else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                         }
                     },
                     icon = Icons.Outlined.AspectRatio,
                     description = stringResource(R.string.player_zoom),
                 )
+                if (queue.entries.isNotEmpty()) {
+                    ControlButton(onClick = { showQueue = true }, icon = Icons.AutoMirrored.Outlined.PlaylistPlay, description = stringResource(R.string.player_queue))
+                }
+                ControlButton(onClick = { showSpeedDialog = true }, icon = Icons.Outlined.Speed, description = stringResource(R.string.player_speed))
+                ControlButton(onClick = { nightMode = !nightMode; engine.setNightMode(nightMode) }, icon = Icons.Outlined.Nightlight, description = stringResource(R.string.player_night_mode))
+                if (!isTv) {
+                    ControlButton(onClick = { gesturesLocked = true }, icon = Icons.Outlined.Lock, description = stringResource(R.string.player_lock))
+                }
+                if (request.item.chapters.isNotEmpty()) {
+                    ControlButton(onClick = { showChapters = true }, icon = Icons.AutoMirrored.Outlined.ListAlt, description = stringResource(R.string.player_chapters))
+                }
                 ControlButton(onClick = { showStats = !showStats }, icon = Icons.Outlined.QueryStats, description = stringResource(R.string.player_stats))
                 if (!isTv) {
                     ControlButton(onClick = onEnterPip, icon = Icons.Outlined.PictureInPictureAlt, description = stringResource(R.string.player_pip))
+                }
+                if (castController.available) {
+                    AndroidView(
+                        factory = { castRouteButton(it) },
+                        modifier = Modifier.size(40.dp),
+                    )
                 }
                 ControlButton(onClick = onClose, icon = Icons.Outlined.Close, description = stringResource(R.string.player_close))
             }
@@ -569,7 +742,13 @@ private fun PlayerContent(
                             Text(stringResource(R.string.player_next_episode))
                         }
                         else -> Button(onClick = { player.seekTo(segment.endMs) }, modifier = buttonModifier) {
-                            Text(stringResource(if (segment.kind == MediaSegmentKind.Intro) R.string.player_skip_intro else R.string.player_skip_credits))
+                            Text(stringResource(
+                                when (segment.kind) {
+                                    MediaSegmentKind.Intro -> R.string.player_skip_intro
+                                    MediaSegmentKind.Recap -> R.string.player_skip_recap
+                                    MediaSegmentKind.Outro -> R.string.player_skip_credits
+                                }
+                            ))
                         }
                     }
                 }
@@ -610,6 +789,17 @@ private fun PlayerContent(
             onDismiss = { dialog = null },
         )
     }
+    if (showQueue) {
+        QueueDialog(
+            queue = queue,
+            onSelect = { viewModel.playQueueIndex(it, player.currentPosition); showQueue = false },
+            onPrevious = { viewModel.playQueuePrevious(player.currentPosition); showQueue = false },
+            onRemove = viewModel::removeQueueEntry,
+            onCycleRepeat = viewModel::cycleRepeat,
+            onToggleShuffle = viewModel::toggleShuffle,
+            onDismiss = { showQueue = false },
+        )
+    }
     if (showBitrateDialog) {
         BitrateDialog(
             selected = request.settings.maxBitrate,
@@ -618,6 +808,57 @@ private fun PlayerContent(
                 showBitrateDialog = false
             },
             onDismiss = { showBitrateDialog = false },
+        )
+    }
+    if (showDelayDialog) {
+        SubtitleDelayDialog(
+            delayMs = subtitleDelayMs,
+            onChange = viewModel::setSubtitleDelayMs,
+            onDismiss = { showDelayDialog = false },
+        )
+    }
+    if (showSpeedDialog) {
+        TrackSelectionDialog(
+            title = stringResource(R.string.player_speed),
+            options = SPEED_CHOICES.map { TrackOption(it.toString() + "x", null, SPEED_CHOICES.indexOf(it), it == player.playbackParameters.speed) },
+            onSelect = { option ->
+                player.setPlaybackSpeed(SPEED_CHOICES[option.index])
+                showSpeedDialog = false
+            },
+            onDismiss = { showSpeedDialog = false },
+        )
+    }
+    if (showChapters) {
+        TrackSelectionDialog(
+            title = stringResource(R.string.player_chapters),
+            options = request.item.chapters.mapIndexed { index, chapter ->
+                TrackOption(
+                    chapter.name ?: stringResource(R.string.player_chapter_number, index + 1),
+                    null,
+                    index,
+                    positionMs >= chapter.startTicks / 10_000 &&
+                        (request.item.chapters.getOrNull(index + 1)?.startTicks ?: Long.MAX_VALUE) > positionMs * 10_000,
+                )
+            },
+            onSelect = { option ->
+                player.seekTo(request.item.chapters[option.index].startTicks / 10_000)
+                showChapters = false
+            },
+            onDismiss = { showChapters = false },
+        )
+    }
+    if (stillWatching) {
+        LaunchedEffect(Unit) { player.pause() }
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(stringResource(R.string.player_still_watching)) },
+            text = { Text(stringResource(R.string.player_still_watching_body)) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmStillWatching(player.currentPosition); player.play() }) {
+                    Text(stringResource(R.string.player_still_watching_yes))
+                }
+            },
+            dismissButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.player_close)) } },
         )
     }
 }
@@ -649,6 +890,80 @@ private fun trackOptions(tracks: Tracks, type: Int, player: Player, offLabel: St
     return options
 }
 
+/**
+ * Applies the detail-page stream picks ([PlaybackRequest.audioStreamIndex]/[subtitleStreamIndex])
+ * and the user's language/subtitle preferences once tracks are known. Returns true when an audio
+ * pick was made so the generic English-audio fallback stays out of the way.
+ */
+private fun applyInitialTrackPrefs(player: Player, tracks: Tracks, request: PlaybackRequest): Boolean {
+    val settings = request.settings
+    val builder = player.trackSelectionParameters.buildUpon()
+    var audioPicked = false
+
+    fun groupOrdinal(kind: com.pyoungws.bluewolfplayer.shared.model.StreamKind, streamIndex: Int): Int =
+        request.item.streams.filter { it.kind == kind }.indexOfFirst { it.index == streamIndex }
+
+    fun pickTrack(type: Int, ordinal: Int): Boolean {
+        val groups = tracks.groups.filter { it.type == type }
+        if (ordinal < 0 || ordinal >= groups.size) return false
+        val group = groups[ordinal]
+        val index = (0 until group.length).firstOrNull { group.isTrackSupported(it) } ?: return false
+        builder.setTrackTypeDisabled(type, false)
+            .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, index))
+        return true
+    }
+
+    // Audio: explicit index, then preferred language, else leave the default.
+    request.audioStreamIndex?.let { idx ->
+        if (pickTrack(C.TRACK_TYPE_AUDIO, groupOrdinal(com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio, idx))) audioPicked = true
+    }
+    if (!audioPicked) settings.preferredAudioLanguage?.let { lang ->
+        val match = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }.firstNotNullOfOrNull { g ->
+            (0 until g.length).firstOrNull { i -> g.isTrackSupported(i) && g.getTrackFormat(i).language.matchesLanguagePref(lang) }?.let { g to it }
+        }
+        if (match != null) {
+            builder.setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, false)
+                .setOverrideForType(TrackSelectionOverride(match.first.mediaTrackGroup, match.second))
+            audioPicked = true
+        }
+    }
+
+    // Subtitles: explicit index (-1 = off), then the playback mode.
+    val subIndex = request.subtitleStreamIndex
+    when {
+        subIndex == -1 || settings.subtitleMode == com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode.None ->
+            builder.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+        subIndex != null -> pickTrack(C.TRACK_TYPE_TEXT, groupOrdinal(com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle, subIndex))
+        else -> {
+            val lang = settings.preferredSubtitleLanguage
+            val forcedOnly = settings.subtitleMode == com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode.Forced
+            if (lang != null && settings.subtitleMode != com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode.Default) {
+                val match = tracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }.firstNotNullOfOrNull { g ->
+                    (0 until g.length).firstOrNull { i ->
+                        val f = g.getTrackFormat(i)
+                        g.isTrackSupported(i) && f.language.matchesLanguagePref(lang) &&
+                            (!forcedOnly || f.selectionFlags and C.SELECTION_FLAG_FORCED != 0)
+                    }?.let { g to it }
+                }
+                if (match != null) {
+                    builder.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                        .setOverrideForType(TrackSelectionOverride(match.first.mediaTrackGroup, match.second))
+                }
+            }
+        }
+    }
+    player.trackSelectionParameters = builder.build()
+    return audioPicked
+}
+
+/** Matches a track language tag against a user preference ("eng", "en", "eng;en"). */
+private fun String?.matchesLanguagePref(pref: String): Boolean {
+    if (this == null || pref.isBlank()) return false
+    val candidates = pref.split(';', ',').map { it.trim().lowercase() }
+    val lang = lowercase()
+    return candidates.any { lang == it || lang.startsWith("$it-") || it.length == 3 && lang.take(2) == it.take(2) }
+}
+
 private fun selectTrack(player: Player, type: Int, option: TrackOption) {
     val builder = player.trackSelectionParameters.buildUpon()
     if (option.group == null) {
@@ -658,6 +973,66 @@ private fun selectTrack(player: Player, type: Int, option: TrackOption) {
             .setOverrideForType(TrackSelectionOverride(option.group.mediaTrackGroup, option.index))
     }
     player.trackSelectionParameters = builder.build()
+}
+
+@Composable
+private fun QueueDialog(
+    queue: com.pyoungws.bluewolfplayer.shared.playback.PlayQueue,
+    onSelect: (Int) -> Unit,
+    onPrevious: () -> Unit,
+    onRemove: (Int) -> Unit,
+    onCycleRepeat: () -> Unit,
+    onToggleShuffle: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.player_queue), modifier = Modifier.weight(1f))
+                TextButton(onClick = onToggleShuffle) {
+                    Text(
+                        stringResource(R.string.player_shuffle),
+                        color = if (queue.shuffled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                TextButton(onClick = onCycleRepeat) {
+                    Text(
+                        stringResource(R.string.player_repeat, stringResource(when (queue.repeat) {
+                            RepeatMode.All -> R.string.player_repeat_all
+                            RepeatMode.One -> R.string.player_repeat_one
+                            else -> R.string.player_repeat_off
+                        })),
+                        color = if (queue.repeat != RepeatMode.Off) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        },
+        text = {
+            if (queue.entries.isEmpty()) Text(stringResource(R.string.player_queue_empty))
+            else LazyColumn(Modifier.heightIn(max = 420.dp)) {
+                itemsIndexed(queue.entries, key = { i, e -> "${e.item.id}-$i" }) { index, entry ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onSelect(index) }.padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            entry.item.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (index == queue.currentIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = { onRemove(index) }) {
+                            Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.player_remove_from_queue))
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.player_close)) } },
+    )
 }
 
 @Composable
@@ -711,6 +1086,32 @@ private fun bitrateLabel(bitrate: StreamBitrate): String = when (bitrate) {
 }
 
 @Composable
+private fun SubtitleDelayDialog(delayMs: Long, onChange: (Long) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.player_subtitle_delay)) },
+        text = {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = { onChange(delayMs - 100) }) { Text("-100ms") }
+                Text(
+                    stringResource(R.string.player_delay_value, if (delayMs >= 0) "+${delayMs}" else "$delayMs"),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                TextButton(onClick = { onChange(delayMs + 100) }) { Text("+100ms") }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.player_close)) } },
+        dismissButton = if (delayMs == 0L) null else {
+            { TextButton(onClick = { onChange(0) }) { Text(stringResource(R.string.player_delay_reset)) } }
+        },
+    )
+}
+
+@Composable
 private fun TrackSelectionDialog(title: String, options: List<TrackOption>, onSelect: (TrackOption) -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -734,3 +1135,101 @@ private fun TrackSelectionDialog(title: String, options: List<TrackOption>, onSe
 }
 
 private const val NEXT_UP_COUNTDOWN_MS = 15_000L
+
+/**
+ * Phone gestures on the video surface: double-tap seeks 10 s, a horizontal drag scrubs
+ * (full width = [SCRUB_FULL_RANGE_MS]), vertical drags adjust volume (right half) and
+ * brightness (left half), press-and-hold plays at 2x. The listener never consumes
+ * events, so the built-in controller keeps working; while locked it eats everything.
+ */
+private fun attachPlayerGestures(view: PlayerView, player: ExoPlayer, isLocked: () -> Boolean, onHint: (String?) -> Unit) {
+    val context = view.context
+    val audioManager = context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
+    val activity = context as? android.app.Activity
+    var heldSpeed: Float? = null
+    var scrubbing = false
+    var scrubMs = 0L
+    var axis: Boolean? = null // true = vertical, false = horizontal
+
+    val detector = android.view.GestureDetector(context, object : android.view.GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(e: android.view.MotionEvent) = !isLocked()
+
+        override fun onDoubleTap(e: android.view.MotionEvent): Boolean {
+            val delta = if (e.x < view.width / 2f) -SEEK_GESTURE_MS else SEEK_GESTURE_MS
+            player.seekTo((player.currentPosition + delta).coerceIn(0L, (player.duration).coerceAtLeast(0L)))
+            onHint(if (delta < 0) "-10s" else "+10s")
+            return true
+        }
+
+        override fun onLongPress(e: android.view.MotionEvent) {
+            if (isLocked()) return
+            heldSpeed = player.playbackParameters.speed
+            player.setPlaybackSpeed(2f)
+            onHint("2x")
+        }
+
+        override fun onScroll(e1: android.view.MotionEvent?, e2: android.view.MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+            if (isLocked() || e1 == null || e1.y > view.height * 0.85f) return false
+            if (axis == null && (kotlin.math.abs(e2.x - e1.x) > 24 || kotlin.math.abs(e2.y - e1.y) > 24)) {
+                axis = kotlin.math.abs(e2.y - e1.y) > kotlin.math.abs(e2.x - e1.x)
+            }
+            when (axis) {
+                false -> {
+                    scrubbing = true
+                    scrubMs = ((e2.x - e1.x) / view.width * SCRUB_FULL_RANGE_MS).toLong()
+                    onHint(if (scrubMs >= 0) "+${scrubMs / 1000}s" else "${scrubMs / 1000}s")
+                }
+                true -> {
+                    val delta = -distanceY / view.height
+                    if (e1.x > view.width / 2f) {
+                        val max = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                        val next = (audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) + (delta * max).toInt()).coerceIn(0, max)
+                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, next, 0)
+                        onHint("${next * 100 / max}%")
+                    } else {
+                        activity?.window?.let { window ->
+                            val attrs = window.attributes
+                            val next = ((if (attrs.screenBrightness < 0) 0.5f else attrs.screenBrightness) + delta * 2f).coerceIn(0.05f, 1f)
+                            attrs.screenBrightness = next
+                            window.attributes = attrs
+                            onHint("${(next * 100).toInt()}%")
+                        }
+                    }
+                }
+                null -> Unit
+            }
+            return true
+        }
+    })
+
+    view.setOnTouchListener { _, event ->
+        if (isLocked()) {
+            heldSpeed = null; scrubbing = false; axis = null
+            return@setOnTouchListener true
+        }
+        detector.onTouchEvent(event)
+        when (event.actionMasked) {
+            android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                heldSpeed?.let { player.setPlaybackSpeed(it); heldSpeed = null; onHint(null) }
+                if (scrubbing) {
+                    scrubbing = false
+                    player.seekTo((player.currentPosition + scrubMs).coerceIn(0L, player.duration.coerceAtLeast(0L)))
+                    scrubMs = 0
+                    onHint(null)
+                }
+                axis = null
+            }
+        }
+        false
+    }
+}
+
+private const val SEEK_GESTURE_MS = 10_000L
+private const val SCRUB_FULL_RANGE_MS = 180_000L
+
+
+/** Extracts the access token from the source's Authorization header for the Cast URL. */
+private fun castToken(request: com.pyoungws.bluewolfplayer.shared.playback.PlaybackRequest): String? =
+    request.source.headers["Authorization"]
+        ?.let { Regex("Token=\"([^\"]+)\"").find(it)?.groupValues?.get(1) }
+        ?: request.source.headers["X-Emby-Token"]

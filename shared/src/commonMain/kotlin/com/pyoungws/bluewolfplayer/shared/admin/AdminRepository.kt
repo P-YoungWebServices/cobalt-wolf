@@ -70,6 +70,30 @@ class AdminRepository(
 
     suspend fun systemInfo(): Outcome<SystemInformation> = guard.run { dataSource.getSystemInfo(it) }
 
+    suspend fun activityLog(startIndex: Int = 0, limit: Int = 50): Outcome<List<ActivityEntry>> = guard.run { dataSource.getActivityLog(it, startIndex, limit) }
+
+    suspend fun apiKeys(): Outcome<List<ServerApiKey>> = guard.run { dataSource.getApiKeys(it) }
+
+    suspend fun createApiKey(appName: String): Outcome<Unit> = guard.run { dataSource.createApiKey(it, appName) }
+
+    suspend fun revokeApiKey(key: String): Outcome<Unit> = guard.run { dataSource.revokeApiKey(it, key) }
+
+    suspend fun plugins(): Outcome<List<AdminPlugin>> = guard.run { dataSource.getPlugins(it) }
+
+    suspend fun setPluginEnabled(pluginId: String, version: String, enabled: Boolean): Outcome<Unit> =
+        guard.run { dataSource.setPluginEnabled(it, pluginId, version, enabled) }
+
+    suspend fun uninstallPlugin(pluginId: String): Outcome<Unit> = guard.run { dataSource.uninstallPlugin(it, pluginId) }
+
+    suspend fun serverSettings(): Outcome<ServerSettings> = guard.run { dataSource.getServerSettings(it) }
+
+    suspend fun updateServerSettings(settings: ServerSettings): Outcome<Unit> =
+        guard.run { dataSource.updateServerSettings(it, settings) }
+
+    suspend fun restartServer(): Outcome<Unit> = guard.run { dataSource.restartServer(it) }
+
+    suspend fun shutdownServer(): Outcome<Unit> = guard.run { dataSource.shutdownServer(it) }
+
     private companion object {
         const val RECENT_LIMIT = 16
     }

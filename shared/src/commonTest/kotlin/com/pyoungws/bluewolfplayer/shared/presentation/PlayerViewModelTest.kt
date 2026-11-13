@@ -71,6 +71,18 @@ class PlayerViewModelTest {
         playbackRepository(library, playback, SessionGuard(signedInAuthRepository()), capabilities),
         reportScope = this,
         syncPlay = syncPlay ?: syncPlayRepository(),
+        playQueue = com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository(),
+    )
+
+    private suspend fun TestScope.viewModelWithSettings(
+        settings: com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings,
+        target: PlaybackTarget = PlaybackTarget.Item("m1"),
+    ) = PlayerViewModel(
+        target,
+        playbackRepository(library, playback, SessionGuard(signedInAuthRepository()), PHONE_CAPABILITIES, settings),
+        reportScope = this,
+        syncPlay = syncPlayRepository(),
+        playQueue = com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository(),
     )
 
     private suspend fun TestScope.syncPlayRepository(
@@ -320,6 +332,61 @@ class PlayerViewModelTest {
         assertEquals(listOf("start", "stopped"), playback.reports)
         // The new episode is the finale: nothing follows it.
         assertNull(viewModel.nextItem.value)
+    }
+
+    @Test
+    fun `the still-watching prompt pauses auto-advance after the episode limit`() = runTest {
+        library.item = { episode(it, it.removePrefix("e").toInt()) }
+        library.episodes = { _, _ -> listOf(episode("e1", 1), episode("e2", 2), episode("e3", 3), episode("e4", 4)) }
+        val viewModel = viewModelWithSettings(
+            com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings(stillWatchingEpisodes = 2),
+            PlaybackTarget.Item("e1"),
+        )
+        advanceUntilIdle()
+        viewModel.onPlaybackStarted(0, isPaused = false)
+
+        assertTrue(viewModel.onEnded(2_700_000)) // e1 -> e2, streak 1
+        advanceUntilIdle()
+        assertTrue(viewModel.onEnded(2_700_000)) // e2 -> e3, streak 2
+        advanceUntilIdle()
+        assertTrue(viewModel.onEnded(2_700_000)) // streak reached limit -> prompt, stays on e3
+        advanceUntilIdle()
+
+        assertTrue(viewModel.stillWatching.value)
+        assertEquals("e3", (viewModel.uiState.value as PlayerUiState.Ready).request.item.id)
+
+        viewModel.confirmStillWatching(0)
+        advanceUntilIdle()
+        assertFalse(viewModel.stillWatching.value)
+        assertEquals("e4", (viewModel.uiState.value as PlayerUiState.Ready).request.item.id)
+    }
+
+    @Test
+    fun `manual actions reset the still-watching streak`() = runTest {
+        library.item = { episode(it, it.removePrefix("e").toInt()) }
+        library.episodes = { _, _ -> listOf(episode("e1", 1), episode("e2", 2), episode("e3", 3)) }
+        val viewModel = viewModelWithSettings(
+            com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings(stillWatchingEpisodes = 1),
+            PlaybackTarget.Item("e1"),
+        )
+        advanceUntilIdle()
+        viewModel.onUserSeek(1_000) // counts as interaction
+        viewModel.onPlaybackStarted(0, isPaused = false)
+
+        assertTrue(viewModel.onEnded(2_700_000))
+        advanceUntilIdle()
+        assertFalse(viewModel.stillWatching.value)
+    }
+
+    @Test
+    fun `resume rewind shifts the start position back`() = runTest {
+        library.item = { movie(it, positionTicks = 20_000_000L) }
+        val viewModel = viewModelWithSettings(
+            com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings(resumeRewindSeconds = 10),
+        )
+        advanceUntilIdle()
+        // 2s resume minus 10s rewind clamps to 0.
+        assertEquals(0L, (viewModel.uiState.value as PlayerUiState.Ready).request.startPositionMs)
     }
 
     @Test

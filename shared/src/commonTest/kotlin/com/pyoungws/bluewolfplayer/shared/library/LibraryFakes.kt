@@ -52,6 +52,7 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
 
     override suspend fun getLibraries(session: Session): List<Library> = libraries().also { calls += "libraries" }
     override suspend fun getResumeItems(session: Session): List<MediaItem> = resume().also { calls += "resume" }
+    override suspend fun getResumeAudioItems(session: Session): List<MediaItem> = emptyList<MediaItem>().also { calls += "resumeAudio" }
     override suspend fun getNextUp(session: Session, nextUpCutoffDays: Int): List<MediaItem> = nextUp().also { calls += "nextUp($nextUpCutoffDays)" }
     override suspend fun getLatest(session: Session, libraryId: String): List<MediaItem> = latest(libraryId).also { calls += "latest($libraryId)" }
     override suspend fun getLibraryItems(session: Session, library: Library, startIndex: Int, limit: Int): Page<MediaItem> =
@@ -74,8 +75,48 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
     override suspend fun getLocalTrailers(session: Session, itemId: String): List<MediaItem> = localTrailers(itemId).also { calls += "localTrailers($itemId)" }
     override suspend fun getPreviousEpisode(session: Session, episode: MediaItem): MediaItem? = previousEpisode(episode).also { calls += "previousEpisode(${episode.id})" }
     var similar: (itemId: String) -> List<MediaItem> = { emptyList() }
+    var instantMix: (itemId: String, limit: Int) -> List<MediaItem> = { _, _ -> emptyList() }
+    var lyrics: (itemId: String) -> com.pyoungws.bluewolfplayer.shared.model.Lyrics? = { null }
     var nextUpForSeries: (seriesId: String) -> MediaItem? = { null }
     override suspend fun getSimilar(session: Session, itemId: String): List<MediaItem> = similar(itemId).also { calls += "similar($itemId)" }
+    override suspend fun getInstantMix(session: Session, itemId: String, limit: Int): List<MediaItem> = instantMix(itemId, limit).also { calls += "instantMix($itemId)" }
+    override suspend fun getLyrics(session: Session, itemId: String): com.pyoungws.bluewolfplayer.shared.model.Lyrics? = lyrics(itemId).also { calls += "lyrics($itemId)" }
+    override suspend fun getLiveTvChannels(session: Session): List<MediaItem> = emptyList<MediaItem>().also { calls += "liveTvChannels" }
+    override suspend fun getPrograms(session: Session, channelIds: List<String>, start: java.time.LocalDateTime, end: java.time.LocalDateTime): List<MediaItem> = emptyList<MediaItem>().also { calls += "programs" }
+    override suspend fun getLiveTvRecordings(session: Session): List<MediaItem> = emptyList<MediaItem>().also { calls += "liveTvRecordings" }
+    override suspend fun getTimers(session: Session): List<com.pyoungws.bluewolfplayer.shared.model.LiveTimer> = emptyList<com.pyoungws.bluewolfplayer.shared.model.LiveTimer>().also { calls += "timers" }
+    override suspend fun getSeriesTimers(session: Session): List<com.pyoungws.bluewolfplayer.shared.model.LiveTimer> = emptyList<com.pyoungws.bluewolfplayer.shared.model.LiveTimer>().also { calls += "seriesTimers" }
+    override suspend fun recordProgram(session: Session, programId: String) { calls += "recordProgram($programId)" }
+    override suspend fun recordSeries(session: Session, programId: String) { calls += "recordSeries($programId)" }
+    override suspend fun cancelTimer(session: Session, timerId: String) { calls += "cancelTimer($timerId)" }
+    override suspend fun cancelSeriesTimer(session: Session, timerId: String) { calls += "cancelSeriesTimer($timerId)" }
+    override suspend fun deleteRecording(session: Session, recordingId: String) { calls += "deleteRecording($recordingId)" }
+    override suspend fun getUpcoming(session: Session, libraryId: String): List<MediaItem> = emptyList<MediaItem>().also { calls += "upcoming($libraryId)" }
+    override suspend fun getStudios(session: Session, libraryId: String): List<MediaItem> = emptyList<MediaItem>().also { calls += "studios($libraryId)" }
+    override suspend fun createPlaylist(session: Session, name: String, itemIds: List<String>): String = "pl1".also { calls += "createPlaylist($name)" }
+    override suspend fun addToPlaylist(session: Session, playlistId: String, itemIds: List<String>) { calls += "addToPlaylist($playlistId,${itemIds.size})" }
+    override suspend fun removeFromPlaylist(session: Session, playlistId: String, entryIds: List<String>) { calls += "removeFromPlaylist($playlistId,${entryIds.size})" }
+    override suspend fun movePlaylistItem(session: Session, playlistId: String, entryId: String, newIndex: Int) { calls += "movePlaylistItem($entryId,$newIndex)" }
+    override suspend fun createCollection(session: Session, name: String, itemIds: List<String>): String = "col1".also { calls += "createCollection($name)" }
+    override suspend fun addToCollection(session: Session, collectionId: String, itemIds: List<String>) { calls += "addToCollection($collectionId,${itemIds.size})" }
+    override suspend fun removeFromCollection(session: Session, collectionId: String, itemIds: List<String>) { calls += "removeFromCollection($collectionId,${itemIds.size})" }
+    override suspend fun deleteItems(session: Session, itemIds: List<String>) { calls += "deleteItems(${itemIds.size})" }
+
+    override suspend fun playOnSession(session: Session, sessionId: String, itemIds: List<String>, command: com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand) {
+        calls += "playOnSession($sessionId,${itemIds.size},$command)"
+    }
+    override fun streamUrl(session: Session, item: MediaItem): String = "${session.serverAddress}/Videos/${item.id}/stream"
+    override suspend fun getItemDto(session: Session, itemId: String): org.jellyfin.sdk.model.api.BaseItemDto = throw NotImplementedError("raw DTO unused in tests")
+    override suspend fun updateItemDto(session: Session, itemId: String, dto: org.jellyfin.sdk.model.api.BaseItemDto) { calls += "updateItemDto($itemId)" }
+    override suspend fun refreshItem(session: Session, itemId: String, mode: com.pyoungws.bluewolfplayer.shared.model.MetadataRefresh) { calls += "refreshItem($itemId,$mode)" }
+    override suspend fun getItemImages(session: Session, itemId: String): List<com.pyoungws.bluewolfplayer.shared.model.ItemImageInfo> = emptyList()
+    override suspend fun setItemImage(session: Session, itemId: String, imageType: String, bytes: ByteArray, mediaType: String) { calls += "setItemImage($itemId,$imageType)" }
+    override suspend fun deleteItemImage(session: Session, itemId: String, imageType: String, imageIndex: Int) { calls += "deleteItemImage($itemId,$imageType,$imageIndex)" }
+    override suspend fun identifySearch(session: Session, item: MediaItem, name: String, year: Int?): List<com.pyoungws.bluewolfplayer.shared.model.IdentifyMatch> = emptyList()
+    override suspend fun applyIdentify(session: Session, itemId: String, match: com.pyoungws.bluewolfplayer.shared.model.IdentifyMatch) { calls += "applyIdentify($itemId)" }
+    override suspend fun searchRemoteSubtitles(session: Session, itemId: String, language: String): List<com.pyoungws.bluewolfplayer.shared.model.SubtitleMatch> = emptyList()
+    override suspend fun downloadRemoteSubtitle(session: Session, itemId: String, subtitleId: String) { calls += "downloadRemoteSubtitle($subtitleId)" }
+    override suspend fun getIntros(session: Session, itemId: String): List<MediaItem> = emptyList()
     override suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem? = nextUpForSeries(seriesId).also { calls += "nextUpSeries($seriesId)" }
     override suspend fun setPlayed(session: Session, itemId: String, played: Boolean) { calls += "setPlayed($itemId,$played)" }
     override suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean) { calls += "setFavorite($itemId,$favorite)" }

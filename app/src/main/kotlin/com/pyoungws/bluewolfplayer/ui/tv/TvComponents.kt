@@ -26,6 +26,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.onKeyEvent
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -208,6 +209,26 @@ val TvContentPadding = 48.dp
 
 /** One row in a TV item context menu (remote "menu" button). */
 data class TvMenuOption(val label: String, val action: () -> Unit)
+
+/** Ready-made card menu for TV grids: details plus watched/favourite toggles. */
+@Composable
+fun TvItemMenuOverlay(item: MediaItem, onOpenItem: (String) -> Unit, onDismiss: () -> Unit) {
+    val repository: com.pyoungws.bluewolfplayer.shared.library.LibraryRepository = org.koin.compose.koinInject()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    TvItemOptionsOverlay(
+        title = item.name,
+        options = buildList {
+            add(TvMenuOption(stringResource(R.string.detail_options_details)) { onOpenItem(item.id); onDismiss() })
+            add(TvMenuOption(stringResource(if (item.isPlayed) R.string.detail_mark_unwatched else R.string.detail_mark_watched)) {
+                scope.launch { repository.setPlayed(item, !item.isPlayed) }; onDismiss()
+            })
+            add(TvMenuOption(stringResource(if (item.isFavorite) R.string.detail_unfavorite else R.string.detail_favorite)) {
+                scope.launch { repository.setFavorite(item, !item.isFavorite) }; onDismiss()
+            })
+        },
+        onDismiss = onDismiss,
+    )
+}
 
 /** Centered context list shown by the remote "menu" button on item cards and detail pages. */
 @Composable

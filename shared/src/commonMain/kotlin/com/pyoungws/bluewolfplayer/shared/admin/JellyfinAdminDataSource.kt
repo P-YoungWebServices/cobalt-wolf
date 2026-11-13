@@ -10,9 +10,11 @@ import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.HttpMethod
+import org.jellyfin.sdk.api.client.extensions.authenticationApi
 import org.jellyfin.sdk.api.client.extensions.deviceApi
 import org.jellyfin.sdk.api.client.extensions.libraryApi
 import org.jellyfin.sdk.api.client.extensions.libraryStructureApi
+import org.jellyfin.sdk.api.client.extensions.pluginApi
 import org.jellyfin.sdk.api.client.extensions.scheduledTaskApi
 import org.jellyfin.sdk.api.client.extensions.sessionApi
 import org.jellyfin.sdk.api.client.extensions.systemApi
@@ -54,6 +56,13 @@ interface JellyfinAdminDataSource {
     suspend fun deleteDevice(session: Session, deviceId: String)
 
     suspend fun getAdminLibraries(session: Session): List<AdminLibrary>
+    suspend fun getPlugins(session: Session): List<AdminPlugin>
+    suspend fun setPluginEnabled(session: Session, pluginId: String, version: String, enabled: Boolean)
+    suspend fun uninstallPlugin(session: Session, pluginId: String)
+    suspend fun getServerSettings(session: Session): ServerSettings
+    suspend fun updateServerSettings(session: Session, settings: ServerSettings)
+    suspend fun restartServer(session: Session)
+    suspend fun shutdownServer(session: Session)
 
     suspend fun getScheduledTasks(session: Session): List<ScheduledTask>
     suspend fun startTask(session: Session, taskId: String)
@@ -63,6 +72,10 @@ interface JellyfinAdminDataSource {
     suspend fun getLogContent(session: Session, fileName: String): String
 
     suspend fun getSystemInfo(session: Session): SystemInformation
+    suspend fun getActivityLog(session: Session, startIndex: Int, limit: Int): List<ActivityEntry>
+    suspend fun getApiKeys(session: Session): List<ServerApiKey>
+    suspend fun createApiKey(session: Session, appName: String)
+    suspend fun revokeApiKey(session: Session, key: String)
 }
 
 class SdkJellyfinAdminDataSource(
@@ -164,6 +177,50 @@ class SdkJellyfinAdminDataSource(
         libraryStructureApi.getVirtualFolders().content.map { it.toAdminLibrary() }
     }
 
+    override suspend fun getPlugins(session: Session) = call(session) {
+        pluginApi.getPlugins().content.map {
+            AdminPlugin(
+                id = it.id.toString(),
+                name = it.name,
+                version = it.version,
+                status = it.status?.serialName,
+                description = it.description,
+                canUninstall = it.canUninstall,
+            )
+        }
+    }
+
+    override suspend fun setPluginEnabled(session: Session, pluginId: String, version: String, enabled: Boolean) = call(session) {
+        val id = java.util.UUID.fromString(pluginId)
+        if (enabled) pluginApi.enablePlugin(id, version) else pluginApi.disablePlugin(id, version)
+        Unit
+    }
+
+    override suspend fun uninstallPlugin(session: Session, pluginId: String) = call(session) {
+        pluginApi.uninstallPlugin(java.util.UUID.fromString(pluginId))
+        Unit
+    }
+
+    override suspend fun getServerSettings(session: Session) = call(session) {
+        ServerSettings(serverName = systemApi.getConfiguration().content.serverName)
+    }
+
+    override suspend fun updateServerSettings(session: Session, settings: ServerSettings) = call(session) {
+        val config = systemApi.getConfiguration().content
+        systemApi.updateConfiguration(config.copy(serverName = settings.serverName))
+        Unit
+    }
+
+    override suspend fun restartServer(session: Session) = call(session) {
+        systemApi.restartApplication()
+        Unit
+    }
+
+    override suspend fun shutdownServer(session: Session) = call(session) {
+        systemApi.shutdownApplication()
+        Unit
+    }
+
     override suspend fun getScheduledTasks(session: Session) = call(session) {
         scheduledTaskApi.getTasks().content.map { it.toScheduledTask() }
     }
@@ -188,6 +245,34 @@ class SdkJellyfinAdminDataSource(
         request(HttpMethod.GET, "/System/Logs/Log", queryParameters = mapOf("name" to fileName))
             .createContent<ByteArray>()
             .decodeToString()
+    }
+
+    override suspend fun getActivityLog(session: Session, startIndex: Int, limit: Int) = call(session) {
+        systemApi.getLogEntries(startIndex = startIndex, limit = limit).content.items.orEmpty().map {
+            ActivityEntry(
+                id = it.id,
+                name = it.name.orEmpty(),
+                type = it.type,
+                overview = it.shortOverview ?: it.overview,
+                severity = it.severity?.serialName,
+                userId = it.userId?.toString(),
+                date = it.date?.toString(),
+            )
+        }
+    }
+
+    override suspend fun getApiKeys(session: Session) = call(session) {
+        authenticationApi.getKeys().content.items.orEmpty().map {
+            ServerApiKey(id = it.id, appName = it.appName, accessToken = it.accessToken.orEmpty(), deviceId = it.deviceId)
+        }
+    }
+
+    override suspend fun createApiKey(session: Session, appName: String) {
+        call(session) { authenticationApi.createKey(appName) }
+    }
+
+    override suspend fun revokeApiKey(session: Session, key: String) {
+        call(session) { authenticationApi.revokeKey(key) }
     }
 
     override suspend fun getSystemInfo(session: Session) = call(session) {

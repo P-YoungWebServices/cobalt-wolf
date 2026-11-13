@@ -24,10 +24,14 @@ class MainActivity : ComponentActivity() {
     /** Item id from a home screen channel or other deep link; consumed by the signed-in UI. */
     private var deepLinkItemId by mutableStateOf<String?>(null)
 
+    /** Voice/global-search query for the TV search section. */
+    private var searchQuery by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         deepLinkItemId = intent.itemIdDeepLink()
+        searchQuery = intent.searchQuery()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
@@ -37,7 +41,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             if (tv) {
                 CobaltWolfTvTheme {
-                    TvApp(initialItemId = deepLinkItemId)
+                    TvApp(initialItemId = deepLinkItemId, initialQuery = searchQuery)
                 }
             } else {
                 BlueWolfTheme {
@@ -50,8 +54,13 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         intent.itemIdDeepLink()?.let { deepLinkItemId = it }
+        intent.searchQuery()?.let { searchQuery = it }
     }
 }
+
+/** Voice/text queries from the Android TV global search (android.intent.action.SEARCH). */
+private fun Intent.searchQuery(): String? =
+    takeIf { it.action == Intent.ACTION_SEARCH }?.getStringExtra(android.app.SearchManager.QUERY)
 
 /** The `bluewolf://item/<id>` links published on the Android TV home screen channels. */
 private fun Intent.itemIdDeepLink(): String? =

@@ -47,7 +47,7 @@ data class SourceMediaInfo(
 /** What to play: a library item, or (debug builds) a file or URL played without the server. */
 sealed interface PlaybackTarget {
     /** [startPositionMs] overrides the resume point (e.g. joining a SyncPlay group mid-playback). */
-    data class Item(val itemId: String, val startPositionMs: Long? = null, val startPaused: Boolean = false, val mediaSourceId: String? = null) : PlaybackTarget
+    data class Item(val itemId: String, val startPositionMs: Long? = null, val startPaused: Boolean = false, val mediaSourceId: String? = null, val audioStreamIndex: Int? = null, val subtitleStreamIndex: Int? = null) : PlaybackTarget
     data class DirectUri(val uri: String, val title: String = uri.substringAfterLast('/')) : PlaybackTarget
 }
 
@@ -83,6 +83,9 @@ data class PlaybackRequest(
     val isServerItem: Boolean = true,
     /** False when the user's server policy forbids video transcoding: a "transcode" then keeps the original video. */
     val serverTranscodesVideo: Boolean = true,
+    /** Jellyfin stream indices picked on the detail page; override the language prefs when set (-1 disables). */
+    val audioStreamIndex: Int? = null,
+    val subtitleStreamIndex: Int? = null,
 ) {
     val level: PlaybackLevel
         get() = when {
@@ -96,7 +99,7 @@ data class PlaybackRequest(
 enum class PlaybackLevel { DirectPlay, LocalDecode, Transcode }
 
 /** A marked region of a stream the player can offer to skip; positions are milliseconds. */
-enum class MediaSegmentKind { Intro, Outro }
+enum class MediaSegmentKind { Intro, Outro, Recap }
 
 data class MediaSegment(val kind: MediaSegmentKind, val startMs: Long, val endMs: Long) {
     fun contains(positionMs: Long) = positionMs in startMs until endMs

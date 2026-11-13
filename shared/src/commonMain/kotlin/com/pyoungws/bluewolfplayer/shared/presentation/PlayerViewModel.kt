@@ -4,15 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
+import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
 import com.pyoungws.bluewolfplayer.shared.playback.FallbackStep
 import com.pyoungws.bluewolfplayer.shared.playback.MediaSegment
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackTarget
 import com.pyoungws.bluewolfplayer.shared.playback.PlayerErrorKind
 import com.pyoungws.bluewolfplayer.shared.playback.nextFallback
+import com.pyoungws.bluewolfplayer.shared.playback.PlayQueue
+import com.pyoungws.bluewolfplayer.shared.playback.PlayQueueRepository
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackReport
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRepository
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackRequest
+import com.pyoungws.bluewolfplayer.shared.playback.RepeatMode
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.TICKS_PER_MILLISECOND
 import com.pyoungws.bluewolfplayer.shared.syncplay.SyncPlayEchoGate
@@ -66,6 +70,7 @@ class PlayerViewModel(
     private val repository: PlaybackRepository,
     private val reportScope: CoroutineScope,
     private val syncPlay: SyncPlayRepository,
+    private val playQueue: PlayQueueRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PlayerUiState>(PlayerUiState.Loading)
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
@@ -85,6 +90,17 @@ class PlayerViewModel(
     private val _segments = MutableStateFlow<List<MediaSegment>>(emptyList())
     val segments: StateFlow<List<MediaSegment>> = _segments.asStateFlow()
 
+    /**
+     * Subtitle timing shift for this session in milliseconds; a positive value shows cues later.
+     * Session-scoped like the official web client — it resets when the player closes.
+     */
+    private val _subtitleDelayMs = MutableStateFlow(0L)
+    val subtitleDelayMs: StateFlow<Long> = _subtitleDelayMs.asStateFlow()
+
+    fun setSubtitleDelayMs(ms: Long) {
+        _subtitleDelayMs.value = ms
+    }
+
     private val echoGate = SyncPlayEchoGate()
     private var generation = 0
     private var started = false
@@ -95,7 +111,26 @@ class PlayerViewModel(
     private var pendingStartPaused = false
     private var lastPingAt: TimeSource.Monotonic.ValueTimeMark? = null
 
+    /** The shared play queue; the player follows it for next/previous and repeat. */
+    val queue: StateFlow<PlayQueue> = playQueue.queue
+
+    /**
+     * True while the "still watching?" prompt is up: too many episodes played through without
+     * interaction. The UI pauses playback until [confirmStillWatching] or the user leaves.
+     */
+    private val _stillWatching = MutableStateFlow(false)
+    val stillWatching: StateFlow<Boolean> = _stillWatching.asStateFlow()
+
+    /** Episodes auto-advanced without any user interaction; resets on manual actions. */
+    private var episodeStreak = 0
+
+    /** Cinema-mode intros were already queued once this player session. */
+    private var introsQueued = false
+
     init {
+        // A player opened on something outside the queue starts a fresh single-item queue.
+        val queued = playQueue.queue.value
+        if ((target as? PlaybackTarget.Item)?.itemId != queued.current?.item?.id) playQueue.clear()
         prepare(forceTranscode = false)
         viewModelScope.launch { syncPlay.playerCommands.collect { onGroupCommand(it) } }
         // A fresh player gets the group's current item and position, if any.
@@ -107,13 +142,44 @@ class PlayerViewModel(
         prepare(forceTranscode = triedTranscode)
     }
 
-    /** Stops reporting this item and starts preparing the next episode, if there is one. */
-    fun playNext(positionMs: Long) {
-        val next = _nextItem.value ?: return
+    /** Stops reporting this item and starts preparing the queued next or next episode, if there is one. */
+    fun playNext(positionMs: Long, manual: Boolean = true) {
+        if (manual) episodeStreak = 0
+        val next = playQueue.advance() ?: _nextItem.value ?: return
+        if (next.kind == MediaKind.Episode) episodeStreak++ else episodeStreak = 0
+        retarget(PlaybackTarget.Item(next.id), positionMs)
+    }
+
+    /** User confirmed the still-watching prompt: reset the streak and continue to the next item. */
+    fun confirmStillWatching(positionMs: Long) {
+        _stillWatching.value = false
+        episodeStreak = 0
+        playNext(positionMs, manual = true)
+    }
+
+    /** Jumps to a tapped queue entry. */
+    fun playQueueIndex(index: Int, positionMs: Long) {
+        episodeStreak = 0
+        val item = playQueue.advanceTo(index) ?: return
+        retarget(PlaybackTarget.Item(item.id), positionMs)
+    }
+
+    /** Jumps back to the previous queue entry, if any. */
+    fun playQueuePrevious(positionMs: Long) {
+        episodeStreak = 0
+        val item = playQueue.retreat() ?: return
+        retarget(PlaybackTarget.Item(item.id), positionMs)
+    }
+
+    fun cycleRepeat() = playQueue.cycleRepeat()
+    fun toggleShuffle() = playQueue.toggleShuffle()
+    fun removeQueueEntry(index: Int) = playQueue.remove(index)
+
+    private fun retarget(next: PlaybackTarget, positionMs: Long) {
         endCurrentReporting(positionMs)
         triedTranscode = false
         audioOutputRetries = 0
-        target = PlaybackTarget.Item(next.id)
+        target = next
         _uiState.value = PlayerUiState.Loading
         prepare(forceTranscode = false)
     }
@@ -123,9 +189,26 @@ class PlayerViewModel(
      * group controls the item; returns false when playback is simply over and the UI should close.
      */
     fun onEnded(positionMs: Long): Boolean {
-        if (membership.value == null && _nextItem.value != null) {
-            playNext(positionMs)
-            return true
+        if (membership.value == null) {
+            val q = playQueue.queue.value
+            when {
+                q.repeat == RepeatMode.One && q.current != null -> {
+                    val itemId = (_uiState.value as? PlayerUiState.Ready)?.request?.item?.id ?: q.current?.item?.id ?: return false
+                    retarget(PlaybackTarget.Item(itemId, startPositionMs = 0), positionMs)
+                    return true
+                }
+                q.nextIndex() != null || _nextItem.value != null -> {
+                    val ready = _uiState.value as? PlayerUiState.Ready
+                    val limit = ready?.request?.settings?.stillWatchingEpisodes ?: 0
+                    val nextIsEpisode = (q.nextIndex()?.let { q.entries[it].item } ?: _nextItem.value)?.kind == MediaKind.Episode
+                    if (nextIsEpisode && limit > 0 && episodeStreak >= limit) {
+                        _stillWatching.value = true
+                        return true
+                    }
+                    playNext(positionMs, manual = false)
+                    return true
+                }
+            }
         }
         endCurrentReporting(positionMs)
         return false
@@ -265,6 +348,7 @@ class PlayerViewModel(
 
     /** The user paused locally: tell the group (unless it is the echo of a group Pause). */
     fun onUserPause(positionMs: Long) {
+        episodeStreak = 0
         if (!groupControlsCurrentItem()) return
         if (echoGate.suppressLocalEcho(SyncPlayEchoGate.Kind.Pause, positionMs.toTicks())) return
         viewModelScope.launch { syncPlay.localPause() }
@@ -277,6 +361,7 @@ class PlayerViewModel(
     }
 
     fun onUserSeek(positionMs: Long) {
+        episodeStreak = 0
         if (!groupControlsCurrentItem()) return
         if (echoGate.suppressLocalEcho(SyncPlayEchoGate.Kind.Seek, positionMs.toTicks())) return
         viewModelScope.launch { syncPlay.localSeek(positionMs.toTicks()) }
@@ -328,18 +413,36 @@ class PlayerViewModel(
                     val startPaused = pendingStartPaused
                     pendingStartPaused = false
                     val request = result.value.let {
+                        val rewindMs = if (resumeAtMs == null && it.startPositionMs > 0) {
+                            it.settings.resumeRewindSeconds * 1000L
+                        } else 0L
                         it.copy(
-                            startPositionMs = resumeAtMs ?: it.startPositionMs,
+                            startPositionMs = resumeAtMs ?: (it.startPositionMs - rewindMs).coerceAtLeast(0),
                             startPaused = startPaused,
                         )
                     }
                     _uiState.value = PlayerUiState.Ready(request, ++generation)
+                    // Cinema mode: queue server intros ahead of the movie once per session.
+                    if (!introsQueued && membership.value == null && request.isServerItem &&
+                        request.settings.cinemaMode && request.item.kind == MediaKind.Movie
+                    ) {
+                        introsQueued = true
+                        viewModelScope.launch {
+                            val intros = repository.intros(request.item.id).filter { it.isPlayable }
+                            if (intros.isNotEmpty()) {
+                                playQueue.playNow(intros + request.item, 0)
+                                retarget(PlaybackTarget.Item(intros.first().id), positionMs = 0)
+                            }
+                        }
+                    }
                     _nextItem.value = null
                     _segments.value = emptyList()
                     if (request.isServerItem) {
                         val gen = generation
                         viewModelScope.launch {
-                            val next = repository.nextEpisode(request.item)
+                            val q = playQueue.queue.value
+                            val queuedNext = q.nextIndex()?.let { q.entries[it].item }
+                            val next = queuedNext ?: repository.nextEpisode(request.item)
                             val segs = repository.mediaSegments(request.item.id)
                             if (gen == generation) {
                                 _nextItem.value = next

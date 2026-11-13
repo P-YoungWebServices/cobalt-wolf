@@ -81,6 +81,11 @@ class FakeAuthDataSource : JellyfinAuthDataSource {
         return onGetServerName()
     }
 
+    override suspend fun forgotPassword(serverAddress: String, username: String): Boolean {
+        calls += "forgotPassword($serverAddress, $username)"
+        return true
+    }
+
     override suspend fun logout(serverAddress: String, accessToken: String) {
         calls += "logout($serverAddress, $accessToken)"
         onLogout(accessToken)

@@ -15,7 +15,7 @@ import java.net.URL
 
 data class DownloadedItem(val itemId: String, val name: String, val path: String, val sizeBytes: Long)
 
-data class DownloadJob(val itemId: String, val name: String, val received: Long = 0, val total: Long = -1, val failed: Boolean = false)
+data class DownloadJob(val itemId: String, val name: String, val received: Long = 0, val total: Long = -1, val failed: Boolean = false, val waitingForWifi: Boolean = false)
 
 /**
  * Saves server media to app-private storage for offline playback. The index lives in
@@ -23,7 +23,29 @@ data class DownloadJob(val itemId: String, val name: String, val received: Long 
  */
 class OfflineDownloads(private val context: Context) {
     private val prefs = context.getSharedPreferences("offline_downloads", Context.MODE_PRIVATE)
-    private val dir = File(context.filesDir, "offline")
+
+    /** Download only on unmetered (Wi-Fi) connections; off also allows mobile data. */
+    var wifiOnly: Boolean
+        get() = prefs.getBoolean("wifi_only", true)
+        set(value) = prefs.edit().putBoolean("wifi_only", value).apply()
+
+    /** Store downloads on external app storage (usually an SD card) when one is mounted. */
+    var useExternalStorage: Boolean
+        get() = prefs.getBoolean("external_storage", false)
+        set(value) = prefs.edit().putBoolean("external_storage", value).apply()
+
+    private fun storageDir(): File {
+        val base = if (useExternalStorage) context.getExternalFilesDir(null) ?: context.filesDir else context.filesDir
+        return File(base, "offline")
+    }
+
+    /** True when a download may start on the current network under [wifiOnly]. */
+    fun networkAllowed(): Boolean {
+        if (!wifiOnly) return true
+        val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager ?: return true
+        val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+        return caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+    }
 
     private val _items = MutableStateFlow(loadIndex())
     val items: StateFlow<List<DownloadedItem>> = _items.asStateFlow()
@@ -46,7 +68,12 @@ class OfflineDownloads(private val context: Context) {
     /** Streams /Items/{id}/Download to disk. Reports progress through [jobs]. */
     suspend fun download(serverAddress: String, accessToken: String, itemId: String, name: String) = withContext(Dispatchers.IO) {
         if (isDownloading(itemId) || isDownloaded(itemId)) return@withContext
+        if (!networkAllowed()) {
+            _jobs.update { it + (itemId to DownloadJob(itemId, name, failed = true, waitingForWifi = true)) }
+            return@withContext
+        }
         _jobs.update { it + (itemId to DownloadJob(itemId, name)) }
+        val dir = storageDir()
         dir.mkdirs()
         val out = File(dir, "$itemId.bin")
         try {

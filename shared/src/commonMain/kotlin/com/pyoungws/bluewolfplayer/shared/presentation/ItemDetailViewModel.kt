@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pyoungws.bluewolfplayer.shared.library.LibraryRepository
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
+import com.pyoungws.bluewolfplayer.shared.model.Lyrics
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.Outcome
@@ -30,14 +31,19 @@ sealed interface ItemDetailUiState {
         val localTrailers: List<MediaItem> = emptyList(),
         val previousEpisode: MediaItem? = null,
         val selectedMediaSourceId: String? = null,
+        /** Detail-page preselections (server stream indices); null = default, -1 disables subs. */
+        val selectedAudioStreamIndex: Int? = null,
+        val selectedSubtitleStreamIndex: Int? = null,
         /** Contents of a box set / playlist. */
         val containerItems: List<MediaItem> = emptyList(),
+        val lyrics: Lyrics? = null,
     ) : ItemDetailUiState {
         /** What the main Play button starts: the item itself, or for a series the first unwatched (else first) episode. */
         val playTarget: MediaItem?
             get() = when {
                 item.isPlayable -> item
                 item.kind == MediaKind.Series -> episodes.firstOrNull { it.hasProgress } ?: episodes.firstOrNull { !it.isPlayed } ?: episodes.firstOrNull()
+                item.isContainer -> containerItems.firstOrNull { it.isPlayable }
                 else -> null
             }
     }
@@ -88,9 +94,20 @@ class ItemDetailViewModel(
         val previousEpisode = if (item.kind == MediaKind.Episode) {
             (repository.previousEpisode(item) as? Outcome.Success)?.value
         } else null
-        val containerItems = if (item.kind == MediaKind.BoxSet || item.kind == MediaKind.Playlist) {
-            (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(parentId = item.id, limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
-        } else emptyList()
+        val containerItems = when (item.kind) {
+            MediaKind.BoxSet, MediaKind.Playlist, MediaKind.Folder ->
+                (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(parentId = item.id, limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
+            MediaKind.MusicAlbum ->
+                (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(parentId = item.id, includeItemKinds = setOf(MediaKind.Song), limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
+            MediaKind.MusicArtist ->
+                (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(albumArtistIds = listOf(item.id), includeItemKinds = setOf(MediaKind.MusicAlbum), limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
+            MediaKind.Person ->
+                (repository.items(com.pyoungws.bluewolfplayer.shared.library.ItemQuery(personIds = listOf(item.id), limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
+            else -> emptyList()
+        }
+        val lyrics = if (item.kind == MediaKind.Song) {
+            (repository.lyrics(itemId) as? Outcome.Success)?.value
+        } else null
         if (item.kind != MediaKind.Series) {
             _uiState.value = ItemDetailUiState.Loaded(
                 item,
@@ -99,6 +116,7 @@ class ItemDetailViewModel(
                 localTrailers = trailers,
                 previousEpisode = previousEpisode,
                 containerItems = containerItems,
+                lyrics = lyrics,
             )
             return
         }
@@ -122,6 +140,14 @@ class ItemDetailViewModel(
     /** Chooses which media source (version) the Play action passes to the player. */
     fun selectMediaSource(mediaSourceId: String) {
         _uiState.update { (it as? ItemDetailUiState.Loaded)?.copy(selectedMediaSourceId = mediaSourceId) ?: it }
+    }
+
+    fun selectAudioStream(index: Int?) {
+        _uiState.update { (it as? ItemDetailUiState.Loaded)?.copy(selectedAudioStreamIndex = index) ?: it }
+    }
+
+    fun selectSubtitleStream(index: Int?) {
+        _uiState.update { (it as? ItemDetailUiState.Loaded)?.copy(selectedSubtitleStreamIndex = index) ?: it }
     }
 
     private fun loadEpisodes(series: MediaItem, seasonId: String) {

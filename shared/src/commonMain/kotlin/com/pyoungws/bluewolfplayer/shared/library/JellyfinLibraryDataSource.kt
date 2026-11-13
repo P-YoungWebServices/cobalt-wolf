@@ -2,10 +2,16 @@ package com.pyoungws.bluewolfplayer.shared.library
 
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.LibraryType
+import com.pyoungws.bluewolfplayer.shared.model.LiveTimer
+import com.pyoungws.bluewolfplayer.shared.model.LyricLine
+import com.pyoungws.bluewolfplayer.shared.model.Lyrics
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.GenreInfo
+import com.pyoungws.bluewolfplayer.shared.model.IdentifyMatch
+import com.pyoungws.bluewolfplayer.shared.model.MetadataRefresh
 import com.pyoungws.bluewolfplayer.shared.model.MediaPerson
+import com.pyoungws.bluewolfplayer.shared.model.SubtitleMatch
 import com.pyoungws.bluewolfplayer.shared.model.MediaStreamInfo
 import com.pyoungws.bluewolfplayer.shared.model.Page
 import com.pyoungws.bluewolfplayer.shared.model.Session
@@ -16,16 +22,29 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
+import org.jellyfin.sdk.api.client.extensions.collectionApi
+import org.jellyfin.sdk.api.client.extensions.instantMixApi
 import org.jellyfin.sdk.api.client.extensions.libraryApi
+import org.jellyfin.sdk.api.client.extensions.playlistApi
+import org.jellyfin.sdk.api.client.extensions.liveTvApi
+import org.jellyfin.sdk.api.client.extensions.lyricApi
 import org.jellyfin.sdk.api.client.extensions.genreApi
+import org.jellyfin.sdk.api.client.extensions.imageApi
 import org.jellyfin.sdk.api.client.extensions.showApi
+import org.jellyfin.sdk.api.client.extensions.studioApi
 import org.jellyfin.sdk.api.client.extensions.suggestionApi
 import org.jellyfin.sdk.api.client.extensions.userDataApi
 import org.jellyfin.sdk.api.client.extensions.userViewApi
+import org.jellyfin.sdk.api.client.extensions.itemUpdateApi
+import org.jellyfin.sdk.api.client.extensions.itemLookupApi
+import org.jellyfin.sdk.api.client.extensions.subtitleApi
+import org.jellyfin.sdk.api.client.extensions.sessionApi
+import org.jellyfin.sdk.model.api.PlayCommand
 import org.jellyfin.sdk.model.UUID
 import org.jellyfin.sdk.model.serializer.toUUID
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemKind
+import org.jellyfin.sdk.model.api.CreatePlaylistDto
 import org.jellyfin.sdk.model.api.CollectionType
 import org.jellyfin.sdk.model.api.ImageType
 import org.jellyfin.sdk.model.api.ItemFields
@@ -42,13 +61,37 @@ import org.jellyfin.sdk.model.api.request.GetSuggestionsRequest
 import org.jellyfin.sdk.model.api.request.GetLatestMediaRequest
 import org.jellyfin.sdk.model.api.request.GetNextUpRequest
 import org.jellyfin.sdk.model.api.request.GetSimilarItemsRequest
+import org.jellyfin.sdk.model.api.SeriesTimerInfoDto
+import org.jellyfin.sdk.model.api.TimerInfoDto
+import org.jellyfin.sdk.model.api.MetadataRefreshMode
+import org.jellyfin.sdk.model.api.MovieInfo
+import org.jellyfin.sdk.model.api.MovieInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.SeriesInfo
+import org.jellyfin.sdk.model.api.SeriesInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.AlbumInfo
+import org.jellyfin.sdk.model.api.AlbumInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.ArtistInfo
+import org.jellyfin.sdk.model.api.ArtistInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.BoxSetInfo
+import org.jellyfin.sdk.model.api.BoxSetInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.MusicVideoInfo
+import org.jellyfin.sdk.model.api.MusicVideoInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.PersonLookupInfo
+import org.jellyfin.sdk.model.api.PersonLookupInfoRemoteSearchQuery
+import org.jellyfin.sdk.model.api.RemoteSearchResult
+import org.jellyfin.sdk.model.api.request.GetLiveTvChannelsRequest
+import org.jellyfin.sdk.model.api.request.GetLiveTvProgramsRequest
+import org.jellyfin.sdk.model.api.request.GetRecordingsRequest
 import org.jellyfin.sdk.model.api.request.GetResumeItemsRequest
 import org.jellyfin.sdk.model.api.request.GetSeasonsRequest
+import org.jellyfin.sdk.model.api.request.GetStudiosRequest
 
 /** Jellyfin library queries. Implementations throw the SDK's `ApiClientException` subtypes on failure. */
 interface JellyfinLibraryDataSource {
     suspend fun getLibraries(session: Session): List<Library>
     suspend fun getResumeItems(session: Session): List<MediaItem>
+    /** Partially-played audio items (music, audiobooks) for the home "resume audio" row. */
+    suspend fun getResumeAudioItems(session: Session): List<MediaItem>
     suspend fun getNextUp(session: Session, nextUpCutoffDays: Int = 0): List<MediaItem>
     suspend fun getLatest(session: Session, libraryId: String): List<MediaItem>
     suspend fun getLibraryItems(session: Session, library: Library, startIndex: Int, limit: Int): Page<MediaItem>
@@ -60,12 +103,62 @@ interface JellyfinLibraryDataSource {
     suspend fun getEpisodes(session: Session, seriesId: String, seasonId: String): List<MediaItem>
     suspend fun search(session: Session, term: String, limit: Int): List<MediaItem>
     suspend fun getSimilar(session: Session, itemId: String): List<MediaItem>
+    suspend fun getInstantMix(session: Session, itemId: String, limit: Int = 100): List<MediaItem>
+    suspend fun getLyrics(session: Session, itemId: String): Lyrics?
+    suspend fun getLiveTvChannels(session: Session): List<MediaItem>
+    suspend fun getPrograms(session: Session, channelIds: List<String>, start: java.time.LocalDateTime, end: java.time.LocalDateTime): List<MediaItem>
+    suspend fun getLiveTvRecordings(session: Session): List<MediaItem>
+    suspend fun getTimers(session: Session): List<LiveTimer>
+    suspend fun getSeriesTimers(session: Session): List<LiveTimer>
+    /** Episodes airing soon in a TV library. */
+    suspend fun getUpcoming(session: Session, libraryId: String): List<MediaItem>
+    /** Studios/networks present in a library. */
+    suspend fun getStudios(session: Session, libraryId: String): List<MediaItem>
+    suspend fun createPlaylist(session: Session, name: String, itemIds: List<String>): String
+    suspend fun addToPlaylist(session: Session, playlistId: String, itemIds: List<String>)
+    suspend fun removeFromPlaylist(session: Session, playlistId: String, entryIds: List<String>)
+    suspend fun movePlaylistItem(session: Session, playlistId: String, entryId: String, newIndex: Int)
+    suspend fun createCollection(session: Session, name: String, itemIds: List<String>): String
+    suspend fun addToCollection(session: Session, collectionId: String, itemIds: List<String>)
+    suspend fun removeFromCollection(session: Session, collectionId: String, itemIds: List<String>)
+    /** Records one showing of a program. */
+    suspend fun recordProgram(session: Session, programId: String)
+    /** Records every showing of a program's series. */
+    suspend fun recordSeries(session: Session, programId: String)
+    suspend fun cancelTimer(session: Session, timerId: String)
+    suspend fun cancelSeriesTimer(session: Session, timerId: String)
+    suspend fun deleteRecording(session: Session, recordingId: String)
     suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem?
     suspend fun getSpecialFeatures(session: Session, itemId: String): List<MediaItem>
     suspend fun getLocalTrailers(session: Session, itemId: String): List<MediaItem>
+    /** Server "cinema" intros (trailers/custom prerolls) for a movie. */
+    suspend fun getIntros(session: Session, itemId: String): List<MediaItem>
     suspend fun getPreviousEpisode(session: Session, episode: MediaItem): MediaItem?
     suspend fun setPlayed(session: Session, itemId: String, played: Boolean)
     suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean)
+    /** Permanently deletes items from the server; caller gates on `canDelete`. */
+    suspend fun deleteItems(session: Session, itemIds: List<String>)
+    /** Sends a Play Now command to another session on the server ("Play on" remote control). */
+    suspend fun playOnSession(session: Session, sessionId: String, itemIds: List<String>, command: com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand)
+    /** Full raw DTO for the metadata editor; modify and pass to [updateItemDto]. */
+    suspend fun getItemDto(session: Session, itemId: String): BaseItemDto
+    suspend fun updateItemDto(session: Session, itemId: String, dto: BaseItemDto)
+    suspend fun refreshItem(session: Session, itemId: String, mode: MetadataRefresh)
+    /** Artwork attached to the item, for the admin image editor. */
+    suspend fun getItemImages(session: Session, itemId: String): List<com.pyoungws.bluewolfplayer.shared.model.ItemImageInfo>
+    /** Uploads artwork of [imageType] (a Jellyfin image type name, e.g. "Primary"). */
+    suspend fun setItemImage(session: Session, itemId: String, imageType: String, bytes: ByteArray, mediaType: String)
+    suspend fun deleteItemImage(session: Session, itemId: String, imageType: String, imageIndex: Int)
+    /** Provider identify results for the item; empty for kinds with no lookup. */
+    suspend fun identifySearch(session: Session, item: MediaItem, name: String, year: Int?): List<IdentifyMatch>
+    suspend fun applyIdentify(session: Session, itemId: String, match: IdentifyMatch)
+    suspend fun searchRemoteSubtitles(session: Session, itemId: String, language: String): List<SubtitleMatch>
+    suspend fun downloadRemoteSubtitle(session: Session, itemId: String, subtitleId: String)
+    /**
+     * A direct-play URL for the item with the access token embedded, suitable
+     * for sharing/copying into an external player. Never log this value.
+     */
+    fun streamUrl(session: Session, item: MediaItem): String
 }
 
 /** Generic item query used by alternate browse views, collection contents and person filmographies. */
@@ -74,6 +167,8 @@ data class ItemQuery(
     val parentId: String? = null,
     val personIds: List<String> = emptyList(),
     val genres: List<String> = emptyList(),
+    val artistIds: List<String> = emptyList(),
+    val albumArtistIds: List<String> = emptyList(),
     val nameStartsWith: String? = null,
     val nameLessThan: String? = null,
     val includeItemKinds: Set<MediaKind> = emptySet(),
@@ -83,6 +178,18 @@ data class ItemQuery(
     val favoritesOnly: Boolean = false,
     val startIndex: Int = 0,
     val limit: Int = 60,
+    val recursive: Boolean = true,
+    /** Server-side item filters (played/resumable/likes). */
+    val filters: Set<ItemFilter> = emptySet(),
+    val seriesStatus: Set<SeriesStatus> = emptySet(),
+    val isHd: Boolean? = null,
+    val is4k: Boolean? = null,
+    val hasSubtitles: Boolean? = null,
+    val hasTrailer: Boolean? = null,
+    val hasThemeSong: Boolean? = null,
+    val hasThemeVideo: Boolean? = null,
+    val hasSpecialFeature: Boolean? = null,
+    val studioIds: List<String> = emptyList(),
 )
 
 class SdkJellyfinLibraryDataSource(
@@ -106,6 +213,18 @@ class SdkJellyfinLibraryDataSource(
                 userId = session.userId.toUuid(),
                 limit = ROW_LIMIT,
                 mediaTypes = listOf(org.jellyfin.sdk.model.api.MediaType.VIDEO),
+                fields = ITEM_FIELDS,
+                enableUserData = true,
+            ),
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getResumeAudioItems(session: Session) = call(session) {
+        libraryApi.getResumeItems(
+            GetResumeItemsRequest(
+                userId = session.userId.toUuid(),
+                limit = ROW_LIMIT,
+                mediaTypes = listOf(org.jellyfin.sdk.model.api.MediaType.AUDIO),
                 fields = ITEM_FIELDS,
                 enableUserData = true,
             ),
@@ -137,6 +256,137 @@ class SdkJellyfinLibraryDataSource(
         ).content.items.map { it.toMediaItem(session.serverAddress) }
     }
 
+    override suspend fun getInstantMix(session: Session, itemId: String, limit: Int) = call(session) {
+        instantMixApi.getInstantMixFromItem(
+            itemId = itemId.toUuid(),
+            userId = session.userId.toUuid(),
+            limit = limit,
+            fields = ITEM_FIELDS,
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getLyrics(session: Session, itemId: String) = call(session) {
+        lyricApi.getLyrics(itemId.toUuid()).content.let { dto ->
+            val offsetMs = dto.metadata?.offset ?: 0L
+            Lyrics(
+                providerName = dto.metadata?.creator,
+                lines = dto.lyrics.map { LyricLine(text = it.text, startMs = it.start?.let { t -> t / 10_000L + offsetMs }) },
+            )
+        }
+    }
+
+    override suspend fun getLiveTvChannels(session: Session) = call(session) {
+        liveTvApi.getLiveTvChannels(
+            GetLiveTvChannelsRequest(
+                userId = session.userId.toUuid(),
+                fields = ITEM_FIELDS,
+                enableUserData = true,
+            ),
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getPrograms(session: Session, channelIds: List<String>, start: java.time.LocalDateTime, end: java.time.LocalDateTime) = call(session) {
+        liveTvApi.getLiveTvPrograms(
+            GetLiveTvProgramsRequest(
+                userId = session.userId.toUuid(),
+                channelIds = channelIds.ifEmpty { null }?.map { it.toUuid() },
+                minStartDate = start,
+                maxEndDate = end,
+                enableTotalRecordCount = false,
+                fields = ITEM_FIELDS,
+            ),
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getLiveTvRecordings(session: Session) = call(session) {
+        liveTvApi.getRecordings(
+            GetRecordingsRequest(
+                userId = session.userId.toUuid(),
+                fields = ITEM_FIELDS,
+                enableUserData = true,
+            ),
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getTimers(session: Session) = call(session) {
+        // No isScheduled filter: an in-progress recording must stay visible (the official
+        // clients show it in Scheduled); the flag would hide it server-side.
+        liveTvApi.getTimers().content.items.orEmpty().map { it.toLiveTimer() }
+    }
+
+    override suspend fun getSeriesTimers(session: Session) = call(session) {
+        liveTvApi.getSeriesTimers().content.items.orEmpty().map { it.toLiveTimer() }
+    }
+
+    override suspend fun recordProgram(session: Session, programId: String) = call(session) {
+        liveTvApi.createTimer(liveTvApi.getDefaultTimer(programId).content.toTimerInfoDto()).content
+    }
+
+    override suspend fun recordSeries(session: Session, programId: String) = call(session) {
+        liveTvApi.createSeriesTimer(liveTvApi.getDefaultTimer(programId).content).content
+    }
+
+    override suspend fun cancelTimer(session: Session, timerId: String) = call(session) {
+        liveTvApi.cancelTimer(timerId).content
+    }
+
+    override suspend fun cancelSeriesTimer(session: Session, timerId: String) = call(session) {
+        liveTvApi.cancelSeriesTimer(timerId).content
+    }
+
+    override suspend fun deleteRecording(session: Session, recordingId: String) = call(session) {
+        liveTvApi.deleteRecording(recordingId.toUuid()).content
+    }
+
+    override suspend fun getUpcoming(session: Session, libraryId: String) = call(session) {
+        showApi.getUpcomingEpisodes(
+            userId = session.userId.toUuid(),
+            parentId = libraryId.toUuid(),
+            limit = 60,
+            fields = ITEM_FIELDS,
+            enableUserData = true,
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getStudios(session: Session, libraryId: String) = call(session) {
+        studioApi.getStudios(
+            GetStudiosRequest(
+                userId = session.userId.toUuid(),
+                parentId = libraryId.toUuid(),
+            ),
+        ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun createPlaylist(session: Session, name: String, itemIds: List<String>) = call(session) {
+        playlistApi.createPlaylist(
+            CreatePlaylistDto(name = name, ids = itemIds.map { it.toUuid() }, userId = session.userId.toUuid(), users = emptyList(), isPublic = false),
+        ).content.id.orEmpty()
+    }
+
+    override suspend fun addToPlaylist(session: Session, playlistId: String, itemIds: List<String>) = call(session) {
+        playlistApi.addItemToPlaylist(playlistId.toUuid(), itemIds.map { it.toUuid() }).content
+    }
+
+    override suspend fun removeFromPlaylist(session: Session, playlistId: String, entryIds: List<String>) = call(session) {
+        playlistApi.removeItemFromPlaylist(playlistId, entryIds).content
+    }
+
+    override suspend fun movePlaylistItem(session: Session, playlistId: String, entryId: String, newIndex: Int) = call(session) {
+        playlistApi.moveItem(playlistId, entryId, newIndex).content
+    }
+
+    override suspend fun createCollection(session: Session, name: String, itemIds: List<String>) = call(session) {
+        collectionApi.createCollection(name = name, ids = itemIds).content.id.toString()
+    }
+
+    override suspend fun addToCollection(session: Session, collectionId: String, itemIds: List<String>) = call(session) {
+        collectionApi.addToCollection(collectionId.toUuid(), itemIds.map { it.toUuid() }).content
+    }
+
+    override suspend fun removeFromCollection(session: Session, collectionId: String, itemIds: List<String>) = call(session) {
+        collectionApi.removeFromCollection(collectionId.toUuid(), itemIds.map { it.toUuid() }).content
+    }
+
     override suspend fun getNextUpForSeries(session: Session, seriesId: String) = call(session) {
         showApi.getNextUp(
             GetNextUpRequest(
@@ -152,6 +402,10 @@ class SdkJellyfinLibraryDataSource(
     override suspend fun getSpecialFeatures(session: Session, itemId: String) = call(session) {
         libraryApi.getSpecialFeatures(session.userId.toUuid(), itemId.toUuid()).content
             .map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun getIntros(session: Session, itemId: String) = call(session) {
+        libraryApi.getIntros(session.userId.toUuid(), itemId.toUuid()).content.items.map { it.toMediaItem(session.serverAddress) }
     }
 
     override suspend fun getLocalTrailers(session: Session, itemId: String) = call(session) {
@@ -183,6 +437,7 @@ class SdkJellyfinLibraryDataSource(
         val filters = buildList {
             if (query.unwatchedOnly) add(ItemFilter.IS_UNPLAYED)
             if (query.favoritesOnly) add(ItemFilter.IS_FAVORITE)
+            addAll(query.filters)
         }
         val result = libraryApi.getItems(
             GetItemsRequest(
@@ -190,15 +445,26 @@ class SdkJellyfinLibraryDataSource(
                 parentId = (query.parentId ?: query.libraryId)?.toUuid(),
                 includeItemTypes = query.includeItemKinds.mapNotNull { it.toBaseItemKind() }.ifEmpty { null },
                 genres = query.genres.ifEmpty { null },
+                artistIds = query.artistIds.map { it.toUuid() }.ifEmpty { null },
+                albumArtistIds = query.albumArtistIds.map { it.toUuid() }.ifEmpty { null },
                 personIds = query.personIds.map { it.toUuid() }.ifEmpty { null },
                 nameStartsWith = query.nameStartsWith,
                 nameLessThan = query.nameLessThan,
                 sortBy = query.sortBy?.let { listOf(it) },
                 sortOrder = listOf(query.sortOrder),
                 filters = filters.ifEmpty { null },
+                seriesStatus = query.seriesStatus.ifEmpty { null },
+                studioIds = query.studioIds.map { it.toUuid() }.ifEmpty { null },
+                isHd = query.isHd,
+                is4k = query.is4k,
+                hasSubtitles = query.hasSubtitles,
+                hasTrailer = query.hasTrailer,
+                hasThemeSong = query.hasThemeSong,
+                hasThemeVideo = query.hasThemeVideo,
+                hasSpecialFeature = query.hasSpecialFeature,
                 startIndex = query.startIndex,
                 limit = query.limit,
-                recursive = true,
+                recursive = query.recursive,
                 fields = ITEM_FIELDS,
                 enableUserData = true,
             ),
@@ -251,6 +517,7 @@ class SdkJellyfinLibraryDataSource(
         val kinds = when (library.type) {
             LibraryType.Movies -> listOf(BaseItemKind.MOVIE)
             LibraryType.TvShows -> listOf(BaseItemKind.SERIES)
+            LibraryType.Music -> listOf(BaseItemKind.MUSIC_ALBUM)
             else -> emptyList()
         }
         if (kinds.isEmpty()) emptyList()
@@ -276,19 +543,22 @@ class SdkJellyfinLibraryDataSource(
     }
 
     override suspend fun getLibraryItems(session: Session, library: Library, startIndex: Int, limit: Int) = call(session) {
+        val (kinds, recursive) = when (library.type) {
+            LibraryType.TvShows -> listOf(BaseItemKind.SERIES) to true
+            LibraryType.Music -> listOf(BaseItemKind.MUSIC_ALBUM) to true
+            LibraryType.MusicVideos -> listOf(BaseItemKind.MUSIC_VIDEO) to true
+            LibraryType.LiveTv -> listOf(BaseItemKind.TV_CHANNEL) to false
+            LibraryType.BoxSets -> listOf(BaseItemKind.BOX_SET) to true
+            LibraryType.Playlists -> listOf(BaseItemKind.PLAYLIST) to true
+            LibraryType.HomeVideos -> listOf(BaseItemKind.VIDEO) to true
+            LibraryType.Mixed -> emptyList<BaseItemKind>() to false
+            else -> listOf(BaseItemKind.MOVIE) to true
+        }
         val result = libraryApi.getItems(
             userId = session.userId.toUuid(),
             parentId = library.id.toUuid(),
-            recursive = true,
-            includeItemTypes = listOf(
-                when (library.type) {
-                    LibraryType.TvShows -> BaseItemKind.SERIES
-                    LibraryType.MusicVideos -> BaseItemKind.MUSIC_VIDEO
-                    LibraryType.BoxSets -> BaseItemKind.BOX_SET
-                    LibraryType.Playlists -> BaseItemKind.PLAYLIST
-                    else -> BaseItemKind.MOVIE
-                },
-            ),
+            recursive = recursive,
+            includeItemTypes = kinds.ifEmpty { null },
             sortBy = listOf(ItemSortBy.SORT_NAME),
             sortOrder = listOf(SortOrder.ASCENDING),
             startIndex = startIndex,
@@ -332,7 +602,11 @@ class SdkJellyfinLibraryDataSource(
             userId = session.userId.toUuid(),
             searchTerm = term,
             recursive = true,
-            includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES, BaseItemKind.EPISODE, BaseItemKind.MUSIC_VIDEO),
+            includeItemTypes = listOf(
+                BaseItemKind.MOVIE, BaseItemKind.SERIES, BaseItemKind.EPISODE, BaseItemKind.MUSIC_VIDEO,
+                BaseItemKind.AUDIO, BaseItemKind.MUSIC_ALBUM, BaseItemKind.MUSIC_ARTIST,
+                BaseItemKind.TV_CHANNEL, BaseItemKind.PERSON,
+            ),
             limit = limit,
             fields = ITEM_FIELDS,
             enableUserData = true,
@@ -353,6 +627,176 @@ class SdkJellyfinLibraryDataSource(
         }
     }
 
+    override suspend fun deleteItems(session: Session, itemIds: List<String>) {
+        call(session) { libraryApi.deleteItems(itemIds.map { it.toUuid() }) }
+    }
+
+    override suspend fun playOnSession(session: Session, sessionId: String, itemIds: List<String>, command: com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand) {
+        call(session) {
+            sessionApi.play(
+                org.jellyfin.sdk.model.api.request.PlayRequest(
+                    sessionId = sessionId,
+                    playCommand = when (command) {
+                        com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand.PlayNow -> PlayCommand.PLAY_NOW
+                        com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand.PlayNext -> PlayCommand.PLAY_NEXT
+                        com.pyoungws.bluewolfplayer.shared.model.RemotePlayCommand.PlayLast -> PlayCommand.PLAY_LAST
+                    },
+                    itemIds = itemIds.map { it.toUuid() },
+                ),
+            )
+        }
+    }
+
+    override fun streamUrl(session: Session, item: MediaItem): String {
+        val base = session.serverAddress.trimEnd('/')
+        val path = if (item.kind == MediaKind.Song) "Audio" else "Videos"
+        val mediaSource = item.mediaSources.firstOrNull()?.id ?: item.id
+        return "$base/$path/${item.id}/stream?static=true&mediaSourceId=$mediaSource&api_key=${session.accessToken}"
+    }
+
+    override suspend fun getItemDto(session: Session, itemId: String): BaseItemDto = call(session) {
+        libraryApi.getItem(userId = session.userId.toUuid(), itemId = itemId.toUuid()).content
+    }
+
+    override suspend fun updateItemDto(session: Session, itemId: String, dto: BaseItemDto) {
+        call(session) { itemUpdateApi.updateItem(itemId = itemId.toUuid(), data = dto) }
+    }
+
+    override suspend fun refreshItem(session: Session, itemId: String, mode: MetadataRefresh) {
+        call(session) {
+            when (mode) {
+                MetadataRefresh.ScanMissing -> libraryApi.refreshItem(
+                    itemId = itemId.toUuid(),
+                    metadataRefreshMode = MetadataRefreshMode.DEFAULT,
+                    imageRefreshMode = MetadataRefreshMode.DEFAULT,
+                    replaceAllMetadata = false,
+                    replaceAllImages = false,
+                )
+                MetadataRefresh.ReplaceMetadata -> libraryApi.refreshItem(
+                    itemId = itemId.toUuid(),
+                    metadataRefreshMode = MetadataRefreshMode.FULL_REFRESH,
+                    imageRefreshMode = MetadataRefreshMode.FULL_REFRESH,
+                    replaceAllMetadata = true,
+                    replaceAllImages = false,
+                )
+                MetadataRefresh.ReplaceAll -> libraryApi.refreshItem(
+                    itemId = itemId.toUuid(),
+                    metadataRefreshMode = MetadataRefreshMode.FULL_REFRESH,
+                    imageRefreshMode = MetadataRefreshMode.FULL_REFRESH,
+                    replaceAllMetadata = true,
+                    replaceAllImages = true,
+                )
+            }
+        }
+    }
+
+    override suspend fun getItemImages(session: Session, itemId: String) = call(session) {
+        imageApi.getItemImageInfos(itemId.toUuid()).content.mapNotNull { info ->
+            info.imageType?.let { type ->
+                com.pyoungws.bluewolfplayer.shared.model.ItemImageInfo(
+                    type = type.serialName,
+                    index = info.imageIndex ?: 0,
+                    width = info.width,
+                    height = info.height,
+                    size = info.size,
+                )
+            }
+        }
+    }
+
+    override suspend fun setItemImage(session: Session, itemId: String, imageType: String, bytes: ByteArray, mediaType: String) {
+        call(session) {
+            imageApi.setItemImage(itemId.toUuid(), imageType(imageType), org.jellyfin.sdk.model.FileInfo(bytes, mediaType))
+        }
+    }
+
+    override suspend fun deleteItemImage(session: Session, itemId: String, imageType: String, imageIndex: Int) {
+        call(session) {
+            imageApi.deleteItemImageByIndex(itemId.toUuid(), imageType(imageType), imageIndex)
+        }
+    }
+
+    override suspend fun identifySearch(session: Session, item: MediaItem, name: String, year: Int?): List<IdentifyMatch> = call(session) {
+        val itemId = item.id.toUuid()
+        val results: List<RemoteSearchResult> = when (item.kind) {
+            MediaKind.Movie -> itemLookupApi.getMovieRemoteSearchResults(
+                MovieInfoRemoteSearchQuery(
+                    searchInfo = MovieInfo(name, null, null, null, null, null, year, null, null, null, false),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.Series -> itemLookupApi.getSeriesRemoteSearchResults(
+                SeriesInfoRemoteSearchQuery(
+                    searchInfo = SeriesInfo(name, null, null, null, null, null, year, null, null, null, false),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.MusicAlbum -> itemLookupApi.getMusicAlbumRemoteSearchResults(
+                AlbumInfoRemoteSearchQuery(
+                    searchInfo = AlbumInfo(name, null, null, null, null, null, year, null, null, null, false, emptyList(), emptyMap(), emptyList()),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.MusicArtist -> itemLookupApi.getMusicArtistRemoteSearchResults(
+                ArtistInfoRemoteSearchQuery(
+                    searchInfo = ArtistInfo(name, null, null, null, null, null, year, null, null, null, false, emptyList()),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.MusicVideo -> itemLookupApi.getMusicVideoRemoteSearchResults(
+                MusicVideoInfoRemoteSearchQuery(
+                    searchInfo = MusicVideoInfo(name, null, null, null, null, null, year, null, null, null, false, null),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.BoxSet -> itemLookupApi.getBoxSetRemoteSearchResults(
+                BoxSetInfoRemoteSearchQuery(
+                    searchInfo = BoxSetInfo(name, null, null, null, null, null, year, null, null, null, false),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            MediaKind.Person -> itemLookupApi.getPersonRemoteSearchResults(
+                PersonLookupInfoRemoteSearchQuery(
+                    searchInfo = PersonLookupInfo(name, null, null, null, null, null, null, null, null, null, false),
+                    itemId = itemId, searchProviderName = null, includeDisabledProviders = false,
+                ),
+            ).content
+            else -> emptyList()
+        }
+        results.map {
+            IdentifyMatch(
+                name = it.name.orEmpty(),
+                year = it.productionYear,
+                imageUrl = it.imageUrl,
+                provider = it.searchProviderName,
+                overview = it.overview,
+                raw = it,
+            )
+        }
+    }
+
+    override suspend fun applyIdentify(session: Session, itemId: String, match: IdentifyMatch) {
+        call(session) { itemLookupApi.applySearchCriteria(itemId = itemId.toUuid(), data = match.raw) }
+    }
+
+    override suspend fun searchRemoteSubtitles(session: Session, itemId: String, language: String): List<SubtitleMatch> = call(session) {
+        subtitleApi.searchRemoteSubtitles(itemId = itemId.toUuid(), language = language, isPerfectMatch = false).content.map {
+            SubtitleMatch(
+                id = it.id.orEmpty(),
+                name = it.name.orEmpty(),
+                language = it.threeLetterIsoLanguageName,
+                provider = it.providerName,
+                format = it.format,
+                forced = it.forced == true,
+                hearingImpaired = it.hearingImpaired == true,
+            )
+        }
+    }
+
+    override suspend fun downloadRemoteSubtitle(session: Session, itemId: String, subtitleId: String) {
+        call(session) { subtitleApi.downloadRemoteSubtitles(itemId = itemId.toUuid(), subtitleId = subtitleId) }
+    }
+
     private companion object {
         const val ROW_LIMIT = 20
         val ITEM_FIELDS = listOf(ItemFields.OVERVIEW, ItemFields.GENRES, ItemFields.MEDIA_STREAMS, ItemFields.PEOPLE, ItemFields.TAGLINES, ItemFields.CHAPTERS, ItemFields.REMOTE_TRAILERS, ItemFields.MEDIA_SOURCES, ItemFields.TRICKPLAY)
@@ -360,6 +804,9 @@ class SdkJellyfinLibraryDataSource(
 }
 
 private fun String.toUuid(): UUID = toUUID()
+
+private fun imageType(serialName: String): org.jellyfin.sdk.model.api.ImageType =
+    org.jellyfin.sdk.model.api.ImageType.entries.first { it.serialName == serialName }
 
 private fun MediaKind.toBaseItemKind(): BaseItemKind? = when (this) {
     MediaKind.Movie -> BaseItemKind.MOVIE
@@ -370,6 +817,14 @@ private fun MediaKind.toBaseItemKind(): BaseItemKind? = when (this) {
     MediaKind.BoxSet -> BaseItemKind.BOX_SET
     MediaKind.Playlist -> BaseItemKind.PLAYLIST
     MediaKind.Video -> BaseItemKind.VIDEO
+    MediaKind.Song -> BaseItemKind.AUDIO
+    MediaKind.MusicAlbum -> BaseItemKind.MUSIC_ALBUM
+    MediaKind.MusicArtist -> BaseItemKind.MUSIC_ARTIST
+    MediaKind.TvChannel -> BaseItemKind.TV_CHANNEL
+    MediaKind.Program -> BaseItemKind.TV_PROGRAM
+    MediaKind.Recording -> BaseItemKind.RECORDING
+    MediaKind.Folder -> BaseItemKind.FOLDER
+    MediaKind.Person -> BaseItemKind.PERSON
     MediaKind.Other -> null
 }
 
@@ -379,7 +834,11 @@ internal fun BaseItemDto.toLibrary(serverAddress: String) = Library(
     type = when (collectionType) {
         CollectionType.MOVIES -> LibraryType.Movies
         CollectionType.TVSHOWS -> LibraryType.TvShows
+        CollectionType.MUSIC -> LibraryType.Music
         CollectionType.MUSICVIDEOS -> LibraryType.MusicVideos
+        CollectionType.LIVETV -> LibraryType.LiveTv
+        CollectionType.HOMEVIDEOS -> LibraryType.HomeVideos
+        CollectionType.FOLDERS -> LibraryType.Mixed
         CollectionType.BOXSETS -> LibraryType.BoxSets
         CollectionType.PLAYLISTS -> LibraryType.Playlists
         else -> LibraryType.Other
@@ -398,10 +857,19 @@ internal fun BaseItemDto.toMediaItem(serverAddress: String): MediaItem {
         BaseItemKind.BOX_SET -> MediaKind.BoxSet
         BaseItemKind.PLAYLIST -> MediaKind.Playlist
         BaseItemKind.VIDEO, BaseItemKind.TRAILER -> MediaKind.Video
+        BaseItemKind.AUDIO, BaseItemKind.AUDIO_BOOK -> MediaKind.Song
+        BaseItemKind.MUSIC_ALBUM -> MediaKind.MusicAlbum
+        BaseItemKind.MUSIC_ARTIST -> MediaKind.MusicArtist
+        BaseItemKind.TV_CHANNEL, BaseItemKind.LIVE_TV_CHANNEL -> MediaKind.TvChannel
+        BaseItemKind.TV_PROGRAM, BaseItemKind.LIVE_TV_PROGRAM, BaseItemKind.PROGRAM -> MediaKind.Program
+        BaseItemKind.RECORDING -> MediaKind.Recording
+        BaseItemKind.FOLDER -> MediaKind.Folder
+        BaseItemKind.PERSON -> MediaKind.Person
         else -> MediaKind.Other
     }
     val streams = mediaStreams.orEmpty().map { stream ->
         MediaStreamInfo(
+            index = stream.index,
             kind = when (stream.type) {
                 MediaStreamType.VIDEO -> StreamKind.Video
                 MediaStreamType.AUDIO -> StreamKind.Audio
@@ -472,6 +940,7 @@ internal fun BaseItemDto.toMediaItem(serverAddress: String): MediaItem {
         seasonNumber = if (kind == MediaKind.Season) indexNumber else parentIndexNumber,
         episodeNumber = if (kind == MediaKind.Episode) indexNumber else null,
         positionTicks = userData?.playbackPositionTicks ?: 0,
+        playlistItemId = playlistItemId,
         playedPercentage = userData?.playedPercentage,
         isPlayed = userData?.played == true,
         unplayedCount = userData?.unplayedItemCount,
@@ -492,6 +961,26 @@ internal fun BaseItemDto.toMediaItem(serverAddress: String): MediaItem {
         },
         remoteTrailers = remoteTrailers.orEmpty().map { com.pyoungws.bluewolfplayer.shared.model.MediaTrailer(name = it.name, url = it.url.orEmpty()) },
         mediaSources = mediaSources.orEmpty().map { com.pyoungws.bluewolfplayer.shared.model.MediaVersion(id = it.id.orEmpty(), name = it.name ?: it.path?.substringAfterLast('/') ?: it.id.orEmpty()) },
+        albumId = albumId?.toString(),
+        albumName = album,
+        artists = artists.orEmpty(),
+        artistIds = artistItems.orEmpty().map { it.id.toString() },
+        trackNumber = if (kind == MediaKind.Song) indexNumber else null,
+        programInfo = if (kind == MediaKind.Program || kind == MediaKind.TvChannel) com.pyoungws.bluewolfplayer.shared.model.ProgramInfo(
+            channelId = channelId?.toString(),
+            channelName = channelName,
+            channelNumber = channelNumber ?: number?.toString(),
+            start = startDate,
+            end = endDate,
+            isLive = isLive == true,
+            isPremiere = isPremiere == true,
+            isRepeat = isRepeat == true,
+            isSeries = isSeries == true,
+            timerId = timerId,
+            seriesTimerId = seriesTimerId,
+        ) else null,
+        canDelete = canDelete == true,
+        canDownload = canDownload == true,
         trickplay = trickplay?.values?.filterNotNull()?.flatMap { it.entries }?.maxByOrNull { it.key.toIntOrNull() ?: 0 }?.let { entry ->
             val tileWidthPx = entry.key.toIntOrNull() ?: entry.value.width
             com.pyoungws.bluewolfplayer.shared.model.TrickplayTiles(
@@ -538,3 +1027,41 @@ internal const val TICKS_PER_MINUTE = 600_000_000L
 private const val POSTER_WIDTH = 400
 private const val LANDSCAPE_WIDTH = 640
 private const val BACKDROP_WIDTH = 1280
+
+private fun TimerInfoDto.toLiveTimer() = LiveTimer(
+    id = id.orEmpty(),
+    name = name.orEmpty(),
+    channelName = channelName,
+    channelId = channelId?.toString(),
+    programId = programId,
+    startDate = startDate,
+    endDate = endDate,
+    status = status?.serialName,
+)
+
+private fun SeriesTimerInfoDto.toLiveTimer() = LiveTimer(
+    id = id.orEmpty(),
+    name = name.orEmpty(),
+    channelName = channelName,
+    channelId = channelId?.toString(),
+    programId = programId,
+    startDate = startDate,
+    endDate = endDate,
+    isSeries = true,
+    days = days.orEmpty().map { it.serialName },
+)
+
+/** The server-default timer template carries everything a single recording needs. */
+private fun SeriesTimerInfoDto.toTimerInfoDto() = TimerInfoDto(
+    name = name,
+    overview = overview,
+    channelId = channelId,
+    programId = programId,
+    startDate = startDate,
+    endDate = endDate,
+    prePaddingSeconds = prePaddingSeconds,
+    postPaddingSeconds = postPaddingSeconds,
+    isPrePaddingRequired = isPrePaddingRequired,
+    isPostPaddingRequired = isPostPaddingRequired,
+    priority = priority,
+)

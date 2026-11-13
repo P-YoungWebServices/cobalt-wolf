@@ -1,6 +1,10 @@
 package com.pyoungws.bluewolfplayer.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,6 +95,7 @@ fun MediaItem.cardTitle(): String = if (kind == MediaKind.Episode) seriesName ?:
 /** Watched-check / unwatched-count badge drawn over card artwork's top end, like the official clients. */
 @Composable
 fun WatchedBadge(item: MediaItem, modifier: Modifier = Modifier) {
+    if (!rememberDisplayOptions().first.watchedBadge) return
     val count = item.unplayedCount
     when {
         item.isPlayed -> Box(
@@ -124,25 +129,53 @@ private fun CardFace(item: MediaItem, url: String?, aspectRatio: Float, modifier
 }
 
 @Composable
-fun PosterCard(item: MediaItem, onClick: () -> Unit, width: Dp = 120.dp, modifier: Modifier = Modifier) {
-    Column(modifier.width(width).clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick)) {
-        CardFace(item, item.posterUrl ?: item.landscapeUrl, aspectRatio = 2f / 3f, modifier = Modifier.fillMaxWidth())
+fun PosterCard(
+    item: MediaItem,
+    onClick: () -> Unit,
+    width: Dp = 120.dp,
+    modifier: Modifier = Modifier,
+    image: CardImage = CardImage.Poster,
+    selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+) {
+    val (art, aspect) = when (image) {
+        CardImage.Poster -> (item.posterUrl ?: item.landscapeUrl) to 2f / 3f
+        CardImage.Banner -> (item.backdropUrl ?: item.landscapeUrl ?: item.posterUrl) to 16f / 9f
+        CardImage.Thumb -> (item.landscapeUrl ?: item.posterUrl) to 16f / 9f
+    }
+    var menuOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    Column(
+        modifier
+            .width(width)
+            .clip(RoundedCornerShape(8.dp))
+            .then(if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)) else Modifier)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick ?: { menuOpen = true }),
+    ) {
+        CardFace(item, art, aspectRatio = aspect, modifier = Modifier.fillMaxWidth())
         Text(item.cardTitle(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
         item.cardSubtitle()?.let {
             Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+    if (onLongClick == null) ItemContextMenu(item, expanded = menuOpen, onDismiss = { menuOpen = false })
 }
 
 @Composable
 fun LandscapeCard(item: MediaItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.width(240.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick)) {
+    var menuOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    Column(
+        modifier
+            .width(240.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .combinedClickable(onClick = onClick, onLongClick = { menuOpen = true }),
+    ) {
         CardFace(item, item.landscapeUrl ?: item.posterUrl, aspectRatio = 16f / 9f, modifier = Modifier.fillMaxWidth())
         Text(item.cardTitle(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
         item.cardSubtitle()?.let {
             Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+    ItemContextMenu(item, expanded = menuOpen, onDismiss = { menuOpen = false })
 }
 
 /** "2026-11-10T12:34:56" style timestamps become "2026-11-10 12:34"; other values pass through. */

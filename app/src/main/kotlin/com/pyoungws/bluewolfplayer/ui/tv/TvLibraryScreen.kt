@@ -11,7 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -37,8 +40,15 @@ fun TvLibraryScreen(library: Library, onOpenItem: (String) -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val gridState = rememberLazyGridState()
     TvLoadMoreEffect(gridState, onLoadMore = viewModel::loadMore)
+    var menuItem by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.pyoungws.bluewolfplayer.shared.model.MediaItem?>(null) }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().onPreviewKeyEvent { ev ->
+        val n = ev.nativeKeyEvent
+        if (menuItem != null && n.action == android.view.KeyEvent.ACTION_DOWN &&
+            (n.keyCode == android.view.KeyEvent.KEYCODE_BACK || n.keyCode == android.view.KeyEvent.KEYCODE_MENU)) {
+            menuItem = null; true
+        } else false
+    }) {
         when {
             state.items.isEmpty() && state.isLoading -> TvLoadingBox()
             state.items.isEmpty() && state.error != null -> TvErrorBox(state.error!!, onRetry = viewModel::retry)
@@ -56,7 +66,7 @@ fun TvLibraryScreen(library: Library, onOpenItem: (String) -> Unit) {
                 modifier = Modifier.fillMaxSize(),
             ) {
                 items(state.items.size, key = { state.items[it].id }) {
-                    TvPosterCard(state.items[it], onClick = { onOpenItem(state.items[it].id) })
+                    TvPosterCard(state.items[it], onClick = { onOpenItem(state.items[it].id) }, onMenu = { menuItem = state.items[it] })
                 }
                 if (state.isLoading) {
                     item {
@@ -68,6 +78,7 @@ fun TvLibraryScreen(library: Library, onOpenItem: (String) -> Unit) {
                 }
             }
         }
+        menuItem?.let { TvItemMenuOverlay(it, onOpenItem, onDismiss = { menuItem = null }) }
     }
 }
 

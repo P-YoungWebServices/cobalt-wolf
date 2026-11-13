@@ -13,7 +13,10 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -40,7 +43,14 @@ fun TvItemBrowseScreen(title: String, query: ItemQuery, onOpenItem: (String) -> 
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(start = TvContentPadding, top = 12.dp, bottom = 8.dp),
         )
-        Box(Modifier.fillMaxSize()) {
+        var menuItem by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.pyoungws.bluewolfplayer.shared.model.MediaItem?>(null) }
+        Box(Modifier.fillMaxSize().onPreviewKeyEvent { ev ->
+            val n = ev.nativeKeyEvent
+            if (menuItem != null && n.action == android.view.KeyEvent.ACTION_DOWN &&
+                (n.keyCode == android.view.KeyEvent.KEYCODE_BACK || n.keyCode == android.view.KeyEvent.KEYCODE_MENU)) {
+                menuItem = null; true
+            } else false
+        }) {
             when {
                 state.items.isEmpty() && state.isLoading -> TvLoadingBox()
                 state.items.isEmpty() && state.error != null -> TvErrorBox(state.error!!, onRetry = viewModel::retry)
@@ -58,7 +68,7 @@ fun TvItemBrowseScreen(title: String, query: ItemQuery, onOpenItem: (String) -> 
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(state.items.size, key = { state.items[it].id }) {
-                        TvPosterCard(state.items[it], onClick = { onOpenItem(state.items[it].id) })
+                        TvPosterCard(state.items[it], onClick = { onOpenItem(state.items[it].id) }, onMenu = { menuItem = state.items[it] })
                     }
                     if (state.isLoading) {
                         item {
@@ -70,6 +80,7 @@ fun TvItemBrowseScreen(title: String, query: ItemQuery, onOpenItem: (String) -> 
                     }
                 }
             }
+            menuItem?.let { TvItemMenuOverlay(it, onOpenItem, onDismiss = { menuItem = null }) }
         }
     }
 }

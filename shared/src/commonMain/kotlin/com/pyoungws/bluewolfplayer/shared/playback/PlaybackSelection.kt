@@ -62,6 +62,17 @@ data class VideoSupport(
  */
 fun hdrOutput(range: VideoRange, codec: VideoCodec, capabilities: DeviceCapabilities, settings: PlaybackSettings): HdrOutput? {
     if (range == VideoRange.Sdr) return HdrOutput.Sdr
+    // Per-format overrides: a disabled HDR format falls back to its SDR/lower base layer.
+    val base = if (range.isDolbyVision) range.base else range
+    when (base) {
+        VideoRange.Hdr10, VideoRange.Hdr10Plus -> if (!settings.allowHdr10) {
+            return if (range.base == VideoRange.Sdr) HdrOutput.Sdr else null
+        }
+        VideoRange.Hlg -> if (!settings.allowHlg) {
+            return if (range.base == VideoRange.Sdr) HdrOutput.Sdr else null
+        }
+        else -> Unit
+    }
     val tenBitDecoder = capabilities.videoDecoder(codec)?.supports10Bit == true
     if (settings.hdr == HdrPreference.SdrOnly) {
         return if (range.base == VideoRange.Sdr && tenBitDecoder) HdrOutput.Sdr else null
@@ -164,8 +175,14 @@ fun audioPath(codec: AudioCodec, capabilities: DeviceCapabilities, settings: Pla
     if (settings.decoding == DecodingPreference.AlwaysTranscode) return DecodePath.Transcode
     val local = codec in capabilities.localAudioCodecs
     val preferLocal = local && settings.decoding == DecodingPreference.PreferLocal
+    val passthroughAllowed = when (codec) {
+        AudioCodec.Ac3, AudioCodec.Eac3 -> settings.passthroughAc3Eac3
+        AudioCodec.Dts -> settings.passthroughDts
+        AudioCodec.TrueHd -> settings.passthroughTrueHd
+        else -> true
+    }
     return when {
-        !preferLocal && settings.audioOutput == AudioOutputPreference.Auto &&
+        !preferLocal && settings.audioOutput == AudioOutputPreference.Auto && passthroughAllowed &&
             codec.passthrough != null && codec.passthrough in capabilities.passthrough -> DecodePath.Passthrough
         preferLocal -> DecodePath.Local
         codec == AudioCodec.Pcm || codec in capabilities.audioDecoders -> DecodePath.Device

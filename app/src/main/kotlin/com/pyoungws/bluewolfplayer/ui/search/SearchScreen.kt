@@ -73,6 +73,7 @@ fun SearchScreen(
                 placeholder = { Text(stringResource(R.string.search_hint)) },
                 modifier = Modifier.fillMaxWidth().padding(16.dp).focusRequester(focusRequester),
             )
+            FilterRow(state.filter, viewModel::setFilter)
             Box(Modifier.fillMaxSize()) {
                 when {
                     state.error != null -> ErrorBox(state.error!!, onRetry = null)
@@ -80,9 +81,29 @@ fun SearchScreen(
                     state.showNoResults -> Text(stringResource(R.string.search_no_results), Modifier.align(Alignment.TopCenter).padding(16.dp))
                     state.query.isBlank() -> Text(stringResource(R.string.search_prompt), Modifier.align(Alignment.TopCenter).padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (state.results.isNotEmpty()) {
+                        if (state.filteredResults.isNotEmpty()) {
                             item(key = "header-local") { SearchSectionHeader(stringResource(R.string.search_on_server)) }
-                            items(state.results, key = { it.id }) { SearchResultRow(it, onClick = { onOpenItem(it.id) }) }
+                            val groups = linkedMapOf<com.pyoungws.bluewolfplayer.shared.model.MediaKind, MutableList<com.pyoungws.bluewolfplayer.shared.model.MediaItem>>()
+                            state.filteredResults.forEach { groups.getOrPut(it.kind) { mutableListOf() } += it }
+                            val kindOrder = listOf(
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.Movie,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.Series,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.Episode,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.Person,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.MusicArtist,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.MusicAlbum,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.Song,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.MusicVideo,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.BoxSet,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.Playlist,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.TvChannel,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.Recording,
+                                com.pyoungws.bluewolfplayer.shared.model.MediaKind.Video,
+                            )
+                            (kindOrder + groups.keys).distinct().filter { groups[it].orEmpty().isNotEmpty() }.forEach { kind ->
+                                item(key = "header-${kind.name}") { SearchSectionHeader(stringResource(searchKindLabel(kind))) }
+                                items(groups[kind].orEmpty(), key = { "${kind.name}-${it.id}" }) { SearchResultRow(it, onClick = { onOpenItem(it.id) }) }
+                            }
                         }
                         if (state.seerrResults.isNotEmpty() || state.seerrError != null) {
                             item(key = "header-seerr") { SearchSectionHeader(stringResource(R.string.search_on_seerr)) }
@@ -103,6 +124,33 @@ fun SearchScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/** The result-type chips; hidden until the box has been searched so they do not sit over the prompt. */
+@Composable
+private fun FilterRow(selected: com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter, onSelect: (com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter) -> Unit) {
+    val filters = listOf(
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.All to R.string.filter_all,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Movies to R.string.kind_movies,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Shows to R.string.kind_shows,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Episodes to R.string.kind_episodes,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.People to R.string.kind_people,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Music to R.string.kind_music,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.LiveTv to R.string.kind_livetv,
+        com.pyoungws.bluewolfplayer.shared.presentation.SearchFilter.Other to R.string.kind_other,
+    )
+    androidx.compose.foundation.lazy.LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+    ) {
+        items(filters, key = { it.first.name }) { (filter, label) ->
+            androidx.compose.material3.FilterChip(
+                selected = selected == filter,
+                onClick = { onSelect(filter) },
+                label = { Text(stringResource(label)) },
+            )
         }
     }
 }
@@ -160,4 +208,18 @@ private fun MediaKind.label() = when (this) {
     MediaKind.Episode -> stringResource(R.string.kind_episode)
     MediaKind.MusicVideo -> stringResource(R.string.kind_music_video)
     else -> ""
+}
+
+private fun searchKindLabel(kind: com.pyoungws.bluewolfplayer.shared.model.MediaKind): Int = when (kind) {
+    com.pyoungws.bluewolfplayer.shared.model.MediaKind.Movie -> R.string.kind_movies
+    com.pyoungws.bluewolfplayer.shared.model.MediaKind.Series, com.pyoungws.bluewolfplayer.shared.model.MediaKind.Season -> R.string.kind_shows
+    com.pyoungws.bluewolfplayer.shared.model.MediaKind.Episode -> R.string.kind_episodes
+    com.pyoungws.bluewolfplayer.shared.model.MediaKind.Person -> R.string.kind_people
+    com.pyoungws.bluewolfplayer.shared.model.MediaKind.MusicArtist -> R.string.kind_artists
+    com.pyoungws.bluewolfplayer.shared.model.MediaKind.MusicAlbum -> R.string.kind_albums
+    com.pyoungws.bluewolfplayer.shared.model.MediaKind.Song -> R.string.kind_songs
+    com.pyoungws.bluewolfplayer.shared.model.MediaKind.TvChannel, com.pyoungws.bluewolfplayer.shared.model.MediaKind.Program -> R.string.kind_livetv
+    com.pyoungws.bluewolfplayer.shared.model.MediaKind.Playlist -> R.string.kind_playlists
+    com.pyoungws.bluewolfplayer.shared.model.MediaKind.BoxSet -> R.string.kind_collections
+    else -> R.string.kind_other
 }

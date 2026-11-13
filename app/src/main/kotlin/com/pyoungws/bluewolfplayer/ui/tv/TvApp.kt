@@ -19,6 +19,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,7 +76,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /** Root of the TV layout: session flow, then the 10-foot signed-in experience. */
 @Composable
-fun TvApp(initialItemId: String?, appViewModel: AppViewModel = koinViewModel()) {
+fun TvApp(initialItemId: String?, initialQuery: String? = null, appViewModel: AppViewModel = koinViewModel()) {
     val context = LocalContext.current
     val sessionState by appViewModel.sessionState.collectAsStateWithLifecycle()
 
@@ -89,7 +90,7 @@ fun TvApp(initialItemId: String?, appViewModel: AppViewModel = koinViewModel()) 
     when (val state = sessionState) {
         SessionState.Unknown -> TvLoadingBox()
         is SessionState.SignedOut -> TvSignedOutFlow(state.lastServerAddress)
-        is SessionState.SignedIn -> TvSignedInNavigation(initialItemId)
+        is SessionState.SignedIn -> TvSignedInNavigation(initialItemId, initialQuery)
     }
 }
 
@@ -122,6 +123,7 @@ private fun decodeTvRoute(value: String): Route? = when (val route = decodeRoute
     is Route.LibraryRoute, is Route.Detail, is Route.Person, is Route.SeerrDetail, is Route.SyncPlay, Route.About,
     Route.Dashboard, Route.Sessions, Route.AdminRequests, Route.AdminUsers, Route.AdminDevices,
     Route.AdminLibraries, Route.AdminTasks, Route.AdminLogs, Route.AdminSystem,
+    Route.AdminActivityLog, Route.AdminApiKeys, Route.AdminPlugins, Route.AdminServerSettings,
     Route.MediaManager, is Route.MediaDetail, Route.ArrSettings, Route.Downloads,
     Route.Bazarr, Route.Prowlarr -> route
     else -> null
@@ -130,6 +132,7 @@ private fun decodeTvRoute(value: String): Route? = when (val route = decodeRoute
 @Composable
 private fun TvSignedInNavigation(
     initialItemId: String?,
+    initialQuery: String? = null,
     feedViewModel: LibraryHomeViewModel = koinViewModel(),
     accountViewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -146,11 +149,14 @@ private fun TvSignedInNavigation(
     val push = { route: Route -> stack = stack + route.encode() }
     val pop = { stack = stack.dropLast(1) }
     val play = { itemId: String -> context.startActivity(PlayerActivity.intent(context, itemId)) }
-            val playVersion = { itemId: String, mediaSourceId: String -> context.startActivity(PlayerActivity.intent(context, itemId, mediaSourceId = mediaSourceId)) }
+            val playVersion = { itemId: String, mediaSourceId: String, audioIndex: Int?, subtitleIndex: Int? -> context.startActivity(PlayerActivity.intent(context, itemId, mediaSourceId = mediaSourceId, audioStreamIndex = audioIndex, subtitleStreamIndex = subtitleIndex)) }
 
     // A channel or deep link opens the matching item on top of Home.
     LaunchedEffect(initialItemId) {
         initialItemId?.let { push(Route.Detail(it)) }
+    }
+    LaunchedEffect(initialQuery) {
+        if (!initialQuery.isNullOrBlank()) section = TvSection.Search.name
     }
 
     // The feed that just loaded also refreshes the Android TV home screen channels.
@@ -187,8 +193,16 @@ private fun TvSignedInNavigation(
             onSignOut = { confirmSignOut = true },
         )
         Box(Modifier.weight(1f)) {
+            // Key on the route so pushed screens never share a composition slot: without this a
+            // LazyColumn's remembered scroll state leaks between detail pages (the page "opens
+            // scrolled halfway down") and across sections.
+            key(routes.lastOrNull() ?: section) {
             when (val route = routes.lastOrNull()) {
-                is Route.LibraryRoute -> TvLibraryScreen(route.library, onOpenItem = { push(Route.Detail(it)) })
+                is Route.LibraryRoute -> if (route.library.type == com.pyoungws.bluewolfplayer.shared.model.LibraryType.LiveTv) {
+                    com.pyoungws.bluewolfplayer.ui.livetv.LiveTvScreen(onBack = pop, onOpenItem = { push(Route.Detail(it)) })
+                } else {
+                    TvLibraryScreen(route.library, onOpenItem = { push(Route.Detail(it)) })
+                }
                 is Route.Detail -> TvDetailScreen(
                     route.itemId,
                     onPlay = play,
@@ -196,7 +210,7 @@ private fun TvSignedInNavigation(
                     onOpenItem = { push(Route.Detail(it)) },
                     onWatchTogether = { push(Route.SyncPlay(it)) },
                     onPlayFromBeginning = { itemId -> context.startActivity(PlayerActivity.intent(context, itemId, startPositionMs = 0)) },
-                    onOpenPerson = { id, name -> push(Route.Person(id, name)) },
+                    onOpenPerson = { id, _ -> push(Route.Detail(id)) },
                 )
                 is Route.Person -> TvItemBrowseScreen(
                     title = route.name,
@@ -223,6 +237,10 @@ private fun TvSignedInNavigation(
                 Route.AdminTasks -> AdminTasksScreen(onBack = pop)
                 Route.AdminLogs -> AdminLogsScreen(onBack = pop)
                 Route.AdminSystem -> AdminSystemInfoScreen(onBack = pop)
+                Route.AdminActivityLog -> com.pyoungws.bluewolfplayer.ui.admin.AdminActivityLogScreen(onBack = pop)
+                Route.AdminApiKeys -> com.pyoungws.bluewolfplayer.ui.admin.AdminApiKeysScreen(onBack = pop)
+                Route.AdminPlugins -> com.pyoungws.bluewolfplayer.ui.admin.AdminPluginsScreen(onBack = pop)
+                Route.AdminServerSettings -> com.pyoungws.bluewolfplayer.ui.admin.AdminServerSettingsScreen(onBack = pop)
                 Route.MediaManager -> MediaManagerScreen(
                     onBack = pop,
                     onOpenItem = { service, itemId -> push(Route.MediaDetail(service, itemId)) },
@@ -244,6 +262,7 @@ private fun TvSignedInNavigation(
                     TvSection.Search -> TvSearchScreen(
                         onOpenItem = { push(Route.Detail(it)) },
                         onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) },
+                        initialQuery = initialQuery,
                     )
                     TvSection.Requests -> TvDiscoverScreen(onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) })
                     TvSection.MyRequests -> TvMyRequestsScreen(onOpenTitle = { type, tmdbId -> push(Route.SeerrDetail(type, tmdbId)) })
@@ -251,6 +270,7 @@ private fun TvSignedInNavigation(
                     TvSection.Calendar -> TvCalendarScreen()
                 }
                 else -> Unit
+            }
             }
         }
     }
@@ -285,6 +305,10 @@ private fun TvTopBar(
     onSignOut: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    var notificationsOpen by remember { mutableStateOf(false) }
+    if (notificationsOpen) {
+        com.pyoungws.bluewolfplayer.ui.common.NotificationsDialog { notificationsOpen = false }
+    }
     Row(
         Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = TvContentPadding, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -308,6 +332,9 @@ private fun TvTopBar(
                 }
                 // Servers and Settings live on the dashboard now.
                 TvMenuItem(R.string.home_dashboard) { menuOpen = false; onOpenRoute(Route.Dashboard) }
+                if (isAdmin) {
+                    TvMenuItem(R.string.home_notifications) { menuOpen = false; notificationsOpen = true }
+                }
                 TvMenuItem(R.string.about_title) { menuOpen = false; onOpenRoute(Route.About) }
                 TvMenuItem(R.string.home_sign_out) { menuOpen = false; onSignOut() }
             }
@@ -315,6 +342,16 @@ private fun TvTopBar(
         Box(Modifier.weight(1f))
         if (userName != null) {
             Text(userName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (com.pyoungws.bluewolfplayer.ui.common.rememberDisplayOptions().first.clock) {
+            var now by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date())) }
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                while (true) {
+                    kotlinx.coroutines.delay(30_000)
+                    now = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date())
+                }
+            }
+            Text(now, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (isSigningOut) {
             androidx.compose.material3.CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp)

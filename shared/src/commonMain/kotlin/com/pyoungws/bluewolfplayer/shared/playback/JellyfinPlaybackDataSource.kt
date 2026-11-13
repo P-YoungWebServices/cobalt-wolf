@@ -120,6 +120,7 @@ class SdkJellyfinPlaybackDataSource(
             val kind = when (it.type) {
                 MediaSegmentType.INTRO -> MediaSegmentKind.Intro
                 MediaSegmentType.OUTRO -> MediaSegmentKind.Outro
+                MediaSegmentType.RECAP -> MediaSegmentKind.Recap
                 else -> return@mapNotNull null
             }
             MediaSegment(kind, it.startTicks / TICKS_PER_MILLISECOND, it.endTicks / TICKS_PER_MILLISECOND)

@@ -1,5 +1,8 @@
 package com.pyoungws.bluewolfplayer.ui.navigation
 
+import androidx.compose.ui.res.stringResource
+import com.pyoungws.bluewolfplayer.R
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,7 +26,11 @@ import com.pyoungws.bluewolfplayer.shared.seerr.SeerrMediaType
 import com.pyoungws.bluewolfplayer.ui.admin.AdminDashboardScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminDevicesScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminLibrariesScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminActivityLogScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminApiKeysScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminLogsScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminPluginsScreen
+import com.pyoungws.bluewolfplayer.ui.admin.AdminServerSettingsScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminRequestsScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminSessionsScreen
 import com.pyoungws.bluewolfplayer.ui.admin.AdminSystemInfoScreen
@@ -66,6 +73,7 @@ internal sealed interface Route {
     data object ArrSettings : Route
     data object Downloads : Route
     data object Offline : Route
+    data object Favorites : Route
     data object Bazarr : Route
     data object Prowlarr : Route
     data object Dashboard : Route
@@ -76,6 +84,10 @@ internal sealed interface Route {
     data object AdminTasks : Route
     data object AdminLogs : Route
     data object AdminSystem : Route
+    data object AdminActivityLog : Route
+    data object AdminApiKeys : Route
+    data object AdminPlugins : Route
+    data object AdminServerSettings : Route
     data object Sessions : Route
     data object MediaManager : Route
     data class MediaDetail(val service: ArrService, val itemId: Int) : Route
@@ -99,6 +111,7 @@ internal fun Route.encode(): String = when (this) {
     Route.ArrSettings -> "arrsettings"
     Route.Downloads -> "downloads"
     Route.Offline -> "offline"
+    Route.Favorites -> "favorites"
     Route.Bazarr -> "bazarr"
     Route.Prowlarr -> "prowlarr"
     Route.Dashboard -> "dashboard"
@@ -109,6 +122,10 @@ internal fun Route.encode(): String = when (this) {
     Route.AdminTasks -> "admintasks"
     Route.AdminLogs -> "adminlogs"
     Route.AdminSystem -> "adminsystem"
+    Route.AdminActivityLog -> "adminactivity"
+    Route.AdminApiKeys -> "adminapikeys"
+    Route.AdminPlugins -> "adminplugins"
+    Route.AdminServerSettings -> "adminserversettings"
     Route.Sessions -> "sessions"
     Route.MediaManager -> "mediamanager"
     is Route.MediaDetail -> listOf("mediadetail", service.name, itemId).joinToString(SEPARATOR)
@@ -131,6 +148,7 @@ internal fun decodeRoute(value: String): Route? {
         "arrsettings" -> Route.ArrSettings
         "downloads" -> Route.Downloads
         "offline" -> Route.Offline
+        "favorites" -> Route.Favorites
         "bazarr" -> Route.Bazarr
         "prowlarr" -> Route.Prowlarr
         "dashboard" -> Route.Dashboard
@@ -141,6 +159,10 @@ internal fun decodeRoute(value: String): Route? {
         "admintasks" -> Route.AdminTasks
         "adminlogs" -> Route.AdminLogs
         "adminsystem" -> Route.AdminSystem
+        "adminactivity" -> Route.AdminActivityLog
+        "adminapikeys" -> Route.AdminApiKeys
+        "adminplugins" -> Route.AdminPlugins
+        "adminserversettings" -> Route.AdminServerSettings
         "sessions" -> Route.Sessions
         "mediamanager" -> Route.MediaManager
         "mediadetail" -> parts.getOrNull(2)?.toIntOrNull()?.let { itemId ->
@@ -170,6 +192,10 @@ internal fun Route.adminDestination(): NavDestination? = when (this) {
     Route.AdminTasks -> NavDestination.Tasks
     Route.AdminLogs -> NavDestination.Logs
     Route.AdminSystem -> NavDestination.SystemInfo
+    Route.AdminActivityLog -> NavDestination.ActivityLog
+    Route.AdminApiKeys -> NavDestination.ApiKeys
+    Route.AdminPlugins -> NavDestination.Plugins
+    Route.AdminServerSettings -> NavDestination.ServerSettings
     Route.MediaManager, is Route.MediaDetail -> NavDestination.MediaManager
     Route.Downloads -> NavDestination.Downloads
     Route.Bazarr -> NavDestination.Bazarr
@@ -197,6 +223,10 @@ internal fun managementRoute(destination: NavDestination): Route? = when (destin
     NavDestination.Libraries -> Route.AdminLibraries
     NavDestination.Tasks -> Route.AdminTasks
     NavDestination.Logs -> Route.AdminLogs
+    NavDestination.ActivityLog -> Route.AdminActivityLog
+    NavDestination.ApiKeys -> Route.AdminApiKeys
+    NavDestination.Plugins -> Route.AdminPlugins
+    NavDestination.ServerSettings -> Route.AdminServerSettings
     NavDestination.SystemInfo -> Route.AdminSystem
     else -> null
 }
@@ -213,7 +243,7 @@ fun SignedInNavigation() {
     val push = { route: Route -> stack = stack + route.encode() }
     val pop = { stack = stack.dropLast(1) }
     val play = { itemId: String -> context.startActivity(PlayerActivity.intent(context, itemId)) }
-    val playVersion = { itemId: String, mediaSourceId: String -> context.startActivity(PlayerActivity.intent(context, itemId, mediaSourceId = mediaSourceId)) }
+    val playVersion = { itemId: String, mediaSourceId: String, audioIndex: Int?, subtitleIndex: Int? -> context.startActivity(PlayerActivity.intent(context, itemId, mediaSourceId = mediaSourceId, audioStreamIndex = audioIndex, subtitleStreamIndex = subtitleIndex)) }
 
     // Always consume Back: pop pushed routes, and stay in the app at Home rather than exiting.
     BackHandler { if (stack.isNotEmpty()) pop() }
@@ -227,6 +257,7 @@ fun SignedInNavigation() {
             onCalendar = { push(Route.Calendar) },
             onDashboard = { push(Route.Dashboard) },
             onOffline = { push(Route.Offline) },
+            onFavorites = { push(Route.Favorites) },
         )
         Route.Search -> SearchScreen(
             onBack = pop,
@@ -271,7 +302,11 @@ fun SignedInNavigation() {
         Route.AdminLibraries -> AdminLibrariesScreen(onBack = pop)
         Route.AdminTasks -> AdminTasksScreen(onBack = pop)
         Route.AdminLogs -> AdminLogsScreen(onBack = pop)
+        Route.AdminActivityLog -> AdminActivityLogScreen(onBack = pop)
+        Route.AdminApiKeys -> AdminApiKeysScreen(onBack = pop)
         Route.AdminSystem -> AdminSystemInfoScreen(onBack = pop)
+        Route.AdminPlugins -> AdminPluginsScreen(onBack = pop)
+        Route.AdminServerSettings -> AdminServerSettingsScreen(onBack = pop)
         Route.MediaManager -> MediaManagerScreen(
             onBack = pop,
             onOpenItem = { service, itemId -> push(Route.MediaDetail(service, itemId)) },
@@ -279,7 +314,18 @@ fun SignedInNavigation() {
         )
         is Route.MediaDetail -> MediaDetailScreen(route.service, route.itemId, onBack = pop)
         is Route.SeerrDetail -> SeerrDetailScreen(route.type, route.tmdbId, onBack = pop)
-        is Route.LibraryRoute -> LibraryScreen(route.library, onBack = pop, onOpenItem = { push(Route.Detail(it)) })
+        is Route.LibraryRoute -> if (route.library.type == com.pyoungws.bluewolfplayer.shared.model.LibraryType.LiveTv) {
+            com.pyoungws.bluewolfplayer.ui.livetv.LiveTvScreen(onBack = pop, onOpenItem = { push(Route.Detail(it)) })
+        } else {
+            LibraryScreen(route.library, onBack = pop, onOpenItem = { push(Route.Detail(it)) })
+        }
+        Route.Favorites -> ItemBrowseScreen(
+            title = stringResource(R.string.nav_favorites),
+            query = ItemQuery(favoritesOnly = true),
+            onBack = pop,
+            onOpenItem = { push(Route.Detail(it)) },
+            prefsKey = "favorites",
+        )
         is Route.Person -> ItemBrowseScreen(
             title = route.name,
             query = ItemQuery(personIds = listOf(route.personId), includeItemKinds = PLAYABLE_KINDS),
@@ -294,7 +340,7 @@ fun SignedInNavigation() {
             onPlayFromBeginning = { itemId -> context.startActivity(PlayerActivity.intent(context, itemId, startPositionMs = 0)) },
             onOpenItem = { push(Route.Detail(it)) },
             onWatchTogether = { push(Route.SyncPlay(it)) },
-            onOpenPerson = { id, name -> push(Route.Person(id, name)) },
+            onOpenPerson = { id, _ -> push(Route.Detail(id)) },
         )
     }
 }
