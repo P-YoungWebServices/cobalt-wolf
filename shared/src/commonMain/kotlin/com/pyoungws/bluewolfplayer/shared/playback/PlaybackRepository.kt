@@ -44,8 +44,10 @@ class PlaybackRepository(
                 val startTicks = target.startPositionMs?.let { it * TICKS_PER_MILLISECOND }
                     ?: if (item.hasProgress) item.positionTicks else 0L
                 val serverTranscodesVideo = playbackDataSource.canTranscodeVideo(session)
+                // A Live TV program has no media of its own; playing it means tuning its channel.
+                val sourceItemId = if (item.kind == MediaKind.Program) item.programInfo?.channelId ?: item.id else item.id
                 val source = playbackDataSource.getPlaybackSource(
-                    session, target.itemId, startTicks, buildDeviceProfile(capabilities, settings, serverTranscodesVideo),
+                    session, sourceItemId, startTicks, buildDeviceProfile(capabilities, settings, serverTranscodesVideo),
                     forceTranscode = forceTranscode || settings.decoding == DecodingPreference.AlwaysTranscode,
                     maxBitrate = settings.maxBitrate.bps,
                     mediaSourceId = target.mediaSourceId,
