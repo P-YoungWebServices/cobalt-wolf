@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,18 +24,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.content.Intent
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Layers
-import androidx.compose.material.icons.outlined.Movie
-import androidx.compose.material.icons.outlined.SkipPrevious
+import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
+import androidx.compose.material.icons.outlined.AddToQueue
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.ClosedCaption
-import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Tv
+import androidx.compose.material.icons.outlined.Replay
+import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -276,13 +275,15 @@ private fun TvDetailContent(
             Row(
                 Modifier
                     .padding(horizontal = TvContentPadding, vertical = 8.dp)
+                    .horizontalScroll(rememberScrollState())
                     .onFocusChanged {
                         actionsFocused = it.hasFocus
                         if (it.hasFocus && (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0)) {
                             scope.launch { listState.animateScrollToItem(0) }
                         }
                     },
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 state.playTarget?.let { target ->
                     TvActionButton(
@@ -298,24 +299,16 @@ private fun TvDetailContent(
                         modifier = Modifier.focusRequester(playFocusRequester),
                     )
                     if (target.hasProgress) {
-                        TvActionButton(icon = Icons.Outlined.Refresh, label = stringResource(R.string.detail_play), onClick = { onPlayFromBeginning(target.id) })
+                        TvActionButton(icon = Icons.Outlined.Replay, label = stringResource(R.string.detail_play), onClick = { onPlayFromBeginning(target.id) })
                     }
-                    TvActionButton(icon = Icons.Outlined.Groups, label = stringResource(R.string.syncplay_title), onClick = { onWatchTogether(target.id) })
-                }
-                if (item.mediaSources.size > 1) {
-                    TvActionButton(icon = Icons.Outlined.Layers, label = stringResource(R.string.detail_select_version), onClick = { subMenu = TvSubMenu.Versions })
-                }
-                if (item.streams.any { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }) {
-                    TvActionButton(icon = Icons.Outlined.MusicNote, label = stringResource(R.string.detail_audio_track), onClick = { subMenu = TvSubMenu.Audio })
-                }
-                if (item.streams.any { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle }) {
-                    TvActionButton(icon = Icons.Outlined.ClosedCaption, label = stringResource(R.string.detail_subtitle_track), onClick = { subMenu = TvSubMenu.Subtitles })
-                }
-                if (state.localTrailers.isNotEmpty() || item.remoteTrailers.isNotEmpty()) {
-                    TvActionButton(icon = Icons.Outlined.Movie, label = stringResource(R.string.detail_play_trailers), onClick = { subMenu = TvSubMenu.Trailers })
-                }
-                state.previousEpisode?.let {
-                    TvActionButton(icon = Icons.Outlined.SkipPrevious, label = stringResource(R.string.detail_previous_episode), onClick = { onPlay(it.id) })
+                    if (item.isContainer && state.containerItems.count { it.isPlayable } > 1) {
+                        TvActionButton(icon = Icons.Outlined.Shuffle, label = stringResource(R.string.detail_shuffle), onClick = {
+                            val playable = state.containerItems.filter { it.isPlayable }
+                            val ordered = playable.shuffled()
+                            playQueue.playNow(ordered, 0)
+                            onPlay(ordered.first().id)
+                        })
+                    }
                 }
                 TvActionButton(
                     icon = Icons.Outlined.Check,
@@ -329,9 +322,39 @@ private fun TvDetailContent(
                     toggled = item.isFavorite,
                     onClick = viewModel::toggleFavorite,
                 )
-                item.seriesId?.takeIf { item.kind == MediaKind.Episode }?.let { seriesId ->
-                    TvActionButton(icon = Icons.Outlined.Tv, label = stringResource(R.string.detail_view_series), onClick = { onOpenItem(seriesId) })
+                state.playTarget?.let { target ->
+                    TvActionButton(icon = Icons.AutoMirrored.Outlined.PlaylistPlay, label = stringResource(R.string.player_play_next), onClick = { playQueue.playNext(target) })
+                    TvActionButton(icon = Icons.Outlined.AddToQueue, label = stringResource(R.string.player_add_to_queue), onClick = { playQueue.enqueue(target) })
                 }
+                // Stream/version pickers share the row — it scrolls sideways if a
+                // fully-loaded item (resume + shuffle + all three pickers) overflows.
+                val audioStreams = item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Audio }
+                if (audioStreams.isNotEmpty()) {
+                    androidx.tv.material3.FilterChip(
+                        selected = false,
+                        onClick = { subMenu = TvSubMenu.Audio },
+                        content = { Text(audioStreams.firstOrNull { it.index == state.selectedAudioStreamIndex }?.describe() ?: stringResource(R.string.detail_default_audio)) },
+                    )
+                }
+                val subStreams = item.streams.filter { it.kind == com.pyoungws.bluewolfplayer.shared.model.StreamKind.Subtitle }
+                if (subStreams.isNotEmpty()) {
+                    androidx.tv.material3.FilterChip(
+                        selected = false,
+                        onClick = { subMenu = TvSubMenu.Subtitles },
+                        content = { Text(when {
+                            state.selectedSubtitleStreamIndex == -1 -> stringResource(R.string.player_subtitles_off)
+                            else -> subStreams.firstOrNull { it.index == state.selectedSubtitleStreamIndex }?.describe() ?: stringResource(R.string.detail_default_subtitle)
+                        }) },
+                    )
+                }
+                if (item.mediaSources.size > 1) {
+                    androidx.tv.material3.FilterChip(
+                        selected = false,
+                        onClick = { subMenu = TvSubMenu.Versions },
+                        content = { Text(item.mediaSources.firstOrNull { it.id == state.selectedMediaSourceId }?.name ?: stringResource(R.string.detail_select_version)) },
+                    )
+                }
+                TvActionButton(icon = Icons.Outlined.MoreVert, label = stringResource(R.string.home_more), onClick = { optionsOpen = true })
             }
             }
             }
@@ -498,7 +521,7 @@ private fun TvDetailContent(
     if (optionsOpen) {
         TvItemOptionsOverlay(
             title = item.name,
-            options = detailMenuOptions(state, viewModel, onPlay, onPlayFromBeginning, onOpenItem, onWatchTogether, onManage = { optionsOpen = false; subMenu = TvSubMenu.Manage }) { optionsOpen = false },
+            options = detailMenuOptions(state, viewModel, onPlay, onPlayFromBeginning, onOpenItem, onWatchTogether, onManage = { optionsOpen = false; subMenu = TvSubMenu.Manage }, onPlayTrailers = { optionsOpen = false; subMenu = TvSubMenu.Trailers }) { optionsOpen = false },
             onDismiss = { optionsOpen = false },
         )
     }
@@ -588,6 +611,7 @@ private fun detailMenuOptions(
     onOpenItem: (String) -> Unit,
     onWatchTogether: (String) -> Unit,
     onManage: () -> Unit,
+    onPlayTrailers: () -> Unit,
     onDismiss: () -> Unit,
 ): List<TvMenuOption> {
     val item = state.item
@@ -599,6 +623,9 @@ private fun detailMenuOptions(
             add(TvMenuOption(stringResource(R.string.syncplay_title)) { onWatchTogether(t.id); onDismiss() })
             add(TvMenuOption(stringResource(R.string.player_play_next)) { playQueue.playNext(t); onDismiss() })
             add(TvMenuOption(stringResource(R.string.player_add_to_queue)) { playQueue.enqueue(t); onDismiss() })
+        }
+        if (state.localTrailers.isNotEmpty() || item.remoteTrailers.isNotEmpty()) {
+            add(TvMenuOption(stringResource(R.string.detail_play_trailers)) { onPlayTrailers() })
         }
         if (item.kind == MediaKind.Series && state.episodes.isNotEmpty()) {
             add(TvMenuOption(stringResource(R.string.detail_shuffle)) { onPlay(state.episodes.random().id); onDismiss() })
@@ -693,7 +720,7 @@ private fun TvTrackRow(item: MediaItem, position: Int, onClick: () -> Unit, onMe
 @Composable
 private fun TvActionButton(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier, toggled: Boolean = false) {
     var focused by remember { mutableStateOf(false) }
-    Column(modifier.width(88.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier.width(80.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             Modifier
                 .size(48.dp)
