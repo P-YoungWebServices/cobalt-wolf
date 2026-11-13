@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Opaque theme for the Cast MediaRouteButton: the app's translucent
+         player theme crashes MediaRouterThemeHelper's contrast check. -->
+    <style name="WolfMediaRoute" parent="Theme.MediaRouter">
+        <item name="colorPrimaryDark">#FF000000</item>
+        <item name="colorPrimary">#FF202020</item>
+        <item name="colorAccent">#FFFFFFFF</item>
+    </style>
+</resources>

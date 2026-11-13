@@ -113,10 +113,15 @@ class CastController(context: Context) {
     }
 }
 
-/** A Cast route picker button for app bars; no-op when Play services are missing. */
-fun castRouteButton(context: Context): MediaRouteButton = MediaRouteButton(context).also {
-    runCatching { CastButtonFactory.setUpMediaRouteButton(context, it) }
-}
+/**
+ * A Cast route picker button for app bars; no-op when Play services are missing.
+ * The button needs an opaque MediaRouter theme — the app's translucent player
+ * theme crashes its colour-contrast check, so it gets its own themed context.
+ */
+fun castRouteButton(context: Context): MediaRouteButton =
+    MediaRouteButton(android.view.ContextThemeWrapper(context, com.pyoungws.bluewolfplayer.R.style.WolfMediaRoute)).also {
+        runCatching { CastButtonFactory.setUpMediaRouteButton(context, it) }
+    }
 
 /** Rebuilds a local media item for the Cast receiver: same URI + token baked into the query. */
 fun MediaItem.forCastReceiver(token: String?): MediaItem {
