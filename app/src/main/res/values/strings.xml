@@ -861,6 +861,11 @@
     <string name="buffer_120">2 minutes</string>
     <string name="buffer_240">4 minutes</string>
     <string name="buffer_480">8 minutes</string>
+    <string name="settings_transcode_codec">Transcode video codec</string>
+    <string name="transcode_auto">Auto (H.264)</string>
+    <string name="transcode_h264">H.264</string>
+    <string name="transcode_hevc">HEVC</string>
+    <string name="transcode_av1">AV1</string>
     <string name="sign_in_forgot_password">Forgot password?</string>
     <string name="sign_in_reset_sent">Reset PIN sent — check your email</string>
     <string name="connect_discovered">Servers on your network</string>

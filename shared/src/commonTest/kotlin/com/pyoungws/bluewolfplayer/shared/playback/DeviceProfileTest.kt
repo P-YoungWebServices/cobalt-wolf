@@ -94,6 +94,20 @@ class DeviceProfileTest {
     }
 
     @Test
+    fun `the preferred transcode codec changes what the server is offered`() {
+        assertEquals("h264", buildDeviceProfile(TV_CAPABILITIES, PlaybackSettings()).transcodingProfiles.single().videoCodec)
+        assertEquals("ts", buildDeviceProfile(TV_CAPABILITIES, PlaybackSettings()).transcodingProfiles.single().container)
+
+        val hevc = buildDeviceProfile(TV_CAPABILITIES, PlaybackSettings(transcodeCodec = TranscodeCodec.Hevc)).transcodingProfiles.single()
+        assertEquals("hevc,h264", hevc.videoCodec)
+        assertEquals("mp4", hevc.container)
+
+        val av1 = buildDeviceProfile(TV_CAPABILITIES, PlaybackSettings(transcodeCodec = TranscodeCodec.Av1)).transcodingProfiles.single()
+        assertEquals("av1,hevc,h264", av1.videoCodec)
+        assertEquals("mp4", av1.container)
+    }
+
+    @Test
     fun `styled and bitmap subtitles are taken from the container, text ones also as files`() {
         val subtitles = buildDeviceProfile(PHONE_CAPABILITIES, PlaybackSettings()).subtitleProfiles
         val embedded = subtitles.filter { it.method == SubtitleDeliveryMethod.EMBED }.map { it.format }

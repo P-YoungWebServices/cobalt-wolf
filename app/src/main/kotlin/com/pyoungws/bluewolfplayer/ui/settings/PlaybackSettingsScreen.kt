@@ -51,6 +51,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
 import com.pyoungws.bluewolfplayer.shared.playback.SubtitleBackground
 import com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor
 import com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode
+import com.pyoungws.bluewolfplayer.shared.playback.TranscodeCodec
 import com.pyoungws.bluewolfplayer.shared.playback.ZoomMode
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsUiState
@@ -220,6 +221,13 @@ private fun Overrides(state: PlaybackSettingsUiState, viewModel: PlaybackSetting
         Choice(
             R.string.settings_buffer_length, settings.bufferSeconds, viewModel::setBufferSeconds,
             0 to R.string.buffer_default, 120 to R.string.buffer_120, 240 to R.string.buffer_240, 480 to R.string.buffer_480,
+        )
+        Choice(
+            R.string.settings_transcode_codec, settings.transcodeCodec, viewModel::setTranscodeCodec,
+            TranscodeCodec.Auto to R.string.transcode_auto,
+            TranscodeCodec.H264 to R.string.transcode_h264,
+            TranscodeCodec.Hevc to R.string.transcode_hevc,
+            TranscodeCodec.Av1 to R.string.transcode_av1,
         )
         OutlinedButton(onClick = viewModel::resetToAutomatic, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(stringResource(R.string.playback_reset))

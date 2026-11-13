@@ -103,6 +103,8 @@ data class PlaybackSettings(
     val bufferSeconds: Int = 0,
     /** Series whose last episode activity is older than this are hidden from Next up; 0 disables the cutoff. */
     val nextUpCutoffDays: Int = 365,
+    /** Video codec the server should transcode to when a transcode is needed. */
+    val transcodeCodec: TranscodeCodec = TranscodeCodec.Auto,
     /** Order and visibility of home rows; rows listed here come first, hidden ones are removed. */
     val homeRowOrder: List<String> = emptyList(),
     val hiddenHomeRows: Set<String> = emptySet(),
@@ -120,6 +122,9 @@ data class PlaybackSettings(
 
 /** Whether an auto-skip segment acts automatically or only offers the button. */
 enum class SegmentBehavior { Ask, Auto, Off }
+
+/** Video codec the server transcodes to. Auto is H.264, which every device decodes. */
+enum class TranscodeCodec { Auto, H264, Hevc, Av1 }
 
 enum class SubtitleColor { White, Yellow, Green, Cyan }
 enum class SubtitleBackground { Transparent, SemiTransparent, Opaque }

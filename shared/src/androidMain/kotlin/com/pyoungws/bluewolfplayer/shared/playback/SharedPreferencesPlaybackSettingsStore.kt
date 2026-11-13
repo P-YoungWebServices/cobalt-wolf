@@ -39,6 +39,7 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             defaultZoom = enum(KEY_DEFAULT_ZOOM, defaults.defaultZoom),
             bufferSeconds = preferences.getInt(KEY_BUFFER_SECONDS, defaults.bufferSeconds),
             nextUpCutoffDays = preferences.getInt(KEY_NEXT_UP_CUTOFF, defaults.nextUpCutoffDays),
+            transcodeCodec = enum(KEY_TRANSCODE_CODEC, defaults.transcodeCodec),
             homeRowOrder = preferences.getString(KEY_HOME_ROW_ORDER, null)?.split(",").orEmpty(),
             hiddenHomeRows = preferences.getString(KEY_HOME_HIDDEN_ROWS, null)?.split(",")?.toSet().orEmpty(),
         )
@@ -76,6 +77,7 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             .putString(KEY_DEFAULT_ZOOM, settings.defaultZoom.name)
             .putInt(KEY_BUFFER_SECONDS, settings.bufferSeconds)
             .putInt(KEY_NEXT_UP_CUTOFF, settings.nextUpCutoffDays)
+            .putString(KEY_TRANSCODE_CODEC, settings.transcodeCodec.name)
             .putString(KEY_HOME_ROW_ORDER, settings.homeRowOrder.joinToString(","))
             .putString(KEY_HOME_HIDDEN_ROWS, settings.hiddenHomeRows.joinToString(","))
             .apply()
@@ -115,6 +117,7 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
         const val KEY_DEFAULT_ZOOM = "default_zoom"
         const val KEY_BUFFER_SECONDS = "buffer_seconds"
         const val KEY_NEXT_UP_CUTOFF = "next_up_cutoff"
+        const val KEY_TRANSCODE_CODEC = "transcode_codec"
         const val KEY_HOME_ROW_ORDER = "home_row_order"
         const val KEY_HOME_HIDDEN_ROWS = "home_hidden_rows"
     }

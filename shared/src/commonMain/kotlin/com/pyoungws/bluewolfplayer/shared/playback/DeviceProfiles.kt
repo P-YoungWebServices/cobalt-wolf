@@ -59,9 +59,14 @@ fun buildDeviceProfile(capabilities: DeviceCapabilities, settings: PlaybackSetti
         },
         transcodingProfiles = listOf(
             TranscodingProfile(
-                container = "ts",
+                // fMP4 HLS for HEVC/AV1: neither codecs' preferred container is MPEG-TS (AV1 cannot mux into TS at all).
+                container = if (settings.transcodeCodec == TranscodeCodec.Auto || settings.transcodeCodec == TranscodeCodec.H264) "ts" else "mp4",
                 type = DlnaProfileType.VIDEO,
-                videoCodec = "h264",
+                videoCodec = when (settings.transcodeCodec) {
+                    TranscodeCodec.Auto, TranscodeCodec.H264 -> "h264"
+                    TranscodeCodec.Hevc -> "hevc,h264"
+                    TranscodeCodec.Av1 -> "av1,hevc,h264"
+                },
                 // A receiver gets 5.1 as Dolby Digital; otherwise AAC, which every device decodes.
                 audioCodec = if (ac3Passthrough) "ac3,aac" else "aac",
                 protocol = MediaStreamProtocol.HLS,

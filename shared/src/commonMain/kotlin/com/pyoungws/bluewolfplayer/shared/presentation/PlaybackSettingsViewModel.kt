@@ -15,6 +15,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
 import com.pyoungws.bluewolfplayer.shared.playback.SubtitleBackground
 import com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor
 import com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode
+import com.pyoungws.bluewolfplayer.shared.playback.TranscodeCodec
 import com.pyoungws.bluewolfplayer.shared.playback.ZoomMode
 import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
@@ -86,6 +87,7 @@ class PlaybackSettingsViewModel(
     fun setAllowHlg(v: Boolean) = update { it.copy(allowHlg = v) }
     fun setDefaultZoom(v: ZoomMode) = update { it.copy(defaultZoom = v) }
     fun setBufferSeconds(v: Int) = update { it.copy(bufferSeconds = v) }
+    fun setTranscodeCodec(v: TranscodeCodec) = update { it.copy(transcodeCodec = v) }
 
     fun setHomeRowHidden(rowId: String, hidden: Boolean) = update {
         it.copy(hiddenHomeRows = if (hidden) it.hiddenHomeRows + rowId else it.hiddenHomeRows - rowId)
