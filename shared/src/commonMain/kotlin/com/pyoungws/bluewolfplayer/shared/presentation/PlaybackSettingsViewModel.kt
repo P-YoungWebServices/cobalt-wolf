@@ -12,7 +12,10 @@ import com.pyoungws.bluewolfplayer.shared.playback.HdrOutput
 import com.pyoungws.bluewolfplayer.shared.playback.HdrPreference
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.playback.SubtitleBackground
+import com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor
 import com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode
+import com.pyoungws.bluewolfplayer.shared.playback.ZoomMode
 import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.VideoCodec
@@ -71,6 +74,18 @@ class PlaybackSettingsViewModel(
     fun setPreferredAudioLanguage(value: String?) = update { it.copy(preferredAudioLanguage = value?.trim()?.ifBlank { null }) }
     fun setPreferredSubtitleLanguage(value: String?) = update { it.copy(preferredSubtitleLanguage = value?.trim()?.ifBlank { null }) }
     fun setSubtitleMode(value: SubtitlePlaybackMode) = update { it.copy(subtitleMode = value) }
+    fun setPassthroughAc3Eac3(v: Boolean) = update { it.copy(passthroughAc3Eac3 = v) }
+    fun setPassthroughDts(v: Boolean) = update { it.copy(passthroughDts = v) }
+    fun setPassthroughTrueHd(v: Boolean) = update { it.copy(passthroughTrueHd = v) }
+    fun setAudioChannelCap(v: Int) = update { it.copy(audioChannelCap = v) }
+    fun setPgsSubtitles(v: Boolean) = update { it.copy(pgsSubtitles = v) }
+    fun setSubtitleColor(v: SubtitleColor) = update { it.copy(subtitleColor = v) }
+    fun setSubtitleBackground(v: SubtitleBackground) = update { it.copy(subtitleBackground = v) }
+    fun setSubtitleBold(v: Boolean) = update { it.copy(subtitleBold = v) }
+    fun setAllowHdr10(v: Boolean) = update { it.copy(allowHdr10 = v) }
+    fun setAllowHlg(v: Boolean) = update { it.copy(allowHlg = v) }
+    fun setDefaultZoom(v: ZoomMode) = update { it.copy(defaultZoom = v) }
+    fun setBufferSeconds(v: Int) = update { it.copy(bufferSeconds = v) }
 
     fun setHomeRowHidden(rowId: String, hidden: Boolean) = update {
         it.copy(hiddenHomeRows = if (hidden) it.hiddenHomeRows + rowId else it.hiddenHomeRows - rowId)

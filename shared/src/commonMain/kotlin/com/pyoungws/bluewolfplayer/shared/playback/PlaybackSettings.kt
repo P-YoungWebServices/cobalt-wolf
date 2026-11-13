@@ -82,6 +82,25 @@ data class PlaybackSettings(
     val preferredSubtitleLanguage: String? = null,
     /** When subtitles should be shown by default. */
     val subtitleMode: SubtitlePlaybackMode = SubtitlePlaybackMode.Default,
+    /** Passthrough toggles per codec family; off = decode to PCM even when the receiver takes the format. */
+    val passthroughAc3Eac3: Boolean = true,
+    val passthroughDts: Boolean = true,
+    val passthroughTrueHd: Boolean = true,
+    /** Cap on channels the server may transcode to; 0 = device maximum. */
+    val audioChannelCap: Int = 0,
+    /** Render PGS/graphical subtitles on device; off drops them from the profile so the server burns them. */
+    val pgsSubtitles: Boolean = true,
+    /** Subtitle text appearance (basic renderer; ASS styling is honoured by libass instead). */
+    val subtitleColor: SubtitleColor = SubtitleColor.White,
+    val subtitleBackground: SubtitleBackground = SubtitleBackground.Transparent,
+    val subtitleBold: Boolean = false,
+    /** HDR formats offered to the server; unchecked formats get tone-mapped via transcode. */
+    val allowHdr10: Boolean = true,
+    val allowHlg: Boolean = true,
+    /** Initial video framing; still switchable per playback in the player UI. */
+    val defaultZoom: ZoomMode = ZoomMode.Fit,
+    /** Seconds of max buffer; 0 keeps the engine default (240 s). */
+    val bufferSeconds: Int = 0,
     /** Series whose last episode activity is older than this are hidden from Next up; 0 disables the cutoff. */
     val nextUpCutoffDays: Int = 365,
     /** Order and visibility of home rows; rows listed here come first, hidden ones are removed. */
@@ -99,6 +118,10 @@ data class PlaybackSettings(
 
 /** Whether an auto-skip segment acts automatically or only offers the button. */
 enum class SegmentBehavior { Ask, Auto, Off }
+
+enum class SubtitleColor { White, Yellow, Green, Cyan }
+enum class SubtitleBackground { Transparent, SemiTransparent, Opaque }
+enum class ZoomMode { Fit, Fill, Zoom }
 
 /** How the player picks a subtitle track at start. */
 enum class SubtitlePlaybackMode {

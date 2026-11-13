@@ -48,15 +48,15 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 | 3.2 | Repeat modes (off/all/one) | ☑ | shipped with queue (1.2) |
 | 3.3 | Gesture controls | ☑ | PlayerView touch listener; double-tap/scrub/volume/brightness/2x-hold/lock |
 | 3.4 | Trickplay scrub thumbnails | ◐ | trickplay images already render in scrub bar; verify tiles from server |
-| 3.5 | Subtitle delay offset | ☐ | |
-| 3.6 | Audio delay offset | ☐ | |
+| 3.5 | Subtitle delay offset | — | DEFERRED: no Media3 API; cues flow internally to SubtitleView | |
+| 3.6 | Audio delay offset | — | DEFERRED: no Media3 API | |
 | 3.7 | Chapter list in OSD | ☑ | dialog + progress-bar markers already existed | |
 | 3.8 | Still-watching prompt | ☑ | streak in PlayerViewModel, pause+dialog, tested | |
 | 3.9 | Cinema mode prerolls | ☑ | getIntros queued before movie | |
 | 3.10 | Resume rewind N sec | ☑ | startPositionMs offset, tested | |
 | 3.11 | External player option | ☑ | ACTION_VIEW handoff + fallback | |
 | 3.12 | Chromecast | ☐ | proprietary dep — record in AGENTS.md |
-| 3.13 | "Play on" remote session control | ☐ | Sessions + websocket commands |
+| 3.13 | "Play on" remote session control | ☑ | sessionApi.play + menu dialog | Sessions + websocket commands |
 | 3.14 | Background audio | ☑ | done via 1.4 |
 | 3.15 | Track prefs: audio lang, sub lang, sub mode, detail-page preselect | ◐ | version preselect exists; audio/sub preselect + prefs pending |
 | 3.16 | Per-codec passthrough + channel cap + night mode | ☐ | AudioOutputPreference extension |
@@ -83,9 +83,9 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 ## Current checkpoint
 
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Last commit: 39c5f91 — cinema prerolls + external player.
+- Last commit: Play-on remote control (just committed).
 - Done: Phases 1+2 complete. Build+tests green.
-- Next: 3.5/3.6 sub+audio offsets (check Media3 API), 3.13 play-on sessions, 3.15-3.18 playback prefs, then Phase 4.
+- Next: 3.16-3.18 playback prefs (codec toggles/channel cap/night mode; HDR per-format; buffer; subtitle styling incl. color/background via SubtitleView; PGS toggle). Then Phase 4 (auth/home/admin/misc).
 - Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, menus=app/.../ui/common/ItemActions.kt, cards=app/.../ui/common/Components.kt, view prefs=app/.../ui/common/DisplayPrefs.kt, DI=shared/.../di/SharedModule.kt.
 - Conventions: per-feature commits, `JAVA_HOME=/snap/android-studio/current/jbr`, strings appended in app/.../res/values/strings.xml, icons from material-icons-extended.
 - Open follow-ups: TV card context menu (D-pad long-press), playlist reorder UI, queue UI on TV player, TV album track list, image-editor screen (edit-images uses RemoteImageApi — deferred).

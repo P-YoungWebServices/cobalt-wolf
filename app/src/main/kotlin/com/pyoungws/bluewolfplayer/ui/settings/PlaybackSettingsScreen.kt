@@ -48,7 +48,10 @@ import com.pyoungws.bluewolfplayer.shared.playback.VideoCodec
 import com.pyoungws.bluewolfplayer.shared.playback.VideoSupport
 import com.pyoungws.bluewolfplayer.shared.presentation.HdrSelection
 import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
+import com.pyoungws.bluewolfplayer.shared.playback.SubtitleBackground
+import com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor
 import com.pyoungws.bluewolfplayer.shared.playback.SubtitlePlaybackMode
+import com.pyoungws.bluewolfplayer.shared.playback.ZoomMode
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
@@ -186,6 +189,36 @@ private fun Overrides(state: PlaybackSettingsUiState, viewModel: PlaybackSetting
             SubtitlePlaybackMode.Always to R.string.subtitle_mode_always,
             SubtitlePlaybackMode.Forced to R.string.subtitle_mode_forced,
             SubtitlePlaybackMode.None to R.string.subtitle_mode_none,
+        )
+        Toggle(R.string.settings_pt_ac3, R.string.settings_pt_summary, settings.passthroughAc3Eac3, viewModel::setPassthroughAc3Eac3)
+        Toggle(R.string.settings_pt_dts, R.string.settings_pt_summary, settings.passthroughDts, viewModel::setPassthroughDts)
+        Toggle(R.string.settings_pt_truehd, R.string.settings_pt_summary, settings.passthroughTrueHd, viewModel::setPassthroughTrueHd)
+        Choice(
+            R.string.settings_audio_channel_cap, settings.audioChannelCap, viewModel::setAudioChannelCap,
+            0 to R.string.channels_device, 2 to R.string.channels_2, 6 to R.string.channels_6, 8 to R.string.channels_8,
+        )
+        Toggle(R.string.settings_pgs_subs, R.string.settings_pgs_subs_summary, settings.pgsSubtitles, viewModel::setPgsSubtitles)
+        Choice(
+            R.string.settings_subtitle_color, settings.subtitleColor, viewModel::setSubtitleColor,
+            SubtitleColor.White to R.string.color_white, SubtitleColor.Yellow to R.string.color_yellow,
+            SubtitleColor.Green to R.string.color_green, SubtitleColor.Cyan to R.string.color_cyan,
+        )
+        Choice(
+            R.string.settings_subtitle_bg, settings.subtitleBackground, viewModel::setSubtitleBackground,
+            SubtitleBackground.Transparent to R.string.bg_transparent,
+            SubtitleBackground.SemiTransparent to R.string.bg_semi,
+            SubtitleBackground.Opaque to R.string.bg_opaque,
+        )
+        Toggle(R.string.settings_subtitle_bold, R.string.settings_subtitle_bold_summary, settings.subtitleBold, viewModel::setSubtitleBold)
+        Toggle(R.string.settings_allow_hdr10, R.string.settings_allow_hdr_summary, settings.allowHdr10, viewModel::setAllowHdr10)
+        Toggle(R.string.settings_allow_hlg, R.string.settings_allow_hdr_summary, settings.allowHlg, viewModel::setAllowHlg)
+        Choice(
+            R.string.settings_default_zoom, settings.defaultZoom, viewModel::setDefaultZoom,
+            ZoomMode.Fit to R.string.zoom_fit, ZoomMode.Fill to R.string.zoom_fill, ZoomMode.Zoom to R.string.zoom_zoom,
+        )
+        Choice(
+            R.string.settings_buffer_length, settings.bufferSeconds, viewModel::setBufferSeconds,
+            0 to R.string.buffer_default, 120 to R.string.buffer_120, 240 to R.string.buffer_240, 480 to R.string.buffer_480,
         )
         OutlinedButton(onClick = viewModel::resetToAutomatic, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(stringResource(R.string.playback_reset))

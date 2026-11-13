@@ -209,7 +209,15 @@ private fun PlayerContent(
     var tracks by remember(player) { mutableStateOf(Tracks.EMPTY) }
     var controlsVisible by remember(player) { mutableStateOf(true) }
     var dialog by remember(player) { mutableStateOf<TrackDialog?>(null) }
-    var zoomMode by remember(player) { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
+    var zoomMode by remember(player) {
+        mutableIntStateOf(
+            when (request.settings.defaultZoom) {
+                com.pyoungws.bluewolfplayer.shared.playback.ZoomMode.Fit -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                com.pyoungws.bluewolfplayer.shared.playback.ZoomMode.Fill -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                com.pyoungws.bluewolfplayer.shared.playback.ZoomMode.Zoom -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            },
+        )
+    }
     var scrubPositionMs by remember(player) { mutableStateOf<Long?>(null) }
     var nextCountdownCancelled by remember(ready.generation) { mutableStateOf(false) }
     var showBitrateDialog by remember(player) { mutableStateOf(false) }
@@ -539,6 +547,25 @@ private fun PlayerContent(
                 it.useController = !isInPip
                 it.resizeMode = zoomMode
                 it.subtitleView?.setFractionalTextSize(0.0533f * request.settings.subtitleScale)
+                it.subtitleView?.setStyle(
+                    androidx.media3.ui.CaptionStyleCompat(
+                        when (request.settings.subtitleColor) {
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor.White -> android.graphics.Color.WHITE
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor.Yellow -> android.graphics.Color.YELLOW
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor.Green -> android.graphics.Color.GREEN
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleColor.Cyan -> android.graphics.Color.CYAN
+                        },
+                        when (request.settings.subtitleBackground) {
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleBackground.Transparent -> android.graphics.Color.TRANSPARENT
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleBackground.SemiTransparent -> 0x80000000.toInt()
+                            com.pyoungws.bluewolfplayer.shared.playback.SubtitleBackground.Opaque -> android.graphics.Color.BLACK
+                        },
+                        android.graphics.Color.TRANSPARENT,
+                        if (request.settings.subtitleBold) androidx.media3.ui.CaptionStyleCompat.EDGE_TYPE_OUTLINE else androidx.media3.ui.CaptionStyleCompat.EDGE_TYPE_NONE,
+                        android.graphics.Color.BLACK,
+                        if (request.settings.subtitleBold) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT,
+                    ),
+                )
             },
                 modifier = Modifier.fillMaxSize(),
             )

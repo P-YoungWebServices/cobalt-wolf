@@ -26,6 +26,18 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             preferredAudioLanguage = preferences.getString(KEY_PREF_AUDIO_LANG, null),
             preferredSubtitleLanguage = preferences.getString(KEY_PREF_SUB_LANG, null),
             subtitleMode = enum(KEY_SUBTITLE_MODE, defaults.subtitleMode),
+            passthroughAc3Eac3 = preferences.getBoolean(KEY_PT_AC3, defaults.passthroughAc3Eac3),
+            passthroughDts = preferences.getBoolean(KEY_PT_DTS, defaults.passthroughDts),
+            passthroughTrueHd = preferences.getBoolean(KEY_PT_TRUEHD, defaults.passthroughTrueHd),
+            audioChannelCap = preferences.getInt(KEY_AUDIO_CHANNEL_CAP, defaults.audioChannelCap),
+            pgsSubtitles = preferences.getBoolean(KEY_PGS_SUBS, defaults.pgsSubtitles),
+            subtitleColor = enum(KEY_SUBTITLE_COLOR, defaults.subtitleColor),
+            subtitleBackground = enum(KEY_SUBTITLE_BG, defaults.subtitleBackground),
+            subtitleBold = preferences.getBoolean(KEY_SUBTITLE_BOLD, defaults.subtitleBold),
+            allowHdr10 = preferences.getBoolean(KEY_ALLOW_HDR10, defaults.allowHdr10),
+            allowHlg = preferences.getBoolean(KEY_ALLOW_HLG, defaults.allowHlg),
+            defaultZoom = enum(KEY_DEFAULT_ZOOM, defaults.defaultZoom),
+            bufferSeconds = preferences.getInt(KEY_BUFFER_SECONDS, defaults.bufferSeconds),
             nextUpCutoffDays = preferences.getInt(KEY_NEXT_UP_CUTOFF, defaults.nextUpCutoffDays),
             homeRowOrder = preferences.getString(KEY_HOME_ROW_ORDER, null)?.split(",").orEmpty(),
             hiddenHomeRows = preferences.getString(KEY_HOME_HIDDEN_ROWS, null)?.split(",")?.toSet().orEmpty(),
@@ -51,6 +63,18 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             .putString(KEY_PREF_AUDIO_LANG, settings.preferredAudioLanguage)
             .putString(KEY_PREF_SUB_LANG, settings.preferredSubtitleLanguage)
             .putString(KEY_SUBTITLE_MODE, settings.subtitleMode.name)
+            .putBoolean(KEY_PT_AC3, settings.passthroughAc3Eac3)
+            .putBoolean(KEY_PT_DTS, settings.passthroughDts)
+            .putBoolean(KEY_PT_TRUEHD, settings.passthroughTrueHd)
+            .putInt(KEY_AUDIO_CHANNEL_CAP, settings.audioChannelCap)
+            .putBoolean(KEY_PGS_SUBS, settings.pgsSubtitles)
+            .putString(KEY_SUBTITLE_COLOR, settings.subtitleColor.name)
+            .putString(KEY_SUBTITLE_BG, settings.subtitleBackground.name)
+            .putBoolean(KEY_SUBTITLE_BOLD, settings.subtitleBold)
+            .putBoolean(KEY_ALLOW_HDR10, settings.allowHdr10)
+            .putBoolean(KEY_ALLOW_HLG, settings.allowHlg)
+            .putString(KEY_DEFAULT_ZOOM, settings.defaultZoom.name)
+            .putInt(KEY_BUFFER_SECONDS, settings.bufferSeconds)
             .putInt(KEY_NEXT_UP_CUTOFF, settings.nextUpCutoffDays)
             .putString(KEY_HOME_ROW_ORDER, settings.homeRowOrder.joinToString(","))
             .putString(KEY_HOME_HIDDEN_ROWS, settings.hiddenHomeRows.joinToString(","))
@@ -78,6 +102,18 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
         const val KEY_PREF_AUDIO_LANG = "pref_audio_lang"
         const val KEY_PREF_SUB_LANG = "pref_sub_lang"
         const val KEY_SUBTITLE_MODE = "subtitle_mode"
+        const val KEY_PT_AC3 = "passthrough_ac3_eac3"
+        const val KEY_PT_DTS = "passthrough_dts"
+        const val KEY_PT_TRUEHD = "passthrough_truehd"
+        const val KEY_AUDIO_CHANNEL_CAP = "audio_channel_cap"
+        const val KEY_PGS_SUBS = "pgs_subtitles"
+        const val KEY_SUBTITLE_COLOR = "subtitle_color"
+        const val KEY_SUBTITLE_BG = "subtitle_background"
+        const val KEY_SUBTITLE_BOLD = "subtitle_bold"
+        const val KEY_ALLOW_HDR10 = "allow_hdr10"
+        const val KEY_ALLOW_HLG = "allow_hlg"
+        const val KEY_DEFAULT_ZOOM = "default_zoom"
+        const val KEY_BUFFER_SECONDS = "buffer_seconds"
         const val KEY_NEXT_UP_CUTOFF = "next_up_cutoff"
         const val KEY_HOME_ROW_ORDER = "home_row_order"
         const val KEY_HOME_HIDDEN_ROWS = "home_hidden_rows"

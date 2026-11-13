@@ -27,6 +27,9 @@ private val EMBEDDED_SUBTITLES = listOf("ass", "ssa", "srt", "subrip", "vtt", "w
 /** Text formats the player can load from a separate file. */
 private val EXTERNAL_SUBTITLES = listOf("srt", "subrip", "ass", "ssa", "vtt", "ttml")
 
+/** Bitmap subtitles the player draws itself unless the user asks the server to burn them. */
+private val GRAPHICAL_SUBTITLES = setOf("pgssub", "pgs", "dvdsub", "dvbsub")
+
 private const val MAX_TRANSCODE_AUDIO_CHANNELS = 6
 
 /**
@@ -64,14 +67,15 @@ fun buildDeviceProfile(capabilities: DeviceCapabilities, settings: PlaybackSetti
                 protocol = MediaStreamProtocol.HLS,
                 context = EncodingContext.STREAMING,
                 transcodeSeekInfo = TranscodeSeekInfo.AUTO,
-                maxAudioChannels = capabilities.maxPcmChannels.coerceIn(2, MAX_TRANSCODE_AUDIO_CHANNELS).toString(),
+                maxAudioChannels = (if (settings.audioChannelCap > 0) settings.audioChannelCap else capabilities.maxPcmChannels).coerceIn(2, MAX_TRANSCODE_AUDIO_CHANNELS).toString(),
                 conditions = emptyList(),
             ),
         ),
         containerProfiles = emptyList(),
         // No limits to state when the server would only repackage the video it is asked to transcode.
         codecProfiles = if (serverTranscodesVideo) video.map { it.toCodecProfile() } else emptyList(),
-        subtitleProfiles = EMBEDDED_SUBTITLES.map { SubtitleProfile(format = it, method = SubtitleDeliveryMethod.EMBED) } +
+        subtitleProfiles = EMBEDDED_SUBTITLES.filter { settings.pgsSubtitles || it !in GRAPHICAL_SUBTITLES }
+            .map { SubtitleProfile(format = it, method = SubtitleDeliveryMethod.EMBED) } +
             EXTERNAL_SUBTITLES.map { SubtitleProfile(format = it, method = SubtitleDeliveryMethod.EXTERNAL) },
         maxStreamingBitrate = settings.maxBitrate.bps ?: 200_000_000,
     )

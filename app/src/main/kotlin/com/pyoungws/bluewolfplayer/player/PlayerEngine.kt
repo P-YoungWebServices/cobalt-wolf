@@ -104,8 +104,9 @@ internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playe
     // High-bitrate direct plays (4K remuxes at ~70 Mbps) need a bigger buffer runway than the
     // default 50 s max: a short network dip should not stall playback. A deeper rebuffer
     // threshold means each recovery starts with enough cushion to ride out the next dip.
+    val maxBufferMs = if (settings.bufferSeconds > 0) settings.bufferSeconds * 1_000 else 240_000
     val loadControl = DefaultLoadControl.Builder()
-        .setBufferDurationsMs(120_000, 240_000, 4_000, 30_000)
+        .setBufferDurationsMs(120_000, maxBufferMs, 4_000, 30_000)
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
@@ -114,7 +115,7 @@ internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playe
     val trackSelector = DefaultTrackSelector(context).apply {
         parameters = parameters.buildUpon()
             .setPreferredAudioLanguage("en")
-            .setMaxAudioChannelCount(6)
+            .setMaxAudioChannelCount(if (settings.audioChannelCap > 0) settings.audioChannelCap else 6)
             .build()
     }
 
