@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pyoungws.bluewolfplayer.shared.admin.ActiveSession
 import com.pyoungws.bluewolfplayer.shared.admin.AdminRepository
 import com.pyoungws.bluewolfplayer.shared.auth.AuthRepository
+import com.pyoungws.bluewolfplayer.shared.auth.SessionState
 import com.pyoungws.bluewolfplayer.shared.auth.SignInResult
 import com.pyoungws.bluewolfplayer.shared.bazarr.BazarrRepository
 import com.pyoungws.bluewolfplayer.shared.model.LoadError
@@ -71,10 +72,23 @@ class AdminDashboardViewModel(
     private var pollJob: Job? = null
 
     init {
-        viewModelScope.launch { resolveAccess() }
+        // Re-resolve whenever the signed-in identity changes — the ViewModel is
+        // activity-scoped, so an in-place account/server switch would otherwise
+        // keep the previous user's admin or viewer layout.
+        viewModelScope.launch {
+            var lastKey: String? = null
+            authRepository.sessionState.collect { state ->
+                val key = (state as? SessionState.SignedIn)
+                    ?.let { "${it.session.serverAddress}#${it.session.userId}" }
+                if (key != lastKey) {
+                    lastKey = key
+                    resolveAccess()
+                }
+            }
+        }
     }
 
-    /** Reads the user policy once, then loads either the admin feed or the viewer feed. */
+    /** Reads the user policy, then loads either the admin feed or the viewer feed. */
     private suspend fun resolveAccess() {
         val admin = (authRepository.currentUser() as? SignInResult.Success)?.user?.isAdministrator == true
         _uiState.update { it.copy(isAdmin = admin) }

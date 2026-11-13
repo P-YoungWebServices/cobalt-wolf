@@ -3,6 +3,7 @@ package com.pyoungws.bluewolfplayer.ui.navigation
 import androidx.compose.ui.res.stringResource
 import com.pyoungws.bluewolfplayer.R
 
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -13,6 +14,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pyoungws.bluewolfplayer.player.PlayerActivity
 import com.pyoungws.bluewolfplayer.shared.admin.NavDestination
+import com.pyoungws.bluewolfplayer.shared.auth.AuthRepository
+import com.pyoungws.bluewolfplayer.shared.auth.SessionState
 import com.pyoungws.bluewolfplayer.shared.admin.canNavigateTo
 import com.pyoungws.bluewolfplayer.shared.arrs.ArrService
 import com.pyoungws.bluewolfplayer.shared.library.ItemQuery
@@ -235,10 +238,26 @@ internal fun managementRoute(destination: NavDestination): Route? = when (destin
 fun SignedInNavigation() {
     val context = LocalContext.current
     val offlineDownloads: OfflineDownloads = koinInject()
+    val authRepository: AuthRepository = koinInject()
     val accountViewModel: HomeViewModel = koinViewModel()
     val accountState by accountViewModel.uiState.collectAsStateWithLifecycle()
     val user = (accountState as? HomeUiState.Loaded)?.user
     var stack by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    // A different signed-in identity (account or server switch) must not inherit the
+    // previous session's pages or ViewModels — they show the old account's data and
+    // permissions. Dropping the stack covers routes; recreating the activity drops the
+    // activity-scoped ViewModels. The null->session transition is the initial sign-in,
+    // not a switch, so it only records the key.
+    val sessionState by authRepository.sessionState.collectAsStateWithLifecycle()
+    val sessionKey = (sessionState as? SessionState.SignedIn)
+        ?.let { "${it.session.serverAddress}#${it.session.userId}" }
+    var lastSessionKey by rememberSaveable { mutableStateOf(sessionKey) }
+    if (sessionKey != lastSessionKey) {
+        val switching = lastSessionKey != null && sessionKey != null
+        stack = emptyList()
+        lastSessionKey = sessionKey
+        if (switching) (context as? Activity)?.recreate()
+    }
     val routes = stack.mapNotNull(::decodeRoute).filter { it.isAllowedFor(user) }
     val push = { route: Route -> stack = stack + route.encode() }
     val pop = { stack = stack.dropLast(1) }
