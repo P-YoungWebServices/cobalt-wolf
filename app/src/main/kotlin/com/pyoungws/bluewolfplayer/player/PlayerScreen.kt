@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MoreTime
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material3.AlertDialog
@@ -180,7 +181,9 @@ private fun PlayerContent(
     val request = ready.request
     // The view comes first: libass draws styled subtitles into its subtitle layer.
     val playerView = remember(ready.generation) { PlayerView(context) }
-    val engine = remember(ready.generation) { buildPlayerEngine(context, request, playerView, debugMaxChannels) }
+    val engine = remember(ready.generation) {
+        buildPlayerEngine(context, request, playerView, debugMaxChannels, subtitleOffsetUs = { viewModel.subtitleDelayMs.value * 1_000 })
+    }
     val player = engine.player
     // The controller's next button has no playlist item to move to: it lights up once the
     // server reports a following episode, and pressing it hands off to the view model.
@@ -231,6 +234,8 @@ private fun PlayerContent(
     var nextCountdownCancelled by remember(ready.generation) { mutableStateOf(false) }
     var showBitrateDialog by remember(player) { mutableStateOf(false) }
     var showSpeedDialog by remember(player) { mutableStateOf(false) }
+    var showDelayDialog by remember(player) { mutableStateOf(false) }
+    val subtitleDelayMs by viewModel.subtitleDelayMs.collectAsStateWithLifecycle()
     var showChapters by remember(player) { mutableStateOf(false) }
     var gesturesLocked by remember(player) { mutableStateOf(false) }
     var gestureHint by remember(player) { mutableStateOf<String?>(null) }
@@ -632,6 +637,7 @@ private fun PlayerContent(
                 }
                 ControlButton(onClick = { dialog = TrackDialog.Audio }, icon = Icons.AutoMirrored.Outlined.VolumeUp, description = stringResource(R.string.player_audio))
                 ControlButton(onClick = { dialog = TrackDialog.Subtitles }, icon = Icons.Outlined.Subtitles, description = stringResource(R.string.player_subtitles))
+                ControlButton(onClick = { showDelayDialog = true }, icon = Icons.Outlined.MoreTime, description = stringResource(R.string.player_subtitle_delay))
                 ControlButton(onClick = { showBitrateDialog = true }, icon = Icons.Outlined.HighQuality, description = stringResource(R.string.player_bitrate))
                 ControlButton(
                     onClick = {
@@ -758,6 +764,13 @@ private fun PlayerContent(
                 showBitrateDialog = false
             },
             onDismiss = { showBitrateDialog = false },
+        )
+    }
+    if (showDelayDialog) {
+        SubtitleDelayDialog(
+            delayMs = subtitleDelayMs,
+            onChange = viewModel::setSubtitleDelayMs,
+            onDismiss = { showDelayDialog = false },
         )
     }
     if (showSpeedDialog) {
@@ -1026,6 +1039,32 @@ private fun bitrateLabel(bitrate: StreamBitrate): String = when (bitrate) {
     StreamBitrate.Mbps10 -> stringResource(R.string.playback_bitrate_10)
     StreamBitrate.Mbps5 -> stringResource(R.string.playback_bitrate_5)
     StreamBitrate.Mbps2 -> stringResource(R.string.playback_bitrate_2)
+}
+
+@Composable
+private fun SubtitleDelayDialog(delayMs: Long, onChange: (Long) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.player_subtitle_delay)) },
+        text = {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = { onChange(delayMs - 100) }) { Text("-100ms") }
+                Text(
+                    stringResource(R.string.player_delay_value, if (delayMs >= 0) "+${delayMs}" else "$delayMs"),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                TextButton(onClick = { onChange(delayMs + 100) }) { Text("+100ms") }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.player_close)) } },
+        dismissButton = if (delayMs == 0L) null else {
+            { TextButton(onClick = { onChange(0) }) { Text(stringResource(R.string.player_delay_reset)) } }
+        },
+    )
 }
 
 @Composable

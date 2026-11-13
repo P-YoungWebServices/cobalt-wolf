@@ -90,6 +90,17 @@ class PlayerViewModel(
     private val _segments = MutableStateFlow<List<MediaSegment>>(emptyList())
     val segments: StateFlow<List<MediaSegment>> = _segments.asStateFlow()
 
+    /**
+     * Subtitle timing shift for this session in milliseconds; a positive value shows cues later.
+     * Session-scoped like the official web client — it resets when the player closes.
+     */
+    private val _subtitleDelayMs = MutableStateFlow(0L)
+    val subtitleDelayMs: StateFlow<Long> = _subtitleDelayMs.asStateFlow()
+
+    fun setSubtitleDelayMs(ms: Long) {
+        _subtitleDelayMs.value = ms
+    }
+
     private val echoGate = SyncPlayEchoGate()
     private var generation = 0
     private var started = false

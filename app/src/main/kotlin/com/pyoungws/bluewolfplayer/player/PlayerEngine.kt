@@ -64,7 +64,13 @@ internal class PlayerEngine(
  * ASS/SSA subtitles are drawn by libass into [playerView]'s subtitle layer; PGS and SRT use
  * Media3's own decoders.
  */
-internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playerView: PlayerView, pcmChannelCap: Int? = null): PlayerEngine {
+internal fun buildPlayerEngine(
+    context: Context,
+    request: PlaybackRequest,
+    playerView: PlayerView,
+    pcmChannelCap: Int? = null,
+    subtitleOffsetUs: () -> Long = { 0L },
+): PlayerEngine {
     val settings = request.settings
     val baseRenderers = BlueWolfRenderersFactory(
         context,
@@ -72,6 +78,7 @@ internal fun buildPlayerEngine(context: Context, request: PlaybackRequest, playe
         localVideoFirst = request.plan.video == DecoderChoice.Local,
         localAudioFirst = request.plan.audio == DecoderChoice.Local,
         pcmChannelCap = pcmChannelCap,
+        subtitleOffsetUs = subtitleOffsetUs,
     )
     baseRenderers.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
     baseRenderers.setMediaCodecSelector(dolbyVisionSelector(settings.dolbyVision))
@@ -152,7 +159,18 @@ private class BlueWolfRenderersFactory(
     private val localVideoFirst: Boolean,
     private val localAudioFirst: Boolean,
     private val pcmChannelCap: Int?,
+    private val subtitleOffsetUs: () -> Long,
 ) : NextRenderersFactory(context) {
+
+    override fun buildTextRenderers(
+        context: Context,
+        textOutput: androidx.media3.exoplayer.text.TextOutput,
+        textRendererLooper: android.os.Looper,
+        extensionRendererMode: Int,
+        out: ArrayList<Renderer>,
+    ) {
+        out.add(androidx.media3.exoplayer.text.TextRenderer(textOutput, textRendererLooper, OffsettingSubtitleDecoderFactory(subtitleOffsetUs)))
+    }
     override fun buildVideoRenderers(
         context: Context,
         extensionRendererMode: Int,
