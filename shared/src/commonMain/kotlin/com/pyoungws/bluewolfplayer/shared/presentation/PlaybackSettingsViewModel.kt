@@ -12,6 +12,7 @@ import com.pyoungws.bluewolfplayer.shared.playback.HdrOutput
 import com.pyoungws.bluewolfplayer.shared.playback.HdrPreference
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings
 import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettingsRepository
+import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
 import com.pyoungws.bluewolfplayer.shared.playback.StreamBitrate
 import com.pyoungws.bluewolfplayer.shared.playback.VideoCodec
 import com.pyoungws.bluewolfplayer.shared.playback.VideoRange
@@ -58,12 +59,36 @@ class PlaybackSettingsViewModel(
     fun setFrameRateMatching(value: FrameRateMatching) = update { it.copy(frameRateMatching = value) }
     fun setMaxBitrate(value: StreamBitrate) = update { it.copy(maxBitrate = value) }
     fun setStyledSubtitles(enabled: Boolean) = update { it.copy(styledSubtitles = enabled) }
+    fun setSubtitleScale(value: Float) = update { it.copy(subtitleScale = value) }
+    fun setIntroBehavior(value: SegmentBehavior) = update { it.copy(introBehavior = value) }
+    fun setOutroBehavior(value: SegmentBehavior) = update { it.copy(outroBehavior = value) }
+    fun setNextUpCutoffDays(days: Int) = update { it.copy(nextUpCutoffDays = days) }
+
+    fun setHomeRowHidden(rowId: String, hidden: Boolean) = update {
+        it.copy(hiddenHomeRows = if (hidden) it.hiddenHomeRows + rowId else it.hiddenHomeRows - rowId)
+    }
+
+    fun moveHomeRow(rowId: String, delta: Int) = update { settings ->
+        val order = (settings.homeRowOrder + HOME_ROW_IDS).distinct().toMutableList()
+        val index = order.indexOf(rowId).coerceAtLeast(0)
+        val target = (index + delta).coerceIn(0, order.lastIndex)
+        if (index != target) {
+            order.removeAt(index)
+            order.add(target, rowId)
+        }
+        settings.copy(homeRowOrder = order)
+    }
 
     fun resetToAutomatic() = update { PlaybackSettings() }
 
     private fun update(transform: (PlaybackSettings) -> PlaybackSettings) {
         repository.update(transform)
         _uiState.value = state(repository.settings.value, _uiState.value.capabilities)
+    }
+
+    companion object {
+        /** All reorderable home rows. `recent:<libraryId>` rows stay in feed order after these. */
+        val HOME_ROW_IDS = listOf(PlaybackSettings.ROW_LIBRARIES, PlaybackSettings.ROW_CONTINUE, PlaybackSettings.ROW_NEXT_UP)
     }
 
     private fun state(settings: PlaybackSettings, capabilities: DeviceCapabilities) = PlaybackSettingsUiState(

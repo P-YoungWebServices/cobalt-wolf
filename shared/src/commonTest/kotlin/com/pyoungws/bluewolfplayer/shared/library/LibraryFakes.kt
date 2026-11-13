@@ -7,6 +7,7 @@ import com.pyoungws.bluewolfplayer.shared.auth.InMemorySessionStore
 import com.pyoungws.bluewolfplayer.shared.auth.SERVER
 import com.pyoungws.bluewolfplayer.shared.model.Library
 import com.pyoungws.bluewolfplayer.shared.model.LibraryType
+import com.pyoungws.bluewolfplayer.shared.model.GenreInfo
 import com.pyoungws.bluewolfplayer.shared.model.MediaItem
 import com.pyoungws.bluewolfplayer.shared.model.MediaKind
 import com.pyoungws.bluewolfplayer.shared.model.Page
@@ -51,7 +52,7 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
 
     override suspend fun getLibraries(session: Session): List<Library> = libraries().also { calls += "libraries" }
     override suspend fun getResumeItems(session: Session): List<MediaItem> = resume().also { calls += "resume" }
-    override suspend fun getNextUp(session: Session): List<MediaItem> = nextUp().also { calls += "nextUp" }
+    override suspend fun getNextUp(session: Session, nextUpCutoffDays: Int): List<MediaItem> = nextUp().also { calls += "nextUp($nextUpCutoffDays)" }
     override suspend fun getLatest(session: Session, libraryId: String): List<MediaItem> = latest(libraryId).also { calls += "latest($libraryId)" }
     override suspend fun getLibraryItems(session: Session, library: Library, startIndex: Int, limit: Int): Page<MediaItem> =
         libraryItems(library, startIndex, limit).also { calls += "items(${library.id}, $startIndex)" }
@@ -60,4 +61,22 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
     override suspend fun getEpisodes(session: Session, seriesId: String, seasonId: String): List<MediaItem> =
         episodes(seriesId, seasonId).also { calls += "episodes($seasonId)" }
     override suspend fun search(session: Session, term: String, limit: Int): List<MediaItem> = search(term).also { calls += "search($term)" }
+    var items: (query: ItemQuery) -> Page<MediaItem> = { Page(emptyList(), 0) }
+    var genres: (libraryId: String) -> List<GenreInfo> = { emptyList() }
+    var suggestions: (library: Library) -> List<MediaItem> = { emptyList() }
+    var specialFeatures: (itemId: String) -> List<MediaItem> = { emptyList() }
+    var localTrailers: (itemId: String) -> List<MediaItem> = { emptyList() }
+    var previousEpisode: (episode: MediaItem) -> MediaItem? = { null }
+    override suspend fun getItems(session: Session, query: ItemQuery): Page<MediaItem> = items(query).also { calls += "items" }
+    override suspend fun getGenres(session: Session, libraryId: String): List<GenreInfo> = genres(libraryId).also { calls += "genres($libraryId)" }
+    override suspend fun getSuggestions(session: Session, library: Library): List<MediaItem> = suggestions(library).also { calls += "suggestions(${library.id})" }
+    override suspend fun getSpecialFeatures(session: Session, itemId: String): List<MediaItem> = specialFeatures(itemId).also { calls += "specialFeatures($itemId)" }
+    override suspend fun getLocalTrailers(session: Session, itemId: String): List<MediaItem> = localTrailers(itemId).also { calls += "localTrailers($itemId)" }
+    override suspend fun getPreviousEpisode(session: Session, episode: MediaItem): MediaItem? = previousEpisode(episode).also { calls += "previousEpisode(${episode.id})" }
+    var similar: (itemId: String) -> List<MediaItem> = { emptyList() }
+    var nextUpForSeries: (seriesId: String) -> MediaItem? = { null }
+    override suspend fun getSimilar(session: Session, itemId: String): List<MediaItem> = similar(itemId).also { calls += "similar($itemId)" }
+    override suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem? = nextUpForSeries(seriesId).also { calls += "nextUpSeries($seriesId)" }
+    override suspend fun setPlayed(session: Session, itemId: String, played: Boolean) { calls += "setPlayed($itemId,$played)" }
+    override suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean) { calls += "setFavorite($itemId,$favorite)" }
 }

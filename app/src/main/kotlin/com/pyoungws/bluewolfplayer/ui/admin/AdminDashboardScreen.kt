@@ -49,6 +49,7 @@ fun AdminDashboardScreen(
     onOpenSessions: () -> Unit,
     onOpenServers: () -> Unit,
     onOpenPlayback: () -> Unit,
+    onAbout: () -> Unit,
     viewModel: AdminDashboardViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -73,6 +74,7 @@ fun AdminDashboardScreen(
                     onOpenSessions = onOpenSessions,
                     onOpenServers = onOpenServers,
                     onOpenPlayback = onOpenPlayback,
+                    onAbout = onAbout,
                 )
             }
         }
@@ -87,6 +89,7 @@ private fun DashboardContent(
     onOpenSessions: () -> Unit,
     onOpenServers: () -> Unit,
     onOpenPlayback: () -> Unit,
+    onAbout: () -> Unit,
 ) {
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item(key = "actions") {
@@ -158,6 +161,21 @@ private fun DashboardContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                }
+            }
+        }
+        item(key = "about") {
+            Card(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(8.dp)).clickable { onAbout() },
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(stringResource(R.string.about_title), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.about_dashboard_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

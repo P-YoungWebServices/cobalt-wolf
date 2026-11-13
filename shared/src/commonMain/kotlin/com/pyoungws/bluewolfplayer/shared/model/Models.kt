@@ -29,7 +29,7 @@ data class Session(
     val accessToken: String,
 )
 
-enum class MediaKind { Movie, Series, Season, Episode, MusicVideo, Other }
+enum class MediaKind { Movie, Series, Season, Episode, MusicVideo, BoxSet, Playlist, Video, Other }
 
 enum class StreamKind { Video, Audio, Subtitle }
 
@@ -44,9 +44,62 @@ data class MediaStreamInfo(
     val channelLayout: String? = null,
     val profile: String? = null,
     val language: String? = null,
+    val isHearingImpaired: Boolean = false,
 )
 
-enum class LibraryType { Movies, TvShows, MusicVideos, Other }
+enum class LibraryType { Movies, TvShows, MusicVideos, BoxSets, Playlists, Other }
+
+enum class SeriesStatus { Continuing, Ended, Unreleased }
+
+/** A credited person on an item — name, what they did and their portrait. */
+data class MediaPerson(
+    val id: String,
+    val name: String,
+    val role: String?,
+    val kind: String?,
+    val imageUrl: String?,
+)
+
+/** A chapter mark inside an item — label, position and optional scene image. */
+data class MediaChapter(
+    val name: String?,
+    val startTicks: Long,
+    val imageUrl: String?,
+)
+
+/** A remote trailer link (usually YouTube) advertised by the server. */
+data class MediaTrailer(
+    val name: String?,
+    val url: String,
+)
+
+/** An alternate cut of the same item (theatrical, director's cut, …) — pick one before playing. */
+data class MediaVersion(
+    val id: String,
+    val name: String,
+)
+
+/** Server-generated scrub-preview tiles ("trickplay") for one rendition width. */
+data class TrickplayTiles(
+    val width: Int,
+    val height: Int,
+    val tileWidth: Int,
+    val tileHeight: Int,
+    val thumbnailCount: Int,
+    val interval: Int,
+    /** Tile image URL prefix — append "<index>.jpg". */
+    val urlPrefix: String,
+) {
+    fun tileUrl(index: Int) = "$urlPrefix$index.jpg"
+    fun indexAtTicks(ticks: Long): Int = (ticks / (interval * 10_000L)).toInt().coerceIn(0, thumbnailCount - 1)
+}
+
+/** A genre entry for the by-genre browse view. */
+data class GenreInfo(
+    val id: String,
+    val name: String,
+    val imageUrl: String?,
+)
 
 /** A top-level library (Jellyfin "user view"). Movie, series and music video libraries are browsable. */
 data class Library(
@@ -81,9 +134,24 @@ data class MediaItem(
     val posterUrl: String? = null,
     val landscapeUrl: String? = null,
     val backdropUrl: String? = null,
+    val logoUrl: String? = null,
     val streams: List<MediaStreamInfo> = emptyList(),
+    val criticRating: Float? = null,
+    val tagline: String? = null,
+    val premiereDate: kotlinx.datetime.LocalDate? = null,
+    val seriesStatus: SeriesStatus? = null,
+    val isFavorite: Boolean = false,
+    val childCount: Int? = null,
+    val runtimeTicks: Long? = null,
+    val people: List<MediaPerson> = emptyList(),
+    val chapters: List<MediaChapter> = emptyList(),
+    val remoteTrailers: List<MediaTrailer> = emptyList(),
+    val mediaSources: List<MediaVersion> = emptyList(),
+    val trickplay: TrickplayTiles? = null,
 ) {
-    val isPlayable: Boolean get() = kind == MediaKind.Movie || kind == MediaKind.Episode || kind == MediaKind.MusicVideo
+    val isPlayable: Boolean get() = kind == MediaKind.Movie || kind == MediaKind.Episode || kind == MediaKind.MusicVideo || kind == MediaKind.Video
+    /** Items that group children rather than playing directly. */
+    val isContainer: Boolean get() = kind == MediaKind.Series || kind == MediaKind.Season || kind == MediaKind.BoxSet || kind == MediaKind.Playlist
     val hasProgress: Boolean get() = positionTicks > 0 && !isPlayed
 
     /** Progress through the item in 0..1, or null if not started. */
@@ -127,10 +195,11 @@ fun MediaItem.audioStreamSummaries(): List<String> = streams.filter { it.kind ==
 
 data class Page<T>(val items: List<T>, val totalCount: Int)
 
-/** Continue Watching plus one Recently Added row per library. */
+/** Libraries, Continue Watching, Next up and one Recently Added row per library. */
 data class HomeFeed(
     val libraries: List<Library>,
     val continueWatching: List<MediaItem>,
+    val nextUp: List<MediaItem>,
     val recentlyAdded: List<RecentlyAddedRow>,
 )
 

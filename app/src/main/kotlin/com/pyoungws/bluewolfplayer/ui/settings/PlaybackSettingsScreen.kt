@@ -44,6 +44,8 @@ import com.pyoungws.bluewolfplayer.shared.playback.LOCAL_DECODE_MAX_WIDTH
 import com.pyoungws.bluewolfplayer.shared.playback.VideoCodec
 import com.pyoungws.bluewolfplayer.shared.playback.VideoSupport
 import com.pyoungws.bluewolfplayer.shared.presentation.HdrSelection
+import com.pyoungws.bluewolfplayer.shared.playback.SegmentBehavior
+import com.pyoungws.bluewolfplayer.shared.playback.PlaybackSettings
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsUiState
 import com.pyoungws.bluewolfplayer.shared.presentation.PlaybackSettingsViewModel
 import com.pyoungws.bluewolfplayer.ui.common.tvListScroll
@@ -78,6 +80,8 @@ fun PlaybackSettingsScreen(onBack: () -> Unit, viewModel: PlaybackSettingsViewMo
         LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(padding).tvListScroll(listState), contentPadding = PaddingValues(bottom = 24.dp)) {
             item { Header(R.string.playback_section_overrides) }
             item { Overrides(state, viewModel) }
+            item { Header(R.string.home_rows_title) }
+            item { HomeRows(state, viewModel) }
             item { Header(R.string.playback_section_detected) }
             item { Detected(state.capabilities) }
             item { Header(R.string.playback_section_selection) }
@@ -126,8 +130,68 @@ private fun Overrides(state: PlaybackSettingsUiState, viewModel: PlaybackSetting
             StreamBitrate.Mbps2 to R.string.playback_bitrate_2,
         )
         Toggle(R.string.playback_styled_subtitles, R.string.playback_styled_subtitles_summary, settings.styledSubtitles, viewModel::setStyledSubtitles)
+        Choice(
+            R.string.playback_subtitle_scale, settings.subtitleScale, viewModel::setSubtitleScale,
+            0.75f to R.string.subtitle_scale_75,
+            1f to R.string.subtitle_scale_100,
+            1.25f to R.string.subtitle_scale_125,
+            1.5f to R.string.subtitle_scale_150,
+            2f to R.string.subtitle_scale_200,
+        )
+        Choice(
+            R.string.playback_intro_behavior, settings.introBehavior, viewModel::setIntroBehavior,
+            SegmentBehavior.Ask to R.string.segment_ask,
+            SegmentBehavior.Auto to R.string.segment_auto,
+            SegmentBehavior.Off to R.string.segment_off,
+        )
+        Choice(
+            R.string.playback_outro_behavior, settings.outroBehavior, viewModel::setOutroBehavior,
+            SegmentBehavior.Ask to R.string.segment_ask,
+            SegmentBehavior.Auto to R.string.segment_auto,
+            SegmentBehavior.Off to R.string.segment_off,
+        )
+        Choice(
+            R.string.playback_next_up_cutoff, settings.nextUpCutoffDays, viewModel::setNextUpCutoffDays,
+            0 to R.string.cutoff_off,
+            90 to R.string.cutoff_90,
+            180 to R.string.cutoff_180,
+            365 to R.string.cutoff_365,
+            730 to R.string.cutoff_730,
+        )
         OutlinedButton(onClick = viewModel::resetToAutomatic, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(stringResource(R.string.playback_reset))
+        }
+    }
+}
+
+@Composable
+private fun HomeRows(state: PlaybackSettingsUiState, viewModel: PlaybackSettingsViewModel) {
+    val settings = state.settings
+    val order = (settings.homeRowOrder + PlaybackSettingsViewModel.HOME_ROW_IDS).distinct()
+    val labels = mapOf(
+        PlaybackSettings.ROW_LIBRARIES to R.string.row_libraries,
+        PlaybackSettings.ROW_CONTINUE to R.string.row_continue,
+        PlaybackSettings.ROW_NEXT_UP to R.string.row_next_up,
+    )
+    Column {
+        order.forEachIndexed { index, rowId ->
+            val hidden = rowId in settings.hiddenHomeRows
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(labels[rowId] ?: R.string.row_recent),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { viewModel.moveHomeRow(rowId, -1) }, enabled = index > 0) { Text(stringResource(R.string.row_move_up)) }
+                TextButton(onClick = { viewModel.moveHomeRow(rowId, 1) }, enabled = index < order.lastIndex) { Text(stringResource(R.string.row_move_down)) }
+                TextButton(onClick = { viewModel.setHomeRowHidden(rowId, !hidden) }) {
+                    Text(stringResource(if (hidden) R.string.filter_all else R.string.row_hidden))
+                }
+            }
         }
     }
 }

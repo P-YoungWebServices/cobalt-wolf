@@ -65,6 +65,18 @@ class BrowseViewModelsTest {
     }
 
     @Test
+    fun `home keeps next up as its own row and drops items already resuming`() = runTest {
+        dataSource.resume = { listOf(episode("e1", 1, positionTicks = 10)) }
+        dataSource.nextUp = { listOf(episode("e1", 1, positionTicks = 10), episode("e2", 2)) }
+        val viewModel = LibraryHomeViewModel(repository())
+        advanceUntilIdle()
+
+        val feed = (viewModel.uiState.value as LibraryHomeUiState.Loaded).feed
+        assertEquals(listOf("e1"), feed.continueWatching.map { it.id })
+        assertEquals(listOf("e2"), feed.nextUp.map { it.id })
+    }
+
+    @Test
     fun `home shows an error and can retry`() = runTest {
         var fail = true
         dataSource.libraries = { if (fail) throw TimeoutException() else listOf(MOVIES) }
@@ -193,6 +205,44 @@ class BrowseViewModelsTest {
         val state = viewModel.uiState.value as ItemDetailUiState.Loaded
         assertEquals(LoadError.ServerUnreachable, state.episodesError)
         assertEquals("series-1", state.item.id)
+    }
+
+    @Test
+    fun `detail loads similar items for a movie`() = runTest {
+        dataSource.similar = { listOf(movie("s1"), movie("s2")) }
+        val viewModel = ItemDetailViewModel("m1", repository())
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as ItemDetailUiState.Loaded
+        assertEquals(listOf("s1", "s2"), state.similar.map { it.id })
+        assertTrue("similar(m1)" in dataSource.calls)
+    }
+
+    @Test
+    fun `series detail loads next up and similar`() = runTest {
+        dataSource.item = { series(it) }
+        dataSource.seasons = { listOf(season("s1", 1)) }
+        dataSource.episodes = { _, _ -> emptyList() }
+        dataSource.nextUpForSeries = { episode("e3", 3, positionTicks = 5) }
+        dataSource.similar = { listOf(series("other")) }
+        val viewModel = ItemDetailViewModel("series-1", repository())
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as ItemDetailUiState.Loaded
+        assertEquals("e3", state.nextUp?.id)
+        assertEquals(listOf("other"), state.similar.map { it.id })
+        assertTrue("nextUpSeries(series-1)" in dataSource.calls)
+    }
+
+    @Test
+    fun `similar failure leaves the section empty without failing the page`() = runTest {
+        dataSource.similar = { throw TimeoutException() }
+        val viewModel = ItemDetailViewModel("m1", repository())
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as ItemDetailUiState.Loaded
+        assertEquals("m1", state.item.id)
+        assertTrue(state.similar.isEmpty())
     }
 
     @Test

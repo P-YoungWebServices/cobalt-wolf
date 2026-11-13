@@ -62,7 +62,29 @@ data class PlaybackSettings(
     val maxBitrate: StreamBitrate = StreamBitrate.Auto,
     /** Render ASS/SSA subtitles with libass (full styling) instead of the basic text renderer. */
     val styledSubtitles: Boolean = true,
-)
+    /** Scale applied to rendered subtitles (1.0 = unchanged). */
+    val subtitleScale: Float = 1f,
+    /** What to do when an intro segment is reached. */
+    val introBehavior: SegmentBehavior = SegmentBehavior.Ask,
+    /** What to do when an outro/credits segment is reached. */
+    val outroBehavior: SegmentBehavior = SegmentBehavior.Ask,
+    /** Series whose last episode activity is older than this are hidden from Next up; 0 disables the cutoff. */
+    val nextUpCutoffDays: Int = 365,
+    /** Order and visibility of home rows; rows listed here come first, hidden ones are removed. */
+    val homeRowOrder: List<String> = emptyList(),
+    val hiddenHomeRows: Set<String> = emptySet(),
+) {
+    companion object {
+        /** Stable row ids used in [homeRowOrder]/[hiddenHomeRows]. */
+        const val ROW_LIBRARIES = "libraries"
+        const val ROW_CONTINUE = "continue"
+        const val ROW_NEXT_UP = "nextup"
+        const val ROW_RECENT_PREFIX = "recent:"
+    }
+}
+
+/** Whether an auto-skip segment acts automatically or only offers the button. */
+enum class SegmentBehavior { Ask, Auto, Off }
 
 /** Persists [PlaybackSettings]. */
 interface PlaybackSettingsStore {

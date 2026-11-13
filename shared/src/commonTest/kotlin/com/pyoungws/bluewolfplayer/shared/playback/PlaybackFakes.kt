@@ -90,6 +90,7 @@ class FakePlaybackDataSource : JellyfinPlaybackDataSource {
         profile: DeviceProfile,
         forceTranscode: Boolean,
         maxBitrate: Int?,
+        mediaSourceId: String?,
     ): PlaybackSource {
         profiles += profile
         bitrates += maxBitrate

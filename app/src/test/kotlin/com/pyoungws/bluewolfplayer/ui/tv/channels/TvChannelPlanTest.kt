@@ -35,6 +35,7 @@ class TvChannelPlanTest {
         val feed = HomeFeed(
             libraries = listOf(library),
             continueWatching = listOf(episode("e1")),
+            nextUp = emptyList(),
             recentlyAdded = listOf(RecentlyAddedRow(library, listOf(movie("m1")))),
         )
         val plans = planChannels(feed, "Continue Watching", "Recently Added")
@@ -68,6 +69,7 @@ class TvChannelPlanTest {
         val feed = HomeFeed(
             libraries = listOf(library, other),
             continueWatching = (1..15).map { episode("e$it") },
+            nextUp = emptyList(),
             recentlyAdded = listOf(
                 RecentlyAddedRow(library, (1..8).map { movie("m$it") }),
                 RecentlyAddedRow(other, (1..8).map { movie("s$it") }),
@@ -82,7 +84,7 @@ class TvChannelPlanTest {
 
     @Test
     fun `keeps the channels planned even when a row is empty`() {
-        val feed = HomeFeed(libraries = listOf(library), continueWatching = emptyList(), recentlyAdded = emptyList())
+        val feed = HomeFeed(libraries = listOf(library), continueWatching = emptyList(), nextUp = emptyList(), recentlyAdded = emptyList())
         val plans = planChannels(feed, "Continue Watching", "Recently Added")
         assertEquals(2, plans.size)
         assertTrue(plans.all { it.programs.isEmpty() })

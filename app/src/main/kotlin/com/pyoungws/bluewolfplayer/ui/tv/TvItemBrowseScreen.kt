@@ -1,0 +1,75 @@
+package com.pyoungws.bluewolfplayer.ui.tv
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Text
+import com.pyoungws.bluewolfplayer.R
+import com.pyoungws.bluewolfplayer.shared.library.ItemQuery
+import com.pyoungws.bluewolfplayer.shared.presentation.ItemBrowseViewModel
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+
+/** A paged poster grid for an [ItemQuery] (person filmographies etc.), driven by the D-pad. */
+@Composable
+fun TvItemBrowseScreen(title: String, query: ItemQuery, onOpenItem: (String) -> Unit) {
+    val viewModel: ItemBrowseViewModel = koinViewModel(key = "tvbrowse-$query", parameters = { parametersOf(query) })
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val gridState = rememberLazyGridState()
+    TvLoadMoreEffect(gridState, onLoadMore = viewModel::loadMore)
+
+    Column(Modifier.fillMaxSize()) {
+        Text(
+            title,
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(start = TvContentPadding, top = 12.dp, bottom = 8.dp),
+        )
+        Box(Modifier.fillMaxSize()) {
+            when {
+                state.items.isEmpty() && state.isLoading -> TvLoadingBox()
+                state.items.isEmpty() && state.error != null -> TvErrorBox(state.error!!, onRetry = viewModel::retry)
+                state.items.isEmpty() -> Text(
+                    stringResource(R.string.library_empty),
+                    modifier = Modifier.align(Alignment.Center),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                else -> LazyVerticalGrid(
+                    state = gridState,
+                    columns = GridCells.Adaptive(150.dp),
+                    contentPadding = PaddingValues(start = TvContentPadding, end = TvContentPadding, top = 8.dp, bottom = 48.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(state.items.size, key = { state.items[it].id }) {
+                        TvPosterCard(state.items[it], onClick = { onOpenItem(state.items[it].id) })
+                    }
+                    if (state.isLoading) {
+                        item {
+                            Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                        }
+                    }
+                    state.error?.let { error ->
+                        item { TvErrorBox(error, onRetry = viewModel::retry, modifier = Modifier.fillMaxWidth()) }
+                    }
+                }
+            }
+        }
+    }
+}

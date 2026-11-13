@@ -18,6 +18,7 @@ import org.jellyfin.sdk.api.client.extensions.sessionApi
 import org.jellyfin.sdk.api.client.extensions.systemApi
 import org.jellyfin.sdk.api.client.extensions.userApi
 import org.jellyfin.sdk.model.UUID
+import org.jellyfin.sdk.model.serializer.toUUID
 import org.jellyfin.sdk.model.api.CreateUserByName
 import org.jellyfin.sdk.model.api.DeviceInfoDto
 import org.jellyfin.sdk.model.api.FolderStorageDto
@@ -203,7 +204,7 @@ class SdkJellyfinAdminDataSource(
     }
 }
 
-private fun String.toUuid(): UUID = UUID.fromString(this)
+private fun String.toUuid(): UUID = this.toUUID()
 
 internal fun SessionInfoDto.toActiveSession(serverAddress: String): ActiveSession {
     val item = nowPlayingItem?.toMediaItem(serverAddress)
