@@ -333,6 +333,7 @@ private fun TvDetailContent(
                     androidx.tv.material3.FilterChip(
                         selected = false,
                         onClick = { subMenu = TvSubMenu.Audio },
+                        modifier = Modifier.align(Alignment.Top).padding(top = 4.dp),
                         content = { Text(audioStreams.firstOrNull { it.index == state.selectedAudioStreamIndex }?.describe() ?: stringResource(R.string.detail_default_audio)) },
                     )
                 }
@@ -341,6 +342,7 @@ private fun TvDetailContent(
                     androidx.tv.material3.FilterChip(
                         selected = false,
                         onClick = { subMenu = TvSubMenu.Subtitles },
+                        modifier = Modifier.align(Alignment.Top).padding(top = 4.dp),
                         content = { Text(when {
                             state.selectedSubtitleStreamIndex == -1 -> stringResource(R.string.player_subtitles_off)
                             else -> subStreams.firstOrNull { it.index == state.selectedSubtitleStreamIndex }?.describe() ?: stringResource(R.string.detail_default_subtitle)
@@ -351,6 +353,7 @@ private fun TvDetailContent(
                     androidx.tv.material3.FilterChip(
                         selected = false,
                         onClick = { subMenu = TvSubMenu.Versions },
+                        modifier = Modifier.align(Alignment.Top).padding(top = 4.dp),
                         content = { Text(item.mediaSources.firstOrNull { it.id == state.selectedMediaSourceId }?.name ?: stringResource(R.string.detail_select_version)) },
                     )
                 }
