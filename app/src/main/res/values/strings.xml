@@ -807,4 +807,6 @@
     <string name="settings_episodes_4">4 episodes</string>
     <string name="settings_cinema_mode_summary">Play local trailers and intros before a movie</string>
     <string name="settings_external_player_summary">Send streams to an installed player (VLC, mpv, MX Player)</string>
+    <string name="player_lock">Lock controls</string>
+    <string name="player_unlock">Unlock controls</string>
 </resources>

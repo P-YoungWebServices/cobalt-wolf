@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.outlined.PictureInPictureAlt
 import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material3.AlertDialog
@@ -53,6 +55,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -107,6 +110,7 @@ import com.pyoungws.bluewolfplayer.shared.presentation.SyncPlayUiCommand
 import com.pyoungws.bluewolfplayer.ui.common.ErrorBox
 import com.pyoungws.bluewolfplayer.ui.common.LoadingBox
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -210,6 +214,9 @@ private fun PlayerContent(
     var showBitrateDialog by remember(player) { mutableStateOf(false) }
     var showSpeedDialog by remember(player) { mutableStateOf(false) }
     var showChapters by remember(player) { mutableStateOf(false) }
+    var gesturesLocked by remember(player) { mutableStateOf(false) }
+    var gestureHint by remember(player) { mutableStateOf<String?>(null) }
+    val hintScope = rememberCoroutineScope()
     val stillWatching by viewModel.stillWatching.collectAsStateWithLifecycle()
     var showStats by remember { mutableStateOf(debugShowStats) }
     var positionMs by remember(player) { mutableLongStateOf(request.startPositionMs) }
@@ -509,6 +516,15 @@ private fun PlayerContent(
                                 })
                             }
                         }
+                        if (!isTv) attachPlayerGestures(
+                            view = this,
+                            player = player,
+                            isLocked = { gesturesLocked },
+                            onHint = { hint ->
+                                gestureHint = hint
+                                hintScope.launch { delay(1_200); if (gestureHint == hint) gestureHint = null }
+                            },
+                        )
                     }
                 },
                 update = {
@@ -520,6 +536,20 @@ private fun PlayerContent(
             )
         }
         if (showStats && !isInPip) StatsOverlay(stats, Modifier.align(Alignment.TopStart).statusBarsPadding().padding(start = 8.dp, top = 56.dp))
+        gestureHint?.let {
+            Text(
+                it,
+                color = Color.White,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.align(Alignment.Center).background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+        if (gesturesLocked) {
+            IconButton(
+                onClick = { gesturesLocked = false },
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 140.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape),
+            ) { Icon(Icons.Outlined.Lock, contentDescription = stringResource(R.string.player_unlock), tint = Color.White) }
+        }
         scrubPositionMs?.let { scrubMs ->
             request.item.trickplay?.let { tiles ->
                 val index = (scrubMs / tiles.interval).toInt().coerceIn(0, tiles.thumbnailCount - 1)
@@ -571,6 +601,9 @@ private fun PlayerContent(
                     ControlButton(onClick = { showQueue = true }, icon = Icons.AutoMirrored.Outlined.PlaylistPlay, description = stringResource(R.string.player_queue))
                 }
                 ControlButton(onClick = { showSpeedDialog = true }, icon = Icons.Outlined.Speed, description = stringResource(R.string.player_speed))
+                if (!isTv) {
+                    ControlButton(onClick = { gesturesLocked = true }, icon = Icons.Outlined.Lock, description = stringResource(R.string.player_lock))
+                }
                 if (request.item.chapters.isNotEmpty()) {
                     ControlButton(onClick = { showChapters = true }, icon = Icons.AutoMirrored.Outlined.ListAlt, description = stringResource(R.string.player_chapters))
                 }
@@ -886,3 +919,95 @@ private fun TrackSelectionDialog(title: String, options: List<TrackOption>, onSe
 }
 
 private const val NEXT_UP_COUNTDOWN_MS = 15_000L
+
+/**
+ * Phone gestures on the video surface: double-tap seeks 10 s, a horizontal drag scrubs
+ * (full width = [SCRUB_FULL_RANGE_MS]), vertical drags adjust volume (right half) and
+ * brightness (left half), press-and-hold plays at 2x. The listener never consumes
+ * events, so the built-in controller keeps working; while locked it eats everything.
+ */
+private fun attachPlayerGestures(view: PlayerView, player: ExoPlayer, isLocked: () -> Boolean, onHint: (String?) -> Unit) {
+    val context = view.context
+    val audioManager = context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
+    val activity = context as? android.app.Activity
+    var heldSpeed: Float? = null
+    var scrubbing = false
+    var scrubMs = 0L
+    var axis: Boolean? = null // true = vertical, false = horizontal
+
+    val detector = android.view.GestureDetector(context, object : android.view.GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(e: android.view.MotionEvent) = !isLocked()
+
+        override fun onDoubleTap(e: android.view.MotionEvent): Boolean {
+            val delta = if (e.x < view.width / 2f) -SEEK_GESTURE_MS else SEEK_GESTURE_MS
+            player.seekTo((player.currentPosition + delta).coerceIn(0L, (player.duration).coerceAtLeast(0L)))
+            onHint(if (delta < 0) "-10s" else "+10s")
+            return true
+        }
+
+        override fun onLongPress(e: android.view.MotionEvent) {
+            if (isLocked()) return
+            heldSpeed = player.playbackParameters.speed
+            player.setPlaybackSpeed(2f)
+            onHint("2x")
+        }
+
+        override fun onScroll(e1: android.view.MotionEvent?, e2: android.view.MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+            if (isLocked() || e1 == null || e1.y > view.height * 0.85f) return false
+            if (axis == null && (kotlin.math.abs(e2.x - e1.x) > 24 || kotlin.math.abs(e2.y - e1.y) > 24)) {
+                axis = kotlin.math.abs(e2.y - e1.y) > kotlin.math.abs(e2.x - e1.x)
+            }
+            when (axis) {
+                false -> {
+                    scrubbing = true
+                    scrubMs = ((e2.x - e1.x) / view.width * SCRUB_FULL_RANGE_MS).toLong()
+                    onHint(if (scrubMs >= 0) "+${scrubMs / 1000}s" else "${scrubMs / 1000}s")
+                }
+                true -> {
+                    val delta = -distanceY / view.height
+                    if (e1.x > view.width / 2f) {
+                        val max = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                        val next = (audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) + (delta * max).toInt()).coerceIn(0, max)
+                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, next, 0)
+                        onHint("${next * 100 / max}%")
+                    } else {
+                        activity?.window?.let { window ->
+                            val attrs = window.attributes
+                            val next = ((if (attrs.screenBrightness < 0) 0.5f else attrs.screenBrightness) + delta * 2f).coerceIn(0.05f, 1f)
+                            attrs.screenBrightness = next
+                            window.attributes = attrs
+                            onHint("${(next * 100).toInt()}%")
+                        }
+                    }
+                }
+                null -> Unit
+            }
+            return true
+        }
+    })
+
+    view.setOnTouchListener { _, event ->
+        if (isLocked()) {
+            heldSpeed = null; scrubbing = false; axis = null
+            return@setOnTouchListener true
+        }
+        detector.onTouchEvent(event)
+        when (event.actionMasked) {
+            android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                heldSpeed?.let { player.setPlaybackSpeed(it); heldSpeed = null; onHint(null) }
+                if (scrubbing) {
+                    scrubbing = false
+                    player.seekTo((player.currentPosition + scrubMs).coerceIn(0L, player.duration.coerceAtLeast(0L)))
+                    scrubMs = 0
+                    onHint(null)
+                }
+                axis = null
+            }
+        }
+        false
+    }
+}
+
+private const val SEEK_GESTURE_MS = 10_000L
+private const val SCRUB_FULL_RANGE_MS = 180_000L
+
