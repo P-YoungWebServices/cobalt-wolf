@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
@@ -599,6 +600,26 @@ private fun PlayerContent(
                                 hintScope.launch { delay(1_200); if (gestureHint == hint) gestureHint = null }
                             },
                         )
+                        post {
+                            // Lift the position/duration readout out of the bottom bar and
+                            // place it just above the seek bar, so the bottom band is only
+                            // the overlay icon row plus Media3's own settings button.
+                            val timeRow = findViewById<View>(androidx.media3.ui.R.id.exo_time)
+                            val bottomBar = timeRow?.parent as? android.view.ViewGroup
+                            val controllerRoot = bottomBar?.parent as? FrameLayout
+                            if (timeRow != null && controllerRoot != null) {
+                                bottomBar.removeView(timeRow)
+                                val margin = (106 * resources.displayMetrics.density).toInt()
+                                controllerRoot.addView(
+                                    timeRow,
+                                    FrameLayout.LayoutParams(
+                                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                                        android.view.Gravity.BOTTOM or android.view.Gravity.START,
+                                    ).apply { bottomMargin = margin },
+                                )
+                            }
+                        }
                     }
                 },
                 update = {
@@ -650,7 +671,7 @@ private fun PlayerContent(
                 AsyncImage(
                     model = tiles.tileUrl(index / (tiles.tileWidth * tiles.tileHeight)),
                     contentDescription = null,
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 200.dp)
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp)
                         .border(2.dp, Color.White),
                 )
             }
@@ -679,7 +700,7 @@ private fun PlayerContent(
                 }
             }
             Row(
-                Modifier.align(Alignment.BottomEnd).padding(8.dp).padding(bottom = 100.dp),
+                Modifier.align(Alignment.BottomStart).padding(8.dp).padding(bottom = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
@@ -726,7 +747,7 @@ private fun PlayerContent(
         val duration = player.duration
         if (!isInPip && (activeSegment != null || (controlsVisible && duration > 0))) {
             Row(
-                Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 148.dp),
+                Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 106.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
