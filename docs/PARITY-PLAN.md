@@ -33,7 +33,7 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 | 2.2 | Extra sorts: parental rating, critic, last played, play count, date episode added, runtime, year | ☐ | ItemBrowseScreen SORT_CHOICES |
 | 2.3 | Extra filters: played/resumable, series status, video type, has-trailer/subs/extras/themes | ☐ | ItemQuery extension |
 | 2.4 | Library tabs: per-type suggestions, shows upcoming, networks/studios | ☐ | |
-| 2.5 | Global Favorites page | ☐ | |
+| 2.5 | Global Favorites page | ☑ | home overflow menu → cross-library favorites browse |
 | 2.6 | Long-press card context menus | ☐ | phone + TV variants |
 | 2.7 | Multi-select mode + batch actions | ☐ | |
 | 2.8 | Playlist add/create/edit/reorder/remove | ☐ | |
@@ -85,8 +85,8 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 ## Current checkpoint
 
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Working on: 2.4 library tabs (suggestions/upcoming/networks) + 2.5 favorites page.
-- Done: Phase 1 + 2.1-2.3 (view modes, sorts, filters). Build+tests green.
+- Working on: 2.6 card context menus + multi-select (needs item-action plumbing incl. playlists).
+- Done: Phase 1 + 2.1-2.5. Build+tests green.
 - Notes: ItemQuery gained recursive + artistIds/albumArtistIds. Container play queues playable children (Play on album/playlist/boxset). PlayerViewModelTest passes a fresh PlayQueueRepository.
 - Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, DI=shared/.../di/SharedModule.kt.
 - Conventions: per-feature commits, `JAVA_HOME=/snap/android-studio/current/jbr`, strings added at end of app/.../res/values/strings.xml, icons from material-icons-extended.

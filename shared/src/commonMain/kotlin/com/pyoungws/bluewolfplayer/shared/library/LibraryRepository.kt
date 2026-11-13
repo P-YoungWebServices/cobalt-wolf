@@ -144,6 +144,27 @@ class LibraryRepository(
     suspend fun studios(libraryId: String): Outcome<List<MediaItem>> =
         guard.run { dataSource.getStudios(it, libraryId) }
 
+    suspend fun createPlaylist(name: String, itemIds: List<String>): Outcome<String> =
+        guard.run { dataSource.createPlaylist(it, name, itemIds) }
+
+    suspend fun addToPlaylist(playlistId: String, itemIds: List<String>): Outcome<Unit> =
+        guard.run { dataSource.addToPlaylist(it, playlistId, itemIds) }
+
+    suspend fun removeFromPlaylist(playlistId: String, entryIds: List<String>): Outcome<Unit> =
+        guard.run { dataSource.removeFromPlaylist(it, playlistId, entryIds) }
+
+    suspend fun movePlaylistItem(playlistId: String, entryId: String, newIndex: Int): Outcome<Unit> =
+        guard.run { dataSource.movePlaylistItem(it, playlistId, entryId, newIndex) }
+
+    suspend fun createCollection(name: String, itemIds: List<String>): Outcome<String> =
+        guard.run { dataSource.createCollection(it, name, itemIds) }
+
+    suspend fun addToCollection(collectionId: String, itemIds: List<String>): Outcome<Unit> =
+        guard.run { dataSource.addToCollection(it, collectionId, itemIds) }
+
+    suspend fun removeFromCollection(collectionId: String, itemIds: List<String>): Outcome<Unit> =
+        guard.run { dataSource.removeFromCollection(it, collectionId, itemIds) }
+
     suspend fun nextUpForSeries(seriesId: String): Outcome<MediaItem?> =
         guard.run { dataSource.getNextUpForSeries(it, seriesId) }
 

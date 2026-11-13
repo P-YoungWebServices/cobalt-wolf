@@ -92,6 +92,13 @@ class FakeLibraryDataSource : JellyfinLibraryDataSource {
     override suspend fun deleteRecording(session: Session, recordingId: String) { calls += "deleteRecording($recordingId)" }
     override suspend fun getUpcoming(session: Session, libraryId: String): List<MediaItem> = emptyList<MediaItem>().also { calls += "upcoming($libraryId)" }
     override suspend fun getStudios(session: Session, libraryId: String): List<MediaItem> = emptyList<MediaItem>().also { calls += "studios($libraryId)" }
+    override suspend fun createPlaylist(session: Session, name: String, itemIds: List<String>): String = "pl1".also { calls += "createPlaylist($name)" }
+    override suspend fun addToPlaylist(session: Session, playlistId: String, itemIds: List<String>) { calls += "addToPlaylist($playlistId,${itemIds.size})" }
+    override suspend fun removeFromPlaylist(session: Session, playlistId: String, entryIds: List<String>) { calls += "removeFromPlaylist($playlistId,${entryIds.size})" }
+    override suspend fun movePlaylistItem(session: Session, playlistId: String, entryId: String, newIndex: Int) { calls += "movePlaylistItem($entryId,$newIndex)" }
+    override suspend fun createCollection(session: Session, name: String, itemIds: List<String>): String = "col1".also { calls += "createCollection($name)" }
+    override suspend fun addToCollection(session: Session, collectionId: String, itemIds: List<String>) { calls += "addToCollection($collectionId,${itemIds.size})" }
+    override suspend fun removeFromCollection(session: Session, collectionId: String, itemIds: List<String>) { calls += "removeFromCollection($collectionId,${itemIds.size})" }
     override suspend fun getNextUpForSeries(session: Session, seriesId: String): MediaItem? = nextUpForSeries(seriesId).also { calls += "nextUpSeries($seriesId)" }
     override suspend fun setPlayed(session: Session, itemId: String, played: Boolean) { calls += "setPlayed($itemId,$played)" }
     override suspend fun setFavorite(session: Session, itemId: String, favorite: Boolean) { calls += "setFavorite($itemId,$favorite)" }

@@ -755,4 +755,12 @@
     <string name="view_upcoming">Upcoming</string>
     <string name="view_networks">Networks</string>
     <string name="nav_favorites">Favorites</string>
+    <string name="action_add_to_playlist">Add to playlist</string>
+    <string name="action_add_to_collection">Add to collection</string>
+    <string name="action_remove_from_playlist">Remove from playlist</string>
+    <string name="action_remove_from_collection">Remove from collection</string>
+    <string name="action_new_playlist">New playlist name</string>
+    <string name="action_new_collection">New collection name</string>
+    <string name="action_create">Create</string>
+    <string name="action_cancel">Cancel</string>
 </resources>

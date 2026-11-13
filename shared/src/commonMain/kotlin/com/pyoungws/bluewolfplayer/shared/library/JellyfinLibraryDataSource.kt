@@ -19,8 +19,10 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
+import org.jellyfin.sdk.api.client.extensions.collectionApi
 import org.jellyfin.sdk.api.client.extensions.instantMixApi
 import org.jellyfin.sdk.api.client.extensions.libraryApi
+import org.jellyfin.sdk.api.client.extensions.playlistApi
 import org.jellyfin.sdk.api.client.extensions.liveTvApi
 import org.jellyfin.sdk.api.client.extensions.lyricApi
 import org.jellyfin.sdk.api.client.extensions.genreApi
@@ -33,6 +35,7 @@ import org.jellyfin.sdk.model.UUID
 import org.jellyfin.sdk.model.serializer.toUUID
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemKind
+import org.jellyfin.sdk.model.api.CreatePlaylistDto
 import org.jellyfin.sdk.model.api.CollectionType
 import org.jellyfin.sdk.model.api.ImageType
 import org.jellyfin.sdk.model.api.ItemFields
@@ -84,6 +87,13 @@ interface JellyfinLibraryDataSource {
     suspend fun getUpcoming(session: Session, libraryId: String): List<MediaItem>
     /** Studios/networks present in a library. */
     suspend fun getStudios(session: Session, libraryId: String): List<MediaItem>
+    suspend fun createPlaylist(session: Session, name: String, itemIds: List<String>): String
+    suspend fun addToPlaylist(session: Session, playlistId: String, itemIds: List<String>)
+    suspend fun removeFromPlaylist(session: Session, playlistId: String, entryIds: List<String>)
+    suspend fun movePlaylistItem(session: Session, playlistId: String, entryId: String, newIndex: Int)
+    suspend fun createCollection(session: Session, name: String, itemIds: List<String>): String
+    suspend fun addToCollection(session: Session, collectionId: String, itemIds: List<String>)
+    suspend fun removeFromCollection(session: Session, collectionId: String, itemIds: List<String>)
     /** Records one showing of a program. */
     suspend fun recordProgram(session: Session, programId: String)
     /** Records every showing of a program's series. */
@@ -279,6 +289,36 @@ class SdkJellyfinLibraryDataSource(
                 parentId = libraryId.toUuid(),
             ),
         ).content.items.map { it.toMediaItem(session.serverAddress) }
+    }
+
+    override suspend fun createPlaylist(session: Session, name: String, itemIds: List<String>) = call(session) {
+        playlistApi.createPlaylist(
+            CreatePlaylistDto(name = name, ids = itemIds.map { it.toUuid() }, userId = session.userId.toUuid(), users = emptyList(), isPublic = false),
+        ).content.id.orEmpty()
+    }
+
+    override suspend fun addToPlaylist(session: Session, playlistId: String, itemIds: List<String>) = call(session) {
+        playlistApi.addItemToPlaylist(playlistId.toUuid(), itemIds.map { it.toUuid() }).content
+    }
+
+    override suspend fun removeFromPlaylist(session: Session, playlistId: String, entryIds: List<String>) = call(session) {
+        playlistApi.removeItemFromPlaylist(playlistId, entryIds).content
+    }
+
+    override suspend fun movePlaylistItem(session: Session, playlistId: String, entryId: String, newIndex: Int) = call(session) {
+        playlistApi.moveItem(playlistId, entryId, newIndex).content
+    }
+
+    override suspend fun createCollection(session: Session, name: String, itemIds: List<String>) = call(session) {
+        collectionApi.createCollection(name = name, ids = itemIds).content.id.toString()
+    }
+
+    override suspend fun addToCollection(session: Session, collectionId: String, itemIds: List<String>) = call(session) {
+        collectionApi.addToCollection(collectionId.toUuid(), itemIds.map { it.toUuid() }).content
+    }
+
+    override suspend fun removeFromCollection(session: Session, collectionId: String, itemIds: List<String>) = call(session) {
+        collectionApi.removeFromCollection(collectionId.toUuid(), itemIds.map { it.toUuid() }).content
     }
 
     override suspend fun getNextUpForSeries(session: Session, seriesId: String) = call(session) {
@@ -656,6 +696,7 @@ internal fun BaseItemDto.toMediaItem(serverAddress: String): MediaItem {
         seasonNumber = if (kind == MediaKind.Season) indexNumber else parentIndexNumber,
         episodeNumber = if (kind == MediaKind.Episode) indexNumber else null,
         positionTicks = userData?.playbackPositionTicks ?: 0,
+        playlistItemId = playlistItemId,
         playedPercentage = userData?.playedPercentage,
         isPlayed = userData?.played == true,
         unplayedCount = userData?.unplayedItemCount,

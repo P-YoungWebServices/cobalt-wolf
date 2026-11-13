@@ -170,6 +170,8 @@ data class MediaItem(
     val seasonNumber: Int? = null,
     val episodeNumber: Int? = null,
     val positionTicks: Long = 0,
+    /** This item's entry id inside its playlist — set on playlist members for remove/reorder calls. */
+    val playlistItemId: String? = null,
     val playedPercentage: Double? = null,
     val isPlayed: Boolean = false,
     val unplayedCount: Int? = null,
