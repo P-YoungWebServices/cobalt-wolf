@@ -83,16 +83,13 @@ Status: ☐ pending · ◐ in progress · ☑ done · ⊘ skipped · ⚠ done-un
 ## Current checkpoint
 
 - Started: 2026-11-13 on branch `parity` from `pre-parity` (2e9550a).
-- Last commit: 0637efb — LAN discovery + avatars + forgot-password.
+- Last commit: resume-audio + live-TV home rows.
 - Phase 3 CLOSED (deferrals noted per item). Phase 4 done: 4.1-4.4.
 - Done: Phases 1+2 complete. Build+tests green.
 - Next Phase 4 items:
-  4.10 grouped search results + filters (SearchScreen + SearchViewModel)
-  4.11 download method/storage settings (ui/downloads + OfflineDownloads)
-  4.5 home rows: livetv/resume-audio/now-playing/notifications (loadHome in LibraryRepository + HomeScreen rows)
-  4.6 display options: themes/backdrops+blur/clock/watched indicators (DisplayPrefs-style store)
-  4.7 TV screensaver/daydream, 4.8 TV voice search (Leanback intent)
-  4.9 admin: activity log/API keys/server settings pages (ActivityLogApi, ApiKeyApi, SystemApi/ConfigurationApi)
+  4.6 display options: backdrops+blur/clock on detail+home (DisplayPrefs-style store + apply)
+  4.7 TV screensaver/daydream, 4.8 TV voice search (Leanback SearchManager intent)
+  4.9 admin: activity log/API keys pages (ActivityLogApi, ApiKeyApi, SystemApi)
   4.12 Android Auto (MediaBrowserService), 3.12 Chromecast (proprietary dep — flag license in AGENTS.md)
 - After Phase 4: run full test+assembleDebug, then phone retest, THEN ask user about Fire Stick.
 - Key files: models=shared/.../model/Models.kt, mapping=shared/.../library/JellyfinLibraryDataSource.kt, queue=shared/.../playback/PlayQueue.kt, PlayerVM=shared/.../presentation/PlayerViewModel.kt, player UI=app/.../player/PlayerScreen.kt, menus=app/.../ui/common/ItemActions.kt, cards=app/.../ui/common/Components.kt, view prefs=app/.../ui/common/DisplayPrefs.kt, DI=shared/.../di/SharedModule.kt.
