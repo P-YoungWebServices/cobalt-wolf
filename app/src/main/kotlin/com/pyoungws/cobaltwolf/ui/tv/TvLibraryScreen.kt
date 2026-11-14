@@ -10,10 +10,14 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -41,6 +45,17 @@ fun TvLibraryScreen(library: Library, onOpenItem: (String) -> Unit) {
     val gridState = rememberLazyGridState()
     TvLoadMoreEffect(gridState, onLoadMore = viewModel::loadMore)
     var menuItem by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.pyoungws.cobaltwolf.shared.model.MediaItem?>(null) }
+    // Saved across the pushed detail route, so coming back refocuses the card that was opened.
+    var restoreFocusId by rememberSaveable { mutableStateOf<String?>(null) }
+    val cardFocus = remember { FocusRequester() }
+    LaunchedEffect(restoreFocusId) {
+        if (restoreFocusId == null) return@LaunchedEffect
+        for (attempt in 1..20) {
+            if (runCatching { cardFocus.requestFocus() }.getOrDefault(false)) break
+            kotlinx.coroutines.delay(50)
+        }
+        restoreFocusId = null
+    }
 
     Box(Modifier.fillMaxSize().onPreviewKeyEvent { ev ->
         val n = ev.nativeKeyEvent
@@ -66,7 +81,9 @@ fun TvLibraryScreen(library: Library, onOpenItem: (String) -> Unit) {
                 modifier = Modifier.fillMaxSize(),
             ) {
                 items(state.items.size, key = { state.items[it].id }) {
-                    TvPosterCard(state.items[it], onClick = { onOpenItem(state.items[it].id) }, onMenu = { menuItem = state.items[it] })
+                    val card = state.items[it]
+                    TvPosterCard(card, onClick = { restoreFocusId = card.id; onOpenItem(card.id) }, onMenu = { menuItem = card },
+                        focusRequester = if (card.id == restoreFocusId) cardFocus else null)
                 }
                 if (state.isLoading) {
                     item {
@@ -78,7 +95,7 @@ fun TvLibraryScreen(library: Library, onOpenItem: (String) -> Unit) {
                 }
             }
         }
-        menuItem?.let { TvItemMenuOverlay(it, onOpenItem, onDismiss = { menuItem = null }) }
+        menuItem?.let { menu -> TvItemMenuOverlay(menu, onOpenItem = { id -> restoreFocusId = menu.id; onOpenItem(id) }, onDismiss = { menuItem = null }) }
     }
 }
 

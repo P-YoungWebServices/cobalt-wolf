@@ -110,9 +110,10 @@ fun CardLabel(title: String, subtitle: String?, modifier: Modifier = Modifier) {
 
 /** 2:3 poster card for movies/series. */
 @Composable
-fun TvPosterCard(item: MediaItem, onClick: () -> Unit, modifier: Modifier = Modifier, width: Int = 150, onMenu: (() -> Unit)? = null) {
+fun TvPosterCard(item: MediaItem, onClick: () -> Unit, modifier: Modifier = Modifier, width: Int = 150, onMenu: (() -> Unit)? = null, focusRequester: FocusRequester? = null) {
     Column(modifier.width(width.dp)) {
-        TvCard(onClick = onClick, onMenu = onMenu) {
+        TvCard(onClick = onClick, onMenu = onMenu,
+            modifier = if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier) {
             Box {
                 CardArtwork(item.posterUrl ?: item.landscapeUrl, aspectRatio = 2f / 3f, modifier = Modifier.fillMaxWidth())
                 item.progressFraction?.let {
