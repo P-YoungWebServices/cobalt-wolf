@@ -12,9 +12,9 @@ Status legend: ⬜ pending · ✅ pass · ❌ fail · ⚠️ partial/note
 |---|------|--------|-------|
 | A1 | `./gradlew test` — all unit tests pass | ✅ | EXIT:0 |
 | A2 | `assembleDebug` + `assembleRelease` compile clean | ✅ | both built this session |
-| A3 | Release APK signed with release cert, credential scan clean | ✅ | verified during v0.1.3 make-release |
+| A3 | Release APK signed with release cert, credential scan clean | ✅ | verified during v0.1.4 make-release |
 | A4 | Installer scripts pass `bash -n` | ✅ | install.sh, bundle.sh, build-iso.sh, ocms-firstboot.sh, lib/*.sh |
-| A5 | `dist/` artifacts exist; ISO contains `/ocms/bundle/cobalt-wolf.apk`; SHA256SUMS matches | ✅ | ISO 4.9 GB, apk SHA beec0750…, all sums verified |
+| A5 | `dist/` artifacts exist; ISO contains `/ocms/bundle/cobalt-wolf.apk`; SHA256SUMS matches | ✅ | rebuilt for v0.1.4 — ISO 4.9 GB, offline tarball 1.8 GB, online 36 KB; bundled apk SHA c977a867… (== published v0.1.4 asset), all sums verified |
 
 ## B. First run & authentication (TV)
 
