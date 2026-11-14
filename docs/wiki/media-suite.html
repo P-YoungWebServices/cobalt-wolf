@@ -62,6 +62,32 @@
       you don't have one yet (or want a clean rebuild).
     </div>
 
+    <h2>What you get</h2>
+    <p>The value isn't the apps themselves — anyone can spin up containers. It's that the
+    stack arrives <em>already wired together</em>, in the configuration Cobalt Wolf's
+    features are designed around:</p>
+    <ul>
+      <li><strong>Requests that fulfil themselves.</strong> Browse and request a title in the
+      app (or Seerr's web UI); approval routes it to Radarr or Sonarr, which search the
+      indexers Prowlarr synced in, hand the download to qBittorrent, and import the finished
+      file — typically without you touching a single settings page.</li>
+      <li><strong>Instant library updates.</strong> Downloads land in a shared
+      <code>/data</code> layout with per-app categories and hardlink imports — no copying,
+      no duplicated disk space — and Jellyfin's realtime file monitoring picks new media up
+      the moment it arrives, no library scan needed.</li>
+      <li><strong>A dashboard for the box.</strong> A Homepage instance behind an
+      authenticated nginx proxy gives you a single page for every service's health and links.</li>
+      <li><strong>Downloads behind a VPN — or not.</strong> qBittorrent and Prowlarr can run
+      inside a Gluetun tunnel (AirVPN/WireGuard, generic WireGuard or OpenVPN), and Deunhealth
+      watches the tunnel and restarts the dependent apps if the network namespace drops or
+      changes. An explicit no-VPN mode connects directly if you prefer.</li>
+      <li><strong>The app just works.</strong> The installer closes by building a Cobalt Wolf
+      APK seeded with your server's URLs and API keys and sideloading it to your Fire Sticks
+      and Android devices — sign-in and every service are already connected on first launch.</li>
+      <li><strong>Repeatable.</strong> The installer is idempotent — re-run it to repair or
+      update an install, re-run just the wiring phase, or re-do only the app deployment.</li>
+    </ul>
+
     <h2>What it installs</h2>
     <p>Docker Engine, then a wired compose stack:</p>
     <ul>
