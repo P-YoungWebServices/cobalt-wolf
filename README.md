@@ -12,7 +12,11 @@ the Jellyfin project.**
 
 <p align="center">
   <img src="docs/assets/screenshots/tv-home.png" width="49%" alt="Cobalt Wolf home screen on TV">
-  <img src="docs/assets/screenshots/tv-seerr.png" width="49%" alt="Seerr discovery and requests on TV">
+  <img src="docs/assets/screenshots/tv-detail.png" width="49%" alt="Movie detail page on TV">
+</p>
+<p align="center">
+  <img src="docs/assets/screenshots/tv-seerr-discover.png" width="49%" alt="Seerr discovery and requests on TV">
+  <img src="docs/assets/screenshots/tv-dashboard.png" width="49%" alt="Server admin dashboard on TV">
 </p>
 
 ## The full package: OneClick Media Suite
