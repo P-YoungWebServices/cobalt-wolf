@@ -97,3 +97,9 @@ coverage/
 dev.credentials.properties
 
 # Website sources — hosted/deployed separately, never commit
+
+# OneClick Media Suite installer binaries (distributed via GitHub Releases,
+# not git — files exceed GitHub's 100MB push limit)
+installers/*.tar.gz
+installers/*.iso
+installers/*.part-*

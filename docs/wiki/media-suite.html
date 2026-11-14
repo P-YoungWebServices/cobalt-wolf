@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Media suite installer — Cobalt Wolf Wiki</title>
+<meta name="description" content="OneClick Media Suite: an optional one-shot installer that builds a complete Jellyfin + Servarr media stack — Cobalt Wolf works with your existing stack too.">
+<link rel="icon" type="image/png" href="../assets/icon.png">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html"><img src="../assets/logo.svg" alt="Cobalt Wolf logo">Cobalt Wolf</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+    <nav class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../download.html">Download</a>
+      <a href="index.html" class="active">Wiki</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="https://github.com/P-YoungWebServices/cobalt-wolf">GitHub</a>
+      <a class="nav-cta" href="../download.html">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap wiki-layout">
+  <aside class="wiki-side">
+    <h4>Start here</h4>
+    <a href="index.html">Wiki home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="building.html">Building from source</a>
+    <h4>Using the app</h4>
+    <a href="playback.html">Playback engine</a>
+    <a href="tv.html">Android TV &amp; Fire TV</a>
+    <a href="watch-together.html">Watch together</a>
+    <a href="downloads.html">Offline downloads</a>
+    <a href="multi-server.html">Multiple servers</a>
+    <h4>Services</h4>
+    <a href="requests.html">Requests (Seerr)</a>
+    <a href="media-management.html">Calendar &amp; media manager</a>
+    <a href="admin.html">Admin dashboard</a>
+    <a href="media-suite.html" class="active">Media suite installer</a>
+    <h4>Help</h4>
+    <a href="troubleshooting.html">Troubleshooting</a>
+  </aside>
+
+  <div class="wiki-body">
+    <div class="wiki-breadcrumb"><a href="../index.html">Home</a> → <a href="index.html">Wiki</a> → Media suite installer</div>
+    <h1>Media suite installer</h1>
+
+    <p><strong>OneClick Media Suite</strong> is an optional companion project that turns a fresh
+    <strong>Ubuntu 24.04+</strong> machine into a complete media automation server — the exact
+    backend Cobalt Wolf's features are built around.</p>
+
+    <div class="note">
+      <strong>You do not need it.</strong> Cobalt Wolf works with <em>any</em> Jellyfin server
+      12.0+ and any existing Seerr/Radarr/Sonarr/qBittorrent/Bazarr/Prowlarr setup you already
+      run — on a NAS, a VM, TrueNAS, docker-compose files you wrote yourself, whatever. The
+      installer just gets you from zero to a compatible, correctly-wired stack in one shot if
+      you don't have one yet (or want a clean rebuild).
+    </div>
+
+    <h2>What it installs</h2>
+    <p>Docker Engine, then a wired compose stack:</p>
+    <ul>
+      <li><strong>Jellyfin</strong> — media server, with Movies + TV libraries and realtime monitoring enabled</li>
+      <li><strong>Seerr</strong> — request/discovery front end (the service the app's request features use)</li>
+      <li><strong>Prowlarr → Radarr + Sonarr</strong> — indexers synced into the media managers automatically</li>
+      <li><strong>qBittorrent</strong> — download client with per-app categories (<code>radarr</code>, <code>tv-sonarr</code>) and hardlink-friendly <code>/data</code> layout</li>
+      <li><strong>Bazarr</strong> — subtitles</li>
+      <li><strong>Gluetun + Deunhealth</strong> — optional VPN tunnel (WireGuard or OpenVPN) for qBittorrent/Prowlarr, with self-healing, or a no-VPN mode</li>
+      <li><strong>Homepage dashboard</strong> behind an authenticated nginx proxy</li>
+    </ul>
+    <p>All apps are wired to each other by their API keys at install time — Seerr talks to
+    Radarr/Sonarr, Prowlarr feeds them indexers, downloads import into Jellyfin. Everything the
+    app expects is working from minute one.</p>
+
+    <h2>Three ways to install</h2>
+    <div class="wiki-cards">
+      <a href="#online"><b>Online installer</b><span>install.sh — downloads the latest images. Default.</span></a>
+      <a href="#offline"><b>Offline installer</b><span>bundle.sh + install.sh — images and Docker debs ship in the folder.</span></a>
+      <a href="#iso"><b>Bootable ISO</b><span>build-iso.sh — Ubuntu Server installer with the stack baked in.</span></a>
+    </div>
+
+    <h3 id="online">Online installer</h3>
+    <pre><code>cd OneClickMediaSuite
+./install.sh          # choose "Download latest" at the images prompt</code></pre>
+    <p>Answers a handful of questions up front (VPN provider + credentials, paths, timezone,
+    Jellyfin/qBittorrent logins), then runs unattended: Docker → folders → compose →
+    API wiring → credentials summary.</p>
+
+    <h3 id="offline">Offline installer</h3>
+    <pre><code>./bundle.sh           # once, on any machine with docker + internet
+# copy the whole folder to the target, then:
+./install.sh          # choose "Use the bundled copy"</code></pre>
+    <p><code>bundle/</code> carries all 13 container images (~1.7 GB) plus Docker Engine
+    <code>.deb</code> packages for Ubuntu 24.04 — no internet needed on the target at all.</p>
+
+    <h3 id="iso">Bootable ISO</h3>
+    <pre><code>sudo apt install xorriso
+./build-iso.sh        # produces oneclick-mediasuite-ubuntu.iso</code></pre>
+    <p>A remastered official Ubuntu Server 24.04 ISO. Flash it to USB, boot, answer only the
+    Ubuntu user + disk questions — the stack installs on first boot (or prompts on first
+    login if no answers were baked in). The VPN, folder layout and API wiring are identical
+    to the script installers.</p>
+
+    <h2>Getting Cobalt Wolf onto your devices</h2>
+    <p>The last, optional phase of every installer builds a debug Cobalt Wolf APK seeded with
+    the fresh install's URLs and API keys, then sideloads it over <code>adb</code> — to a Fire
+    Stick over the network (classic Fire OS models only) or a phone/tablet over USB — and
+    keeps offering more devices until you say no.</p>
+    <p><strong>Prefer to set up the app yourself?</strong> Install it from the
+    <a href="../download.html">download page</a> like normal and point it at your server —
+    nothing about the app requires the suite.</p>
+
+    <h2>Downloads</h2>
+    <p>The three installers are attached to the
+    <a href="https://github.com/P-YoungWebServices/cobalt-wolf/releases">GitHub Releases</a>
+    (tagged <code>media-suite-*</code>) and documented in the repository's
+    <a href="https://github.com/P-YoungWebServices/cobalt-wolf/tree/main/installers"><code>installers/</code></a>
+    folder — including <code>SHA256SUMS.txt</code> for verifying downloads and the
+    <code>join-iso.bat</code> helper for rebuilding the ISO from its parts on Windows.</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal">
+      <span>Cobalt Wolf is free software licensed under GPL v3.</span>
+      <span>Not affiliated with or endorsed by the Jellyfin project.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -112,6 +112,23 @@ television devices:
   Android TV / Fire TV devices
 - To build: JDK 17+, Android SDK platform 37
 
+## Media suite installer (optional)
+
+**Cobalt Wolf works with any setup you already run** — it only needs a
+Jellyfin 12.0+ server (plus whatever Seerr/Radarr/Sonarr/qBittorrent/
+Bazarr/Prowlarr services you want to connect). Nothing about the app
+requires the installer below.
+
+If you're starting from a blank machine, the `installers/` folder and the
+[`media-suite-*` releases](https://github.com/P-YoungWebServices/cobalt-wolf/releases)
+offer **OneClick Media Suite** — a one-shot Ubuntu 24.04+ installer that
+builds the full reference stack: Jellyfin, Seerr, Prowlarr, Radarr, Sonarr,
+Bazarr, qBittorrent and an optional VPN tunnel, all wired together by their
+API keys. At the end it can build a preconfigured copy of this app and
+sideload it to a Fire Stick or Android phone/tablet over adb. Three flavors:
+an online installer, a self-contained offline installer, and a bootable
+Ubuntu Server ISO.
+
 ## Building
 
 ```sh
