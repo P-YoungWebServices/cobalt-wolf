@@ -111,7 +111,8 @@
     </div>
 
     <h3 id="online">Online installer</h3>
-    <pre><code>cd OneClickMediaSuite
+    <pre><code>tar xzf oneclick-mediasuite-online.tar.gz
+cd OneClickMediaSuite
 ./install.sh          # choose "Download latest" at the images prompt</code></pre>
     <p>Answers a handful of questions up front (VPN provider + credentials, paths, timezone,
     Jellyfin/qBittorrent logins), then runs unattended: Docker → folders → compose →
@@ -150,7 +151,10 @@
     (tagged <code>media-suite-*</code>) and documented in the repository's
     <a href="https://github.com/P-YoungWebServices/cobalt-wolf/tree/main/installers"><code>installers/</code></a>
     folder — including <code>SHA256SUMS.txt</code> for verifying downloads and the
-    <code>join-iso.bat</code> helper for rebuilding the ISO from its parts on Windows.</p>
+    <code>join-iso.bat</code> helper for rebuilding the ISO from its parts on Windows.
+    The installer source lives in
+    <a href="https://github.com/P-YoungWebServices/cobalt-wolf/tree/main/installer"><code>installer/</code></a>
+    if you want to audit or rebuild it yourself.</p>
   </div>
 </div>
 
