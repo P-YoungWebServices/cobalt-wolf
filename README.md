@@ -10,6 +10,31 @@ and a dedicated D-pad UI on televisions.
 **Cobalt Wolf is a third-party app and is not affiliated with or endorsed by
 the Jellyfin project.**
 
+## The full package: OneClick Media Suite
+
+Cobalt Wolf ships with **OneClick Media Suite** — a one-shot installer that
+turns a fresh **Ubuntu 24.04+** machine into the complete media backend this
+app is built around: Jellyfin, Seerr, Prowlarr, Radarr, Sonarr, Bazarr,
+qBittorrent and an optional VPN tunnel (Gluetun + Deunhealth), all wired
+together by their API keys so requests, downloads and imports work from
+minute one. It can then build a preconfigured Cobalt Wolf APK and sideload
+it to a Fire Stick or Android phone/tablet over adb — looping until every
+device is done.
+
+Three flavors in the [`installers/`](installers/) folder and the
+[`media-suite-*` releases](https://github.com/P-YoungWebServices/cobalt-wolf/releases):
+
+- **Online installer** — downloads the latest container images (default)
+- **Offline installer** — every image and Docker package bundled; zero
+  internet needed on the target
+- **Bootable ISO** — Ubuntu Server 24.04 installer that installs the OS,
+  then the whole stack on first boot
+
+**Already have a media stack? You don't need it.** Cobalt Wolf runs against
+any Jellyfin 12.0+ server and any existing Seerr/Radarr/Sonarr/qBittorrent/
+Bazarr/Prowlarr setup — NAS, VM, or your own docker-compose. The suite is
+just the fastest way from a blank machine to a fully compatible backend.
+
 ## Features
 
 ### Watching
@@ -111,23 +136,6 @@ television devices:
 - Android **7.0 (API 24)** or newer; a TV build activates automatically on
   Android TV / Fire TV devices
 - To build: JDK 17+, Android SDK platform 37
-
-## Media suite installer (optional)
-
-**Cobalt Wolf works with any setup you already run** — it only needs a
-Jellyfin 12.0+ server (plus whatever Seerr/Radarr/Sonarr/qBittorrent/
-Bazarr/Prowlarr services you want to connect). Nothing about the app
-requires the installer below.
-
-If you're starting from a blank machine, the `installers/` folder and the
-[`media-suite-*` releases](https://github.com/P-YoungWebServices/cobalt-wolf/releases)
-offer **OneClick Media Suite** — a one-shot Ubuntu 24.04+ installer that
-builds the full reference stack: Jellyfin, Seerr, Prowlarr, Radarr, Sonarr,
-Bazarr, qBittorrent and an optional VPN tunnel, all wired together by their
-API keys. At the end it can build a preconfigured copy of this app and
-sideload it to a Fire Stick or Android phone/tablet over adb. Three flavors:
-an online installer, a self-contained offline installer, and a bootable
-Ubuntu Server ISO.
 
 ## Building
 
