@@ -1,0 +1,13 @@
+[Unit]
+Description=OneClick Media Suite first-boot install
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/OneClickMediaSuite/ocms-firstboot.sh
+RemainAfterExit=yes
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,23 @@
+#cloud-config
+# NoCloud seed for the OneClick Media Suite bootable installer.
+# Ubuntu-level choices (user, disk) stay interactive for safety;
+# the media stack itself installs unattended on first boot.
+autoinstall:
+  version: 1
+  interactive-sections:
+    - identity
+    - storage
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+  ssh:
+    install-server: true
+    allow-pw: true
+  packages:
+    - python3
+    - curl
+    - ca-certificates
+  late-commands:
+    - cp -rT /cdrom/ocms /target/opt/OneClickMediaSuite
+    - cp /cdrom/ocms/ocms-firstboot.service /target/etc/systemd/system/ocms-firstboot.service
+    - curtin in-target -- systemctl enable ocms-firstboot

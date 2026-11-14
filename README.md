@@ -48,8 +48,9 @@ features are designed for:
   (`./install.sh wire`, `./install.sh firestick`, …) to repair, update or
   deploy the app again.
 
-Three flavors in the [`installers/`](installers/) folder and the
-[`media-suite-*` releases](https://github.com/P-YoungWebServices/cobalt-wolf/releases):
+Three flavors on the
+[`media-suite-*` releases](https://github.com/P-YoungWebServices/cobalt-wolf/releases?q=media-suite)
+(source in [`installer/`](installer/)):
 
 - **Online installer** — downloads the latest container images (default)
 - **Offline installer** — every image and Docker package bundled; zero

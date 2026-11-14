@@ -103,3 +103,10 @@ dev.credentials.properties
 installers/*.tar.gz
 installers/*.iso
 installers/*.part-*
+
+# installer/ build outputs (source is committed; these are generated)
+installer/bundle/
+installer/dist/
+installer/.cache/
+installer/.iso-work/
+installer/.state/

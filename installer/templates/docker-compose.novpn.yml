@@ -1,0 +1,36 @@
+# Applied when the user chooses "No VPN". The gluetun service is replaced by an
+# inert holder that keeps the same network identity — container name, static IP
+# (10.97.0.2) and the published ports for qBittorrent/Prowlarr — so services
+# that share its network namespace (network_mode: service:gluetun) work
+# completely unchanged, just without a tunnel.
+services:
+
+  gluetun:
+    image: alpine:3.21
+    command: ["tail", "-f", "/dev/null"]
+    env_file: !reset []
+    environment: !reset {}
+    healthcheck:
+      disable: true
+
+  # Gluetun's :9999 health server and the tunnel don't exist here — replace the
+  # VPN-aware healthchecks with plain "is the WebUI up" probes.
+  qbittorrent:
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -q -O /dev/null http://127.0.0.1:8080"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  prowlarr:
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -q -O /dev/null http://127.0.0.1:9696"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Nothing to restart when there is no tunnel.
+  deunhealth:
+    profiles: [vpn-only]
