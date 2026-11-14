@@ -11,9 +11,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -63,6 +67,8 @@ private fun TvForm(content: @Composable () -> Unit) {
 
 @Composable
 private fun TvSetupForm(state: DiscoverUiState, viewModel: DiscoverViewModel) {
+    val firstField = remember { FocusRequester() }
+    LaunchedEffect(Unit) { firstField.requestFocus() }
     TvForm {
         Text(stringResource(R.string.seerr_setup_title), style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.seerr_setup_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -85,7 +91,7 @@ private fun TvSetupForm(state: DiscoverUiState, viewModel: DiscoverViewModel) {
                 }
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(firstField),
         )
         Button(onClick = viewModel::connect, enabled = state.serverUrl.isNotBlank() && !state.isConnecting) {
             Text(stringResource(R.string.seerr_connect))
@@ -96,6 +102,8 @@ private fun TvSetupForm(state: DiscoverUiState, viewModel: DiscoverViewModel) {
 
 @Composable
 private fun TvSeerrSignInForm(state: DiscoverUiState, viewModel: DiscoverViewModel) {
+    val firstField = remember { FocusRequester() }
+    LaunchedEffect(Unit) { firstField.requestFocus() }
     TvForm {
         Text(stringResource(R.string.seerr_signin_title), style = MaterialTheme.typography.titleLarge)
         Text(
@@ -113,7 +121,7 @@ private fun TvSeerrSignInForm(state: DiscoverUiState, viewModel: DiscoverViewMod
             label = { androidx.compose.material3.Text(stringResource(R.string.sign_in_password)) },
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(firstField),
         )
         state.signInError?.let { Text(it.message(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
         Button(onClick = viewModel::signIn, enabled = !state.isSigningIn) {

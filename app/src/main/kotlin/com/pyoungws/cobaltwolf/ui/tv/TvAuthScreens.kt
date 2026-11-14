@@ -14,8 +14,11 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
@@ -45,6 +48,8 @@ fun TvServerConnectScreen(
     viewModel: ServerConnectViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val firstField = remember { FocusRequester() }
+    LaunchedEffect(Unit) { firstField.requestFocus() }
 
     LaunchedEffect(state.validatedServer) {
         state.validatedServer?.let {
@@ -59,7 +64,7 @@ fun TvServerConnectScreen(
         TvTextField(
             value = state.address,
             onValueChange = viewModel::onAddressChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(firstField),
             label = { androidx.compose.material3.Text(stringResource(R.string.connect_address_label)) },
             placeholder = { androidx.compose.material3.Text(stringResource(R.string.connect_address_hint)) },
             enabled = !state.isValidating,
@@ -128,16 +133,26 @@ private fun TvFormColumn(content: @Composable () -> Unit) {
 
 @Composable
 private fun TvUserPicker(state: SignInUiState, viewModel: SignInViewModel) {
+    val firstField = remember { FocusRequester() }
+    LaunchedEffect(Unit) { firstField.requestFocus() }
     Text(stringResource(R.string.sign_in_pick_user), style = MaterialTheme.typography.titleMedium)
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        state.publicUsers.forEach { user ->
-            OutlinedButton(onClick = { viewModel.selectUser(user) }, enabled = !state.isBusy) {
+        state.publicUsers.forEachIndexed { index, user ->
+            OutlinedButton(
+                onClick = { viewModel.selectUser(user) },
+                enabled = !state.isBusy,
+                modifier = if (index == 0) Modifier.focusRequester(firstField) else Modifier,
+            ) {
                 Text(user.name, maxLines = 1)
             }
         }
     }
     if (state.isSigningIn) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-    OutlinedButton(onClick = viewModel::enterUsernameManually, enabled = !state.isBusy) {
+    OutlinedButton(
+        onClick = viewModel::enterUsernameManually,
+        enabled = !state.isBusy,
+        modifier = if (state.publicUsers.isEmpty()) Modifier.focusRequester(firstField) else Modifier,
+    ) {
         Text(stringResource(R.string.sign_in_enter_username))
     }
     OutlinedButton(onClick = viewModel::startQuickConnect, enabled = !state.isBusy) {
@@ -147,6 +162,8 @@ private fun TvUserPicker(state: SignInUiState, viewModel: SignInViewModel) {
 
 @Composable
 private fun TvCredentialsForm(state: SignInUiState, viewModel: SignInViewModel) {
+    val firstField = remember { FocusRequester() }
+    LaunchedEffect(Unit) { firstField.requestFocus() }
     val selected = state.selectedUser
     if (selected != null) {
         Text(selected.name, style = MaterialTheme.typography.titleLarge)
@@ -154,7 +171,7 @@ private fun TvCredentialsForm(state: SignInUiState, viewModel: SignInViewModel) 
         TvTextField(
             value = state.username,
             onValueChange = viewModel::onUsernameChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(firstField),
             label = { androidx.compose.material3.Text(stringResource(R.string.sign_in_username)) },
             enabled = !state.isBusy,
             keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Next),
@@ -163,7 +180,7 @@ private fun TvCredentialsForm(state: SignInUiState, viewModel: SignInViewModel) 
     TvTextField(
         value = state.password,
         onValueChange = viewModel::onPasswordChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().then(if (selected != null) Modifier.focusRequester(firstField) else Modifier),
         label = { androidx.compose.material3.Text(stringResource(R.string.sign_in_password)) },
         enabled = !state.isBusy,
         visualTransformation = PasswordVisualTransformation(),
