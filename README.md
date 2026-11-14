@@ -10,6 +10,11 @@ and a dedicated D-pad UI on televisions.
 **Cobalt Wolf is a third-party app and is not affiliated with or endorsed by
 the Jellyfin project.**
 
+<p align="center">
+  <img src="docs/assets/screenshots/tv-home.png" width="49%" alt="Cobalt Wolf home screen on TV">
+  <img src="docs/assets/screenshots/tv-seerr.png" width="49%" alt="Seerr discovery and requests on TV">
+</p>
+
 ## The full package: OneClick Media Suite
 
 Cobalt Wolf ships with **OneClick Media Suite** — a one-shot installer that
