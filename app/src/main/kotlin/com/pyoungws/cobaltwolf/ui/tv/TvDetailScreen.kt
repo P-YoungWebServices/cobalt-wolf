@@ -188,7 +188,14 @@ private fun TvDetailContent(
         androidx.compose.foundation.gestures.LocalBringIntoViewSpec provides bringIntoViewSpec,
     ) {
     Box(Modifier.fillMaxSize().focusGroup().focusProperties {
-        enter = { if (entryReady) playFocusRequester else FocusRequester.Cancel }
+        // enter redirects every focus request crossing into this group — including the
+        // option overlays' own initial requestFocus — so while any menu is open it must
+        // defer to Default or their items can never receive focus.
+        enter = {
+            if (!entryReady) FocusRequester.Cancel
+            else if (optionsOpen || subMenu != null || episodeMenuItem != null || trackMenuIndex != null) FocusRequester.Default
+            else playFocusRequester
+        }
     // onKeyEvent (bubbles up after the focused child) rather than onPreviewKeyEvent
     // (parent-first): episode cards and playlist rows claim MENU for their own
     // context menus; it only opens the page menu when nothing below consumed it.

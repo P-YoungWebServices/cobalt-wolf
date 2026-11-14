@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+
 package com.pyoungws.cobaltwolf.ui.tv
 
 import androidx.activity.compose.BackHandler
@@ -27,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.onKeyEvent
@@ -251,7 +254,10 @@ fun TvItemOptionsOverlay(title: String, options: List<TvMenuOption>, onDismiss: 
         contentAlignment = Alignment.Center,
     ) {
         Column(
-            Modifier.width(360.dp).background(Color(0xFF10233A)).padding(14.dp),
+            // Trap the d-pad inside the menu: without an exit block an arrow press at
+            // an edge (or left/right) escapes to the page hidden behind the scrim.
+            Modifier.width(360.dp).focusProperties { exit = { FocusRequester.Cancel } }
+                .background(Color(0xFF10233A)).padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = Color.White,
