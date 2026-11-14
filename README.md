@@ -14,12 +14,30 @@ the Jellyfin project.**
 
 Cobalt Wolf ships with **OneClick Media Suite** — a one-shot installer that
 turns a fresh **Ubuntu 24.04+** machine into the complete media backend this
-app is built around: Jellyfin, Seerr, Prowlarr, Radarr, Sonarr, Bazarr,
-qBittorrent and an optional VPN tunnel (Gluetun + Deunhealth), all wired
-together by their API keys so requests, downloads and imports work from
-minute one. It can then build a preconfigured Cobalt Wolf APK and sideload
-it to a Fire Stick or Android phone/tablet over adb — looping until every
-device is done.
+app is built around. The value isn't the apps (Jellyfin, Seerr, Prowlarr,
+Radarr, Sonarr, Bazarr, qBittorrent) — it's that the stack arrives
+**already wired together**, in exactly the configuration the app's
+features are designed for:
+
+- **Requests fulfil themselves.** Ask for a title in the app or Seerr —
+  approval routes it to Radarr/Sonarr, Prowlarr's synced indexers find it,
+  qBittorrent downloads it, and it imports into your library automatically.
+- **New media shows up instantly.** A shared `/data` layout with per-app
+  categories and hardlink imports (no copying, no wasted disk), plus
+  realtime Jellyfin library monitoring — no rescan needed.
+- **Downloads can run behind a VPN.** qBittorrent and Prowlarr traffic
+  through Gluetun (AirVPN/WireGuard, generic WireGuard or OpenVPN) with
+  Deunhealth restarting dependents if the tunnel drops — or an explicit
+  no-VPN mode if you prefer.
+- **One dashboard for the box.** A Homepage instance behind authenticated
+  nginx gives you every service's health and links in a single page.
+- **The app works on first launch.** The installer builds a Cobalt Wolf
+  APK seeded with your server's URLs and API keys, then sideloads it to
+  Fire Sticks (network adb, classic Fire OS models) and Android
+  phones/tablets (USB) — looping until every device you own is done.
+- **It's repeatable.** Rerun the whole thing or just one phase
+  (`./install.sh wire`, `./install.sh firestick`, …) to repair, update or
+  deploy the app again.
 
 Three flavors in the [`installers/`](installers/) folder and the
 [`media-suite-*` releases](https://github.com/P-YoungWebServices/cobalt-wolf/releases):
