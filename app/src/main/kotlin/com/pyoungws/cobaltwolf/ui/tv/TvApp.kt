@@ -19,11 +19,11 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -193,10 +193,13 @@ private fun TvSignedInNavigation(
             onSignOut = { confirmSignOut = true },
         )
         Box(Modifier.weight(1f)) {
-            // Key on the route so pushed screens never share a composition slot: without this a
-            // LazyColumn's remembered scroll state leaks between detail pages (the page "opens
-            // scrolled halfway down") and across sections.
-            key(routes.lastOrNull() ?: section) {
+            // Each stack entry and section saves its remembered state under its own key while
+            // covered, so going back restores scroll position instead of reloading at the top.
+            // The key also keeps pushed screens in distinct composition slots, so state never
+            // leaks between detail pages or across sections.
+            val stateHolder = rememberSaveableStateHolder()
+            val activeKey = routes.lastOrNull()?.let { "route:${routes.lastIndex}:${it.encode()}" } ?: "section:$section"
+            stateHolder.SaveableStateProvider(key = activeKey) {
             when (val route = routes.lastOrNull()) {
                 is Route.LibraryRoute -> if (route.library.type == com.pyoungws.cobaltwolf.shared.model.LibraryType.LiveTv) {
                     com.pyoungws.cobaltwolf.ui.livetv.LiveTvScreen(onBack = pop, onOpenItem = { push(Route.Detail(it)) })

@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -267,6 +268,12 @@ fun SignedInNavigation() {
     // Always consume Back: pop pushed routes, and stay in the app at Home rather than exiting.
     BackHandler { if (stack.isNotEmpty()) pop() }
 
+    // Covered routes keep their remembered state: each stack entry saves under its own key
+    // while hidden, so returning to a list restores scroll position instead of reloading at
+    // the top. The stack index keeps identical routes at different depths distinct.
+    val stateHolder = rememberSaveableStateHolder()
+    val activeKey = routes.lastOrNull()?.let { "route:${routes.lastIndex}:${it.encode()}" } ?: "home"
+    stateHolder.SaveableStateProvider(key = activeKey) {
     when (val route = routes.lastOrNull()) {
         null -> HomeScreen(
             onOpenLibrary = { push(Route.LibraryRoute(it)) },
@@ -361,5 +368,6 @@ fun SignedInNavigation() {
             onWatchTogether = { push(Route.SyncPlay(it)) },
             onOpenPerson = { id, _ -> push(Route.Detail(id)) },
         )
+    }
     }
 }
