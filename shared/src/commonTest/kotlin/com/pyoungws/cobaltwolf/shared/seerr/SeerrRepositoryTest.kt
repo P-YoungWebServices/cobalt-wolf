@@ -31,6 +31,9 @@ class SeerrRepositoryTest {
 
     private suspend fun signedIn() = AuthRepository(FakeAuthDataSource(), InMemorySessionStore(SESSION)).apply { restoreSession() }
 
+    private suspend fun signedInWithPassword(password: String = "hunter2") =
+        AuthRepository(FakeAuthDataSource(), InMemorySessionStore()).apply { signIn(SERVER, "alice", password) }
+
     private fun TestScope.repository(
         authRepository: AuthRepository,
         settings: SeerrSettings = SeerrSettings(SEERR_URL),
@@ -105,6 +108,59 @@ class SeerrRepositoryTest {
 
         assertEquals(SeerrSignInResult.Failure(SignInError.ServerUnreachable), result)
         assertIs<SeerrAuthState.SignedOut>(repository.authState.value)
+    }
+
+    @Test
+    fun `a fresh jellyfin sign-in signs in to seerr automatically`() = runTest {
+        val repository = repository(signedInWithPassword(), cookie = null)
+        advanceUntilIdle()
+
+        assertEquals(Triple("alice", "hunter2", SERVER), dataSource.signInArgs)
+        assertEquals(SeerrAuthState.SignedIn(SEERR_ACCOUNT), repository.authState.value)
+    }
+
+    @Test
+    fun `a restored session does not auto sign in to seerr`() = runTest {
+        val repository = repository(signedIn(), cookie = null)
+        advanceUntilIdle()
+
+        assertIs<SeerrAuthState.SignedOut>(repository.authState.value)
+        assertTrue(dataSource.calls.none { it.startsWith("signIn") })
+    }
+
+    @Test
+    fun `a failed auto sign-in falls back to manual sign-in without retrying`() = runTest {
+        dataSource.signIn = { _, _, _ -> throw IOException("no route") }
+        val repository = repository(signedInWithPassword(), cookie = null)
+        advanceUntilIdle()
+
+        assertIs<SeerrAuthState.SignedOut>(repository.authState.value)
+        assertEquals(1, dataSource.calls.count { it.startsWith("signIn") })
+
+        dataSource.signIn = { _, _, _ -> SEERR_ACCOUNT }
+        val result = repository.signInWithJellyfin("secret")
+
+        assertIs<SeerrSignInResult.Success>(result)
+        assertEquals(SeerrAuthState.SignedIn(SEERR_ACCOUNT), repository.authState.value)
+    }
+
+    @Test
+    fun `configuring the seerr url after sign-in signs in automatically`() = runTest {
+        val settings = SeerrSettingsRepository(InMemorySeerrSettingsStore(SeerrSettings()))
+        val repository = SeerrRepository(
+            dataSource,
+            settings,
+            InMemorySeerrSessionStore(),
+            signedInWithPassword(),
+            TestScope(testScheduler),
+        )
+        advanceUntilIdle()
+        assertEquals(SeerrAuthState.NotConfigured, repository.authState.value)
+
+        settings.update { it.copy(serverUrl = SEERR_URL) }
+        advanceUntilIdle()
+
+        assertEquals(SeerrAuthState.SignedIn(SEERR_ACCOUNT), repository.authState.value)
     }
 
     @Test

@@ -62,6 +62,13 @@ class AuthRepository(
     private val _profiles = MutableStateFlow<List<ServerProfile>>(emptyList())
     val profiles: StateFlow<List<ServerProfile>> = _profiles.asStateFlow()
 
+    /** Password from the latest successful password sign-in, held in memory only (never
+     *  persisted) so trusted services like Seerr can reuse it without asking twice. */
+    private var signInPassword: String? = null
+
+    /** The password the active session was created with, if any. Null for restored and Quick Connect sessions. */
+    internal fun jellyfinPassword(): String? = signInPassword
+
     suspend fun restoreSession() {
         _profiles.value = profilesStore.load()
         _sessionState.value = sessionStore.load()?.let(SessionState::SignedIn) ?: SessionState.SignedOut()
@@ -132,6 +139,7 @@ class AuthRepository(
         if (name.isEmpty()) return SignInResult.Failure(SignInError.MissingUsername)
         return try {
             SignInResult.Success(persist(serverAddress, dataSource.authenticateByName(serverAddress, name, password)))
+                .also { signInPassword = password }
         } catch (e: ApiClientException) {
             SignInResult.Failure(e.toSignInError())
         }
@@ -200,6 +208,7 @@ class AuthRepository(
 
     private suspend fun clearSession(serverAddress: String) {
         val userId = (sessionState.value as? SessionState.SignedIn)?.session?.userId
+        signInPassword = null
         sessionStore.clear()
         if (userId != null) removeStoredProfile(serverAddress, userId)
         _sessionState.value = SessionState.SignedOut(lastServerAddress = serverAddress)

@@ -64,15 +64,45 @@ class SeerrRepository(
     private val _authState = MutableStateFlow<SeerrAuthState>(SeerrAuthState.Checking)
     val authState: StateFlow<SeerrAuthState> = _authState.asStateFlow()
 
+    /** "url|userId" pairs already auto-attempted, so a failure doesn't retry forever. */
+    private var autoSignInKey: String? = null
+
     init {
         scope.launch { restore() }
         // A different Seerr server means the stored cookie no longer applies.
-        scope.launch { settings.settings.drop(1).collect { resetSession() } }
-        // The cookie identifies the Jellyfin user; drop it when that user signs out.
+        scope.launch { settings.settings.drop(1).collect { resetSession(); tryAutoSignIn() } }
+        // The cookie identifies the Jellyfin user; drop it when that user signs out,
+        // and sign in to Seerr automatically once a Jellyfin session exists.
         scope.launch {
             authRepository.sessionState.collect { state ->
-                if (state is SessionState.SignedOut) resetSession()
+                when (state) {
+                    is SessionState.SignedOut -> { resetSession(); autoSignInKey = null }
+                    is SessionState.SignedIn -> tryAutoSignIn()
+                    else -> {}
+                }
             }
+        }
+    }
+
+    /**
+     * Signs in to Seerr with the password the current Jellyfin session was created with,
+     * when it is still held in memory — so a fresh sign-in needs no second password prompt.
+     * Fails quietly into [SeerrAuthState.SignedOut]: the manual sign-in stays available.
+     */
+    private suspend fun tryAutoSignIn() {
+        val url = settings.serverUrl ?: return
+        if (_authState.value is SeerrAuthState.SignedIn) return
+        val session = (authRepository.sessionState.value as? SessionState.SignedIn)?.session ?: return
+        val password = authRepository.jellyfinPassword() ?: return
+        val key = "$url|${session.userId}"
+        if (autoSignInKey == key) return
+        autoSignInKey = key
+        // Checking keeps the UI on its loading phase instead of flashing the password form.
+        _authState.value = SeerrAuthState.Checking
+        if (signInWithJellyfin(password) !is SeerrSignInResult.Success) {
+            // Allow a later trigger (URL change, new sign-in) to retry; the manual form stays available.
+            autoSignInKey = null
+            _authState.value = SeerrAuthState.SignedOut()
         }
     }
 
