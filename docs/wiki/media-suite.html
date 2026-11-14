@@ -81,9 +81,9 @@
       inside a Gluetun tunnel (AirVPN/WireGuard, generic WireGuard or OpenVPN), and Deunhealth
       watches the tunnel and restarts the dependent apps if the network namespace drops or
       changes. An explicit no-VPN mode connects directly if you prefer.</li>
-      <li><strong>The app just works.</strong> The installer closes by building a Cobalt Wolf
-      APK seeded with your server's URLs and API keys and sideloading it to your Fire Sticks
-      and Android devices — sign-in and every service are already connected on first launch.</li>
+      <li><strong>The app just works.</strong> The installer closes by sideloading the latest
+      Cobalt Wolf release APK to your Fire Sticks and Android devices — bundled in the offline
+      installer and ISO, so it works without internet too.</li>
       <li><strong>Repeatable.</strong> The installer is idempotent — re-run it to repair or
       update an install, re-run just the wiring phase, or re-do only the app deployment.</li>
     </ul>
@@ -133,10 +133,13 @@
     to the script installers.</p>
 
     <h2>Getting Cobalt Wolf onto your devices</h2>
-    <p>The last, optional phase of every installer builds a debug Cobalt Wolf APK seeded with
-    the fresh install's URLs and API keys, then sideloads it over <code>adb</code> — to a Fire
-    Stick over the network (classic Fire OS models only) or a phone/tablet over USB — and
-    keeps offering more devices until you say no.</p>
+    <p>The last, optional phase of every installer sideloads the latest Cobalt Wolf release
+    APK over <code>adb</code> — to a Fire Stick over the network (classic Fire OS models only)
+    or a phone/tablet over USB — and keeps offering more devices until you say no. The
+    offline installer and the ISO carry the APK in <code>bundle/</code>, so it works without
+    internet; the online installer downloads it at install time. On first launch, connect to
+    your server and sign in with the Jellyfin admin account the installer created — Seerr
+    and arr details can be set in the app's Services screen.</p>
     <p><strong>Prefer to set up the app yourself?</strong> Install it from the
     <a href="../download.html">download page</a> like normal and point it at your server —
     nothing about the app requires the suite.</p>
