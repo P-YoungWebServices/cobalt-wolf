@@ -176,6 +176,7 @@ internal fun buildPlayerEngine(
         .setTrackSelector(trackSelector)
         .setAudioAttributes(MOVIE_AUDIO_ATTRIBUTES, /* handleAudioFocus = */ true)
         .setHandleAudioBecomingNoisy(true)
+        .setWakeMode(C.WAKE_MODE_LOCAL or C.WAKE_MODE_NETWORK)
         .setVideoChangeFrameRateStrategy(
             if (settings.frameRateMatching == FrameRateMatching.Off) C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF
             else C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS,
