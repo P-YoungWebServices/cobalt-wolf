@@ -76,7 +76,7 @@ class ItemDetailViewModel(
     fun selectSeason(seasonId: String) {
         val state = _uiState.value as? ItemDetailUiState.Loaded ?: return
         if (state.selectedSeasonId == seasonId) return
-        loadEpisodes(state.item, seasonId)
+        loadEpisodes(state.item.seriesId ?: state.item.id, seasonId)
     }
 
     private suspend fun fetch(keepSelection: Boolean = false) {
@@ -94,6 +94,22 @@ class ItemDetailViewModel(
         val previousEpisode = if (item.kind == MediaKind.Episode) {
             (repository.previousEpisode(item) as? Outcome.Success)?.value
         } else null
+        // An episode page browses the rest of its season like a series page: seasons
+        // for the season selector, and the episodes of the selected season (defaulting
+        // to the episode's own, or the last selection on refresh).
+        val seasonList = if (item.kind == MediaKind.Episode && item.seriesId != null) {
+            (repository.seasons(item.seriesId) as? Outcome.Success)?.value.orEmpty()
+        } else emptyList()
+        val previousSeason = (_uiState.value as? ItemDetailUiState.Loaded)?.selectedSeasonId.takeIf { keepSelection }
+        val episodeSeasonId = if (item.kind == MediaKind.Episode && item.seriesId != null) {
+            seasonList.firstOrNull { it.id == previousSeason }?.id
+                ?: item.seasonId
+                ?: seasonList.firstOrNull { it.seasonNumber != 0 }?.id
+                ?: seasonList.firstOrNull()?.id
+        } else null
+        val siblingEpisodes = if (item.kind == MediaKind.Episode && item.seriesId != null && episodeSeasonId != null) {
+            (repository.episodes(item.seriesId, episodeSeasonId) as? Outcome.Success)?.value.orEmpty()
+        } else emptyList()
         val containerItems = when (item.kind) {
             MediaKind.BoxSet, MediaKind.Playlist, MediaKind.Folder ->
                 (repository.items(com.pyoungws.cobaltwolf.shared.library.ItemQuery(parentId = item.id, limit = 200)) as? Outcome.Success)?.value?.items.orEmpty()
@@ -111,6 +127,9 @@ class ItemDetailViewModel(
         if (item.kind != MediaKind.Series) {
             _uiState.value = ItemDetailUiState.Loaded(
                 item,
+                seasons = seasonList,
+                selectedSeasonId = episodeSeasonId,
+                episodes = siblingEpisodes,
                 similar = similar,
                 specialFeatures = specials,
                 localTrailers = trailers,
@@ -134,7 +153,7 @@ class ItemDetailViewModel(
             item, seasons = seasons, selectedSeasonId = selected?.id,
             similar = similar, nextUp = nextUp, specialFeatures = specials, localTrailers = trailers,
         )
-        if (selected != null) loadEpisodes(item, selected.id)
+        if (selected != null) loadEpisodes(item.id, selected.id)
     }
 
     /** Chooses which media source (version) the Play action passes to the player. */
@@ -150,11 +169,11 @@ class ItemDetailViewModel(
         _uiState.update { (it as? ItemDetailUiState.Loaded)?.copy(selectedSubtitleStreamIndex = index) ?: it }
     }
 
-    private fun loadEpisodes(series: MediaItem, seasonId: String) {
+    private fun loadEpisodes(seriesId: String, seasonId: String) {
         episodesJob?.cancel()
         _uiState.update { (it as? ItemDetailUiState.Loaded)?.copy(selectedSeasonId = seasonId, isLoadingEpisodes = true, episodesError = null, episodes = emptyList()) ?: it }
         episodesJob = viewModelScope.launch {
-            val result = repository.episodes(series.id, seasonId)
+            val result = repository.episodes(seriesId, seasonId)
             _uiState.update { state ->
                 if (state !is ItemDetailUiState.Loaded || state.selectedSeasonId != seasonId) state
                 else when (result) {
@@ -181,6 +200,6 @@ class ItemDetailViewModel(
 
     fun retryEpisodes() {
         val state = _uiState.value as? ItemDetailUiState.Loaded ?: return
-        state.selectedSeasonId?.let { loadEpisodes(state.item, it) }
+        state.selectedSeasonId?.let { loadEpisodes(state.item.seriesId ?: state.item.id, it) }
     }
 }

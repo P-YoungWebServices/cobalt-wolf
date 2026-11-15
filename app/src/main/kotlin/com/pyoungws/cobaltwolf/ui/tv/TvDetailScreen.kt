@@ -51,6 +51,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -170,6 +171,14 @@ private fun TvDetailContent(
         }
     }
     var subMenu by remember { mutableStateOf<TvSubMenu?>(null) }
+    // Focus leaving the column for the top bar snaps the page back to the masthead —
+    // without this, UP from the actions row leaves the detail content stranded
+    // mid-scroll behind the nav bar. Overlay menus are skipped: their focus hand-off
+    // should not reset the scroll position they return to.
+    LaunchedEffect(columnFocused, optionsOpen, subMenu, episodeMenuItem, trackMenuIndex) {
+        if (columnFocused || optionsOpen || subMenu != null || episodeMenuItem != null || trackMenuIndex != null) return@LaunchedEffect
+        if (listState.firstVisibleItemIndex != 0 || listState.firstVisibleItemScrollOffset != 0) listState.animateScrollToItem(0)
+    }
     // Entering this page from the top bar (or any direction) lands on Play/Resume —
     // not on whichever focusable happens to sit nearest the nav item pressed. Before
     // autofocus has run, Cancel the auto-entry instead: requesting Play focus while
@@ -216,7 +225,7 @@ private fun TvDetailContent(
             else -> false
         }
     }) {
-    LazyColumn(Modifier.fillMaxSize().onFocusChanged { columnFocused = it.hasFocus }, state = listState, contentPadding = PaddingValues(bottom = 48.dp)) {
+        LazyColumn(Modifier.fillMaxSize().onFocusChanged { columnFocused = it.hasFocus }, state = listState, contentPadding = PaddingValues(bottom = 48.dp)) {
         // The whole masthead — backdrop, meta and the action buttons — is ONE item so
         // that focusing Play means "bring item 0 into view": it is already at the top,
         // so the focus scroll clamps to offset 0 instead of sliding the header away.
@@ -383,7 +392,7 @@ private fun TvDetailContent(
         }
         if (item.tagline != null || item.overview != null) {
             item(key = "overview") {
-                Column(Modifier.padding(horizontal = TvContentPadding).padding(top = 12.dp)) {
+                Column(Modifier.padding(horizontal = TvContentPadding).padding(top = 12.dp).tvDetailTextFocusable()) {
                     item.tagline?.let { Text(it, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     item.overview?.let { Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 6, overflow = TextOverflow.Ellipsis) }
                 }
@@ -408,16 +417,6 @@ private fun TvDetailContent(
                     Column(Modifier.width(160.dp)) {
                         chapter.imageUrl?.let { CardArtwork(it, aspectRatio = 16f / 9f, modifier = Modifier.fillMaxWidth()) }
                         CardLabel(chapter.name ?: "", formatChapterTime(chapter.startTicks))
-                    }
-                }
-            }
-        }
-        if (item.streams.isNotEmpty()) {
-            item(key = "mediainfo-title") { TvSectionTitle(stringResource(R.string.detail_media_info)) }
-            item(key = "mediainfo") {
-                Column(Modifier.padding(horizontal = TvContentPadding), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    item.streams.forEach { stream ->
-                        Text(stream.describe(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -461,7 +460,11 @@ private fun TvDetailContent(
                 TvCardRow(state.similar, key = { it.id }) { related -> TvPosterCard(related, onClick = { onOpenItem(related.id) }) }
             }
         }
-        if (item.kind == MediaKind.Series) {
+        // Series pages browse every season; episode pages get the same season selector
+        // and episode row for their parent show, seeded with their own season.
+        if (item.kind == MediaKind.Series ||
+            (item.kind == MediaKind.Episode && (state.seasons.isNotEmpty() || state.episodes.isNotEmpty()))
+        ) {
             item(key = "seasons") {
                 TvSectionTitle(stringResource(R.string.detail_seasons))
                 TvCardRow(state.seasons, key = { it.id }) { season ->
@@ -592,6 +595,20 @@ private fun TvDetailContent(
     }
     }
     }
+}
+
+/**
+ * Makes a text-only detail section a D-pad focus target. Without this, when the rows
+ * below the action buttons contain no focusable card (or are still off screen), DOWN
+ * has nowhere to land and the page looks like it cannot scroll at all — this is the
+ * "missing row". A thin border shows the section holds focus; presses do nothing.
+ */
+private fun Modifier.tvDetailTextFocusable(): Modifier = composed {
+    var focused by remember { mutableStateOf(false) }
+    this
+        .onFocusChanged { focused = it.isFocused }
+        .border(1.5.dp, if (focused) Color.White.copy(alpha = 0.7f) else Color.Transparent, RoundedCornerShape(8.dp))
+        .focusable()
 }
 
 private enum class TvSubMenu { Versions, Audio, Subtitles, Trailers, Manage }

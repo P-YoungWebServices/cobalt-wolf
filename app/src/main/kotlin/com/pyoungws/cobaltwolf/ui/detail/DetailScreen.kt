@@ -520,7 +520,7 @@ private fun DetailContent(
                 }
             }
         }
-        if (item.kind == MediaKind.Series) seriesSection(state, viewModel, onPlay)
+        if (item.kind == MediaKind.Series || item.kind == MediaKind.Episode) seriesSection(state, viewModel, onPlay)
     }
 }
 

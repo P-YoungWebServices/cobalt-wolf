@@ -63,6 +63,8 @@ Status legend: ⬜ pending · ✅ pass · ❌ fail · ⚠️ partial/note
 | F7 | Person click opens filmography page | ✅ | Liev Schreiber → person page (photo, bio, action buttons) |
 | F8 | BoxSet/collection detail renders without stream buttons | ✅ | Ali G Collection + Star Trek: ARC — Play/Shuffle/Contents section |
 | F9 | Season/episode rows present on series page | ✅ | "Seasons" chips (Season 1) + "Episodes" landscape cards (S1:E1–E4, watched badges) |
+| F10 | Episode detail page shows sibling sections | ✅ | Cyberpunk S1:E3: overview, Chapters, Cast & crew, Seasons chips (S1/S2), Episodes row — same layout as series page; no Media info row on TV |
+| F11 | UP from actions row to top bar scrolls page to top | ✅ | page was mid-scroll on actions row; UP → topbar focus + list animated back to masthead (fix `LaunchedEffect(columnFocused…)`); DOWN re-enters on Play |
 
 ## G. Playback (TV)
 
