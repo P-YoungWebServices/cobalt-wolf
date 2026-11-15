@@ -93,6 +93,7 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.media3.ui.TimeBar
@@ -434,7 +435,17 @@ private fun PlayerContent(
                 viewModel.onPlayerError(player.currentPosition, kind)
             }
         }
+        // A dead AudioTrack is only a "recoverable renderer error" to Media3: it silently swaps
+        // passthrough for PCM decode and never calls onPlayerError. The sink still reports the
+        // failure to analytics listeners, which is our cue to rebuild the output path.
+        val analytics = object : AnalyticsListener {
+            override fun onAudioSinkError(eventTime: AnalyticsListener.EventTime, audioSinkError: Exception) {
+                Log.w(TAG, "Audio sink error at level ${request.level}", audioSinkError)
+                viewModel.onPlayerError(player.currentPosition, PlayerErrorKind.AudioOutput)
+            }
+        }
         player.addListener(listener)
+        player.addAnalyticsListener(analytics)
         player.prepare()
         player.playWhenReady = !request.startPaused
         PlaybackService.attach(context, player)
@@ -442,6 +453,7 @@ private fun PlayerContent(
         onDispose {
             onPlayerChanged(null)
             player.removeListener(listener)
+            player.removeAnalyticsListener(analytics)
             playerView.player = null
             if (isAudio && player.isPlaying) {
                 // Background audio: the service's session keeps the player alive past this screen.
@@ -450,7 +462,6 @@ private fun PlayerContent(
                 PlaybackService.stop(context)
                 engine.release()
             }
-            displayModeController.reset()
         }
     }
 

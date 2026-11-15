@@ -190,6 +190,9 @@ class PlayerActivity : ComponentActivity() {
         if (!(isAudioPlayback && player?.isPlaying == true)) {
             viewModel.onStopped(player?.takeIf { it.playbackState != Player.STATE_IDLE }?.currentPosition ?: -1L)
         }
+        // Engine rebuilds (fallbacks, output retries) keep the matched display mode — resetting
+        // here only when the activity dies would otherwise flap HDMI on every rebuild.
+        displayModeController.reset()
         super.onDestroy()
     }
 

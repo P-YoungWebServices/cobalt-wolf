@@ -25,6 +25,7 @@ import com.pyoungws.cobaltwolf.shared.syncplay.SyncPlayPlayerCommand
 import com.pyoungws.cobaltwolf.shared.syncplay.SyncPlayRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -107,6 +108,7 @@ class PlayerViewModel(
     private var stopped = false
     private var triedTranscode = false
     private var audioOutputRetries = 0
+    private var audioOutputRetryToken = 0
     private var lastPositionMs = 0L
     private var pendingStartPaused = false
     private var lastPingAt: TimeSource.Monotonic.ValueTimeMark? = null
@@ -235,12 +237,21 @@ class PlayerViewModel(
         val ready = _uiState.value as? PlayerUiState.Ready ?: return false
         val request = ready.request
         // A display-mode switch or HDMI renegotiation can kill the passthrough AudioTrack after a
-        // few frames. That is transient: retry the exact same plan once before falling back.
-        if (kind == PlayerErrorKind.AudioOutput && audioOutputRetries++ == 0) {
+        // few frames. That is transient — but the link takes a few seconds to resync, and a retry
+        // fired mid-resync dies the same way. Rebuild after a delay, a few times, before falling
+        // back; the token keeps a stale scheduled retry from overwriting a newer state.
+        if (kind == PlayerErrorKind.AudioOutput && audioOutputRetries++ < MAX_AUDIO_OUTPUT_RETRIES) {
             endCurrentReporting(positionMs)
             started = false
             stopped = false
-            _uiState.value = PlayerUiState.Ready(request.copy(startPositionMs = positionMs), ++generation)
+            val token = ++audioOutputRetryToken
+            _uiState.value = PlayerUiState.Loading
+            viewModelScope.launch {
+                delay(AUDIO_OUTPUT_RETRY_DELAY_MS)
+                if (token == audioOutputRetryToken) {
+                    _uiState.value = PlayerUiState.Ready(request.copy(startPositionMs = positionMs), ++generation)
+                }
+            }
             return true
         }
         endCurrentReporting(positionMs)
@@ -405,6 +416,8 @@ class PlayerViewModel(
     }
 
     private fun prepare(forceTranscode: Boolean, resumeAtMs: Long? = null) {
+        // A fresh prepare supersedes any scheduled audio-output retry.
+        audioOutputRetryToken++
         viewModelScope.launch {
             when (val result = repository.prepare(target, forceTranscode)) {
                 is Outcome.Success -> {
@@ -470,5 +483,7 @@ class PlayerViewModel(
 
     private companion object {
         val PING_INTERVAL = 5.seconds
+        const val MAX_AUDIO_OUTPUT_RETRIES = 3
+        const val AUDIO_OUTPUT_RETRY_DELAY_MS = 2_500L
     }
 }

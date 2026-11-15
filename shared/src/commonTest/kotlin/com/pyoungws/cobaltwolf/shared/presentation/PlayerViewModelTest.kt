@@ -181,6 +181,47 @@ class PlayerViewModelTest {
     }
 
     @Test
+    fun `an audio output error rebuilds the same plan after the output settles`() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.onPlaybackStarted(0, isPaused = false)
+
+        assertTrue(viewModel.onPlayerError(42_000, PlayerErrorKind.AudioOutput))
+        runCurrent()
+        // The rebuild waits for the HDMI link to resync — still loading, no ready state yet.
+        assertIs<PlayerUiState.Loading>(viewModel.uiState.value)
+
+        advanceUntilIdle()
+        val ready = viewModel.uiState.value as PlayerUiState.Ready
+        assertEquals(PlaybackMethod.DirectPlay, ready.request.source.method)
+        assertEquals(42_000L, ready.request.startPositionMs)
+        assertEquals(2, ready.generation)
+        // The same source is reused — no new playback-info request.
+        assertEquals(1, playback.sourceRequests.size)
+        assertEquals(listOf("start", "stopped"), playback.reports)
+    }
+
+    @Test
+    fun `repeated audio output failures give up and take the normal fallback`() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.onPlaybackStarted(0, isPaused = false)
+
+        repeat(3) {
+            assertTrue(viewModel.onPlayerError(1_000, PlayerErrorKind.AudioOutput))
+            advanceUntilIdle()
+            assertIs<PlayerUiState.Ready>(viewModel.uiState.value)
+        }
+
+        assertTrue(viewModel.onPlayerError(2_000, PlayerErrorKind.AudioOutput))
+        advanceUntilIdle()
+        val ready = viewModel.uiState.value as PlayerUiState.Ready
+        // Passthrough is abandoned: the same stream replays with local audio decoding.
+        assertEquals(DecoderChoice.Local, ready.request.plan.audio)
+        assertEquals(2_000L, ready.request.startPositionMs)
+    }
+
+    @Test
     fun `changing the bitrate re-requests the source and resumes in place`() = runTest {
         val viewModel = viewModel()
         advanceUntilIdle()
