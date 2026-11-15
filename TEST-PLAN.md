@@ -115,6 +115,7 @@ Status legend: ⬜ pending · ✅ pass · ❌ fail · ⚠️ partial/note
 | L1 | Sign out returns to login flow | ✅ | confirm dialog → "Who's watching" picker |
 | L2 | Relaunch re-seeds (debug) and lands on home | ✅ | force-stop+launch resumed last session (Poppy) to home |
 | L3 | BACK from Home exits cleanly | ✅ | exits to Fire TV launcher |
+| L4 | Subtitle default = forced English or off | ✅ | Dashboard → Playback settings shows "Forced only" + lang "eng" after install over stored old default (resolveSubtitlePreference migration) |
 
 ## P. Phone UI (Nokia G50)
 

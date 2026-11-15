@@ -8,6 +8,10 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
 
     override fun load(): PlaybackSettings {
         val defaults = PlaybackSettings()
+        val (subtitleMode, subtitleLanguage) = resolveSubtitlePreference(
+            storedEnum(KEY_SUBTITLE_MODE),
+            preferences.getString(KEY_PREF_SUB_LANG, null),
+        )
         return PlaybackSettings(
             decoding = enum(KEY_DECODING, defaults.decoding),
             hdr = enum(KEY_HDR, defaults.hdr),
@@ -24,8 +28,8 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
             cinemaMode = preferences.getBoolean(KEY_CINEMA_MODE, defaults.cinemaMode),
             externalPlayer = preferences.getBoolean(KEY_EXTERNAL_PLAYER, defaults.externalPlayer),
             preferredAudioLanguage = preferences.getString(KEY_PREF_AUDIO_LANG, null),
-            preferredSubtitleLanguage = preferences.getString(KEY_PREF_SUB_LANG, null),
-            subtitleMode = enum(KEY_SUBTITLE_MODE, defaults.subtitleMode),
+            preferredSubtitleLanguage = subtitleLanguage,
+            subtitleMode = subtitleMode,
             passthroughAc3Eac3 = preferences.getBoolean(KEY_PT_AC3, defaults.passthroughAc3Eac3),
             passthroughDts = preferences.getBoolean(KEY_PT_DTS, defaults.passthroughDts),
             passthroughTrueHd = preferences.getBoolean(KEY_PT_TRUEHD, defaults.passthroughTrueHd),
@@ -88,7 +92,11 @@ class SharedPreferencesPlaybackSettingsStore(context: Context) : PlaybackSetting
     }
 
     private inline fun <reified T : Enum<T>> enum(key: String, default: T): T =
-        preferences.getString(key, null)?.let { name -> enumValues<T>().firstOrNull { it.name == name } } ?: default
+        storedEnum<T>(key) ?: default
+
+    /** Stored enum value, or null when the key was never written or holds an unknown name. */
+    private inline fun <reified T : Enum<T>> storedEnum(key: String): T? =
+        preferences.getString(key, null)?.let { name -> enumValues<T>().firstOrNull { it.name == name } }
 
     private companion object {
         const val KEY_DECODING = "decoding"

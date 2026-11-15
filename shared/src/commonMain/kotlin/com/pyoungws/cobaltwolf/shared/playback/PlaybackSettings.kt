@@ -79,9 +79,9 @@ data class PlaybackSettings(
     /** Preferred audio language (three-letter ISO 639-2, e.g. "eng"); null = first/primary. */
     val preferredAudioLanguage: String? = null,
     /** Preferred subtitle language (three-letter ISO 639-2); null = none/first. */
-    val preferredSubtitleLanguage: String? = null,
+    val preferredSubtitleLanguage: String? = "eng",
     /** When subtitles should be shown by default. */
-    val subtitleMode: SubtitlePlaybackMode = SubtitlePlaybackMode.Default,
+    val subtitleMode: SubtitlePlaybackMode = SubtitlePlaybackMode.Forced,
     /** Passthrough toggles per codec family; off = decode to PCM even when the receiver takes the format. */
     val passthroughAc3Eac3: Boolean = true,
     val passthroughDts: Boolean = true,
@@ -146,6 +146,24 @@ enum class SubtitlePlaybackMode {
     /** Never show subtitles. */
     None,
 }
+
+/**
+ * Effective subtitle preference for a stored settings pair. The shipped default is
+ * "forced subs in the preferred language, otherwise off" — foreign-language sections
+ * get their forced track and everything else plays clean. Installs that never touched
+ * subtitle prefs (mode unset, or the old Default mode with no language) upgrade to it;
+ * an explicit mode or language choice is kept, with English filling a missing language.
+ */
+fun resolveSubtitlePreference(
+    storedMode: SubtitlePlaybackMode?,
+    storedLanguage: String?,
+): Pair<SubtitlePlaybackMode, String> {
+    val untouched = storedMode == null || (storedMode == SubtitlePlaybackMode.Default && storedLanguage == null)
+    val mode = if (untouched || storedMode == null) SubtitlePlaybackMode.Forced else storedMode
+    return mode to (storedLanguage ?: DEFAULT_SUBTITLE_LANGUAGE)
+}
+
+private const val DEFAULT_SUBTITLE_LANGUAGE = "eng"
 
 /** Persists [PlaybackSettings]. */
 interface PlaybackSettingsStore {
